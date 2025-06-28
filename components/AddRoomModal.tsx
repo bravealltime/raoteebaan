@@ -39,9 +39,9 @@ export default function AddRoomModal({ isOpen, onClose, onAdd }: AddRoomModalPro
       service,
       overdueDays,
     });
-    setId(""); 
-    setTenantName(""); 
-    setArea(0); 
+    setId("");
+    setTenantName("");
+    setArea(0);
     setLatestTotal(0);
     setElectricity(0);
     setRent(0);
