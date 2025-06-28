@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon } from "@chakra-ui/react";
 import { db } from "../../lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
 import { FaFileInvoice, FaArrowLeft, FaDownload } from "react-icons/fa";
 import Script from "next/script";
 import AppHeader from "../../components/AppHeader";
@@ -44,31 +44,56 @@ export default function BillDetail() {
     const fetchBill = async () => {
       setLoading(true);
       try {
-        // ตัวอย่าง: ดึงข้อมูลจาก Firestore (สมมุติว่าเก็บบิลไว้ที่ rooms/{roomId})
-        const docRef = doc(db, "rooms", String(roomId));
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const d = docSnap.data();
-          setBill({
-            date: d.billDate || mockBill.date,
-            dueDate: d.dueDate || mockBill.dueDate,
-            room: d.id || roomId,
+        console.log('[DEBUG] roomId:', roomId);
+        const q = query(
+          collection(db, "bills"),
+          where("roomId", "==", String(roomId)),
+          orderBy("createdAt", "desc"),
+          limit(1)
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const d = snap.docs[0].data();
+          console.log('[DEBUG] bill doc from Firestore:', d);
+          const items = [
+            { label: "ค่าไฟฟ้า", value: d.electricityTotal || 0 },
+            { label: "ค่าน้ำ", value: d.waterTotal || 0 },
+            { label: "ค่าเช่า", value: d.rent || 0 },
+            { label: "ค่าบริการ", value: d.service || 0 },
+            ...(Array.isArray(d.extraServices)
+              ? d.extraServices.map((svc: any) => ({ label: svc.label || "ค่าบริการเสริม", value: svc.value || 0 }))
+              : [])
+          ];
+          const total = items.reduce((sum, i) => sum + Number(i.value), 0);
+          console.log('[DEBUG] mapped bill for setBill:', {
+            date: d.date,
+            dueDate: d.dueDate,
+            room: d.roomId,
             tenant: d.tenantName || "-",
-            total: d.latestTotal || 0,
-            items: [
-              { label: "ค่าไฟฟ้า", value: d.electricity || 0 },
-              { label: "ค่าน้ำ", value: d.water || 0 },
-              { label: "ค่าเช่า", value: d.rent || 0 },
-              { label: "ค่าที่จอดรถ", value: d.parking || 0 },
-              { label: "ค่าเน็ต", value: d.internet || 0 },
-            ],
+            total,
+            items,
             promptpay: d.promptpay || promptpay,
+            rent: d.rent || 0,
+            service: d.service || 0,
+            extraServices: d.extraServices || [],
+          });
+          setBill({
+            date: d.date,
+            dueDate: d.dueDate,
+            room: d.roomId,
+            tenant: d.tenantName || "-",
+            total,
+            items,
+            promptpay: d.promptpay || promptpay,
+            rent: d.rent || 0,
+            service: d.service || 0,
+            extraServices: d.extraServices || [],
           });
         } else {
-          setBill({ ...mockBill, promptpay });
+          setBill(null);
         }
-      } catch {
-        setBill({ ...mockBill, promptpay });
+      } catch (err) {
+        setBill(null);
       } finally {
         setLoading(false);
       }
@@ -237,10 +262,33 @@ export default function BillDetail() {
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {bill.items.map((item: any, idx: number) => (
-                      <Tr key={idx}>
-                        <Td fontSize={["xs", "sm"]}>{item.label}</Td>
-                        <Td isNumeric fontSize={["xs", "sm"]}>{item.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Td>
+                    {/* ค่าไฟฟ้า */}
+                    <Tr>
+                      <Td fontSize={["xs", "sm"]}>ค่าไฟฟ้า</Td>
+                      <Td isNumeric fontSize={["xs", "sm"]}>{(bill.rent !== undefined ? bill.items[0]?.value : 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</Td>
+                    </Tr>
+                    {/* ค่าน้ำ */}
+                    <Tr>
+                      <Td fontSize={["xs", "sm"]}>ค่าน้ำ</Td>
+                      <Td isNumeric fontSize={["xs", "sm"]}>{(bill.rent !== undefined ? bill.items[1]?.value : 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</Td>
+                    </Tr>
+                    {/* ค่าเช่า */}
+                    <Tr>
+                      <Td fontSize={["xs", "sm"]}>ค่าเช่า</Td>
+                      <Td isNumeric fontSize={["xs", "sm"]}>{bill.rent?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Td>
+                    </Tr>
+                    {/* ค่าบริการ (รวม addon) */}
+                    <Tr>
+                      <Td fontSize={["xs", "sm"]}>ค่าบริการ</Td>
+                      <Td isNumeric fontSize={["xs", "sm"]}>{Array.isArray(bill.extraServices)
+                        ? bill.extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })
+                        : "0.00"}</Td>
+                    </Tr>
+                    {/* extraServices แยกรายการ */}
+                    {Array.isArray(bill.extraServices) && bill.extraServices.map((svc: any, idx: number) => (
+                      <Tr key={"extra-"+idx}>
+                        <Td fontSize={["xs", "sm"]}>{svc.label || "ค่าบริการเสริม"}</Td>
+                        <Td isNumeric fontSize={["xs", "sm"]}>{svc.value?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Td>
                       </Tr>
                     ))}
                     <Tr fontWeight="bold">

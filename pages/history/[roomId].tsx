@@ -3,37 +3,170 @@ import { useEffect, useState } from "react";
 import {
   Box, Heading, Text, Flex, Button, Input, Table, Thead, Tbody, Tr, Th, Td, Icon, InputGroup, InputLeftElement, Stack, useToast, useBreakpointValue
 } from "@chakra-ui/react";
-import { FaArrowLeft, FaCalculator, FaBolt, FaTint } from "react-icons/fa";
+import { FaArrowLeft, FaCalculator, FaBolt, FaTint, FaTrash } from "react-icons/fa";
 import AppHeader from "../../components/AppHeader";
-
-const mockHistory = [
-  {
-    date: "25/12/2024",
-    electricityUnit: 345,
-    electricityRate: 4.5,
-    electricityTotal: 1552.5,
-    waterUnit: "-",
-    waterRate: 15.5,
-    waterTotal: 0,
-  },
-];
+import { db } from "../../lib/firebase";
+import { collection, addDoc, query, where, orderBy, limit, getDocs, deleteDoc, doc, getDoc, setDoc } from "firebase/firestore";
 
 export default function HistoryRoom() {
   const router = useRouter();
   const { roomId } = router.query;
   const [electricity, setElectricity] = useState({ date: '', dueDate: '', meter: '', prev: '', unit: '', total: '', rate: '0' });
   const [water, setWater] = useState({ meter: '', prev: '', unit: '', total: '', rate: '0' });
-  const [history, setHistory] = useState<any[]>(mockHistory);
+  const [history, setHistory] = useState<any[]>([]);
+  const [roomData, setRoomData] = useState<any>(null);
   const toast = useToast();
   const isMobile = useBreakpointValue({ base: true, md: false });
 
-  // TODO: ดึงข้อมูลจริงจาก Firestore ตาม roomId
+  // โหลดข้อมูลห้องจาก Firestore
+  useEffect(() => {
+    if (!roomId) return;
+    const fetchRoomData = async () => {
+      try {
+        const roomDoc = await getDoc(doc(db, "rooms", String(roomId)));
+        if (roomDoc.exists()) {
+          const data = roomDoc.data();
+          setRoomData(data);
+        }
+      } catch (error) {
+        console.error("Error fetching room data:", error);
+      }
+    };
+    fetchRoomData();
+  }, [roomId]);
+
+  // โหลดประวัติจาก Firestore ทุกครั้งที่ roomId เปลี่ยน
+  useEffect(() => {
+    if (!roomId) return;
+    const fetchHistory = async () => {
+      const q = query(
+        collection(db, "bills"),
+        where("roomId", "==", String(roomId)),
+        orderBy("createdAt", "desc")
+      );
+      const snap = await getDocs(q);
+      const newHistory = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setHistory(newHistory);
+    };
+    fetchHistory();
+  }, [roomId]);
+
+  // ตั้งค่า default จากประวัติล่าสุด (ค่ามิเตอร์ครั้งก่อน)
+  useEffect(() => {
+    if (history.length > 0) {
+      setElectricity(e => ({ ...e, prev: String(history[0].electricityMeterCurrent || 0) }));
+      setWater(w => ({ ...w, prev: String(history[0].waterMeterCurrent || 0) }));
+    } else {
+      setElectricity(e => ({ ...e, prev: '0' }));
+      setWater(w => ({ ...w, prev: '0' }));
+    }
+  }, [history]);
+
+  // ตั้งค่า rate จากประวัติล่าสุดหรือค่า default
+  useEffect(() => {
+    if (history.length > 0) {
+      // ใช้ rate จากประวัติล่าสุด
+      setElectricity(e => ({ 
+        ...e, 
+        rate: String(history[0].electricityRate || 4.5)
+      }));
+      setWater(w => ({ 
+        ...w, 
+        rate: String(history[0].waterRate || 15.5)
+      }));
+    } else {
+      // ใช้ค่า default ถ้าไม่มีประวัติ
+      setElectricity(e => ({ ...e, rate: '4.5' }));
+      setWater(w => ({ ...w, rate: '15.5' }));
+    }
+  }, [history]);
 
   const handleCalcElectricity = () => {
     toast({ title: "คำนวณค่าไฟ (mockup)", status: "info" });
   };
   const handleCalcWater = () => {
     toast({ title: "คำนวณค่าน้ำ (mockup)", status: "info" });
+  };
+
+  const handleSaveData = async () => {
+    if (!roomId) return;
+    // Validation: ต้องกรอกทุกช่อง
+    if (
+      !electricity.date ||
+      !electricity.dueDate ||
+      !electricity.meter ||
+      !electricity.rate ||
+      !water.meter ||
+      !water.rate
+    ) {
+      toast({ title: "กรุณากรอกข้อมูลให้ครบทุกช่อง", status: "warning" });
+      return;
+    }
+    try {
+      // ดึงข้อมูลห้องล่าสุดจาก Firestore ก่อนบันทึกบิล
+      const roomDoc = await getDoc(doc(db, "rooms", String(roomId)));
+      let latestRoomData = roomData;
+      if (roomDoc.exists()) {
+        latestRoomData = roomDoc.data();
+      }
+      // ใช้เลขมิเตอร์ล่าสุดจากประวัติ (history[0])
+      const prevElec = history[0]?.electricityMeterCurrent || 0;
+      const prevWater = history[0]?.waterMeterCurrent || 0;
+      const electricityUnit = Number(electricity.meter) - Number(prevElec);
+      const electricityRate = Number(electricity.rate);
+      const electricityTotal = electricityUnit * electricityRate;
+      const waterUnit = Number(water.meter) - Number(prevWater);
+      const waterRate = Number(water.rate);
+      const waterTotal = waterUnit * waterRate;
+      // เตรียมข้อมูล
+      const billData = {
+        roomId: String(roomId),
+        date: electricity.date,
+        dueDate: electricity.dueDate,
+        electricityMeterCurrent: Number(electricity.meter),
+        electricityMeterPrev: prevElec,
+        electricityRate,
+        electricityUnit,
+        electricityTotal,
+        waterMeterCurrent: Number(water.meter),
+        waterMeterPrev: prevWater,
+        waterRate,
+        waterUnit,
+        waterTotal,
+        createdAt: new Date(),
+        // sync field สำคัญจากห้อง
+        rent: latestRoomData?.rent || 0,
+        service: latestRoomData?.service || 0,
+        extraServices: latestRoomData?.extraServices || [],
+        tenantName: latestRoomData?.tenantName || '-',
+      };
+      await addDoc(collection(db, "bills"), billData);
+      // อัปเดต latestBill ใน rooms
+      await setDoc(doc(db, "rooms", String(roomId)), { latestBill: billData }, { merge: true });
+      toast({ title: "บันทึกข้อมูลสำเร็จ", status: "success" });
+      // โหลดประวัติใหม่
+      const q = query(collection(db, "bills"), where("roomId", "==", String(roomId)), orderBy("createdAt", "desc"), limit(10));
+      const snap = await getDocs(q);
+      const newHistory = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setHistory(newHistory);
+    } catch (e) {
+      toast({ title: "บันทึกข้อมูลไม่สำเร็จ", status: "error" });
+    }
+  };
+
+  const handleDeleteBill = async (billId: string) => {
+    try {
+      await deleteDoc(doc(db, "bills", billId));
+      toast({ title: "ลบข้อมูลสำเร็จ", status: "success" });
+      // โหลดประวัติใหม่
+      if (!roomId) return;
+      const q = query(collection(db, "bills"), where("roomId", "==", String(roomId)), orderBy("createdAt", "desc"), limit(10));
+      const snap = await getDocs(q);
+      const newHistory = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setHistory(newHistory);
+    } catch (e) {
+      toast({ title: "ลบข้อมูลไม่สำเร็จ", status: "error" });
+    }
   };
 
   const user = {
@@ -50,6 +183,33 @@ export default function HistoryRoom() {
           <Button leftIcon={<FaArrowLeft />} variant="ghost" colorScheme="blue" onClick={() => router.push("/dashboard")}>กลับหน้าหลัก</Button>
           <Heading fontWeight="bold" fontSize={["xl", "2xl"]} color="blue.700" ml={4}>ประวัติค่าไฟ - ห้อง {roomId}</Heading>
         </Flex>
+        
+        {/* แสดงข้อมูลห้อง */}
+        {roomData && (
+          <Box bg="white" borderRadius="2xl" boxShadow="0 2px 16px 0 rgba(33,150,243,0.10)" p={[4, 6]} mb={6}>
+            <Text fontWeight="bold" fontSize="lg" color="blue.700" mb={3}>ข้อมูลห้อง</Text>
+            <Flex gap={6} flexWrap="wrap">
+              <Box>
+                <Text color="gray.600" fontSize="sm">ชื่อผู้เช่า</Text>
+                <Text fontWeight="semibold" color="gray.800">{roomData.tenantName || '-'}</Text>
+              </Box>
+              <Box>
+                <Text color="gray.600" fontSize="sm">ขนาดห้อง</Text>
+                <Text fontWeight="semibold" color="gray.800">{roomData.area || 0} ตร.ม.</Text>
+              </Box>
+              <Box>
+                <Text color="gray.600" fontSize="sm">สถานะ</Text>
+                <Text fontWeight="semibold" color={roomData.status === 'occupied' ? 'green.600' : 'gray.600'}>
+                  {roomData.status === 'occupied' ? 'มีคนอยู่' : 'ว่าง'}
+                </Text>
+              </Box>
+              <Box>
+                <Text color="gray.600" fontSize="sm">ค่าเช่า</Text>
+                <Text fontWeight="semibold" color="gray.800">฿{roomData.rent?.toLocaleString() || 0}</Text>
+              </Box>
+            </Flex>
+          </Box>
+        )}
         <Flex gap={6} flexWrap="wrap" mb={8}>
           {/* Card: บันทึกค่าไฟฟ้า */}
           <Box flex={1} minW="320px" bg="white" borderRadius="2xl" boxShadow="0 2px 16px 0 rgba(33,150,243,0.10)" p={[4, 6]}>
@@ -77,6 +237,16 @@ export default function HistoryRoom() {
             <Box mb={3}>
               <Text mb={1} color="gray.600">ค่ามิเตอร์ครั้งก่อน</Text>
               <Input value={electricity.prev} isReadOnly size="lg" bg="gray.100" color="gray.500" />
+              <Text fontSize="xs" color="gray.400" mt={1}>
+                {roomData ? 'จากข้อมูลห้อง' : history.length > 0 ? 'จากประวัติล่าสุด' : 'ไม่มีข้อมูล'}
+              </Text>
+            </Box>
+            <Box mb={3}>
+              <Text mb={1} color="gray.600">เรทค่าไฟ (บาท/หน่วย)</Text>
+              <Input placeholder="เช่น 4.5" value={electricity.rate} onChange={e => setElectricity({ ...electricity, rate: e.target.value })} size="lg" bg="gray.50" type="number" min="0" step="0.01" />
+              <Text fontSize="xs" color="gray.400" mt={1}>
+                {history.length > 0 ? 'จากประวัติล่าสุด' : 'ค่าเริ่มต้น'}
+              </Text>
             </Box>
           </Box>
           {/* Card: บันทึกค่าน้ำ */}
@@ -95,12 +265,22 @@ export default function HistoryRoom() {
             <Box mb={3}>
               <Text mb={1} color="gray.600">ค่ามิเตอร์น้ำครั้งก่อน</Text>
               <Input value={water.prev} isReadOnly size="lg" bg="gray.100" color="gray.500" />
+              <Text fontSize="xs" color="gray.400" mt={1}>
+                {roomData ? 'จากข้อมูลห้อง' : history.length > 0 ? 'จากประวัติล่าสุด' : 'ไม่มีข้อมูล'}
+              </Text>
+            </Box>
+            <Box mb={3}>
+              <Text mb={1} color="gray.600">เรทค่าน้ำ (บาท/หน่วย)</Text>
+              <Input placeholder="เช่น 15.5" value={water.rate} onChange={e => setWater({ ...water, rate: e.target.value })} size="lg" bg="gray.50" type="number" min="0" step="0.01" />
+              <Text fontSize="xs" color="gray.400" mt={1}>
+                {history.length > 0 ? 'จากประวัติล่าสุด' : 'ค่าเริ่มต้น'}
+              </Text>
             </Box>
           </Box>
         </Flex>
         {/* ปุ่มบันทึกข้อมูลรวม */}
         <Flex justify="flex-end" mb={8}>
-          <Button leftIcon={<FaCalculator />} colorScheme="blue" size="lg" borderRadius="xl" px={8} onClick={() => { handleCalcElectricity(); handleCalcWater(); }}>
+          <Button leftIcon={<FaCalculator />} colorScheme="blue" size="lg" borderRadius="xl" px={8} onClick={handleSaveData}>
             บันทึกข้อมูล
           </Button>
         </Flex>
@@ -117,18 +297,32 @@ export default function HistoryRoom() {
                 <Th>หน่วยน้ำ</Th>
                 <Th>เรทน้ำ</Th>
                 <Th color="blue.400">ค่าน้ำห้อง</Th>
+                <Th>การดำเนินการ</Th>
               </Tr>
             </Thead>
             <Tbody>
               {history.map((item, idx) => (
-                <Tr key={idx}>
+                <Tr key={item.id || idx}>
                   <Td>{item.date}</Td>
                   <Td color="orange.400">{item.electricityUnit}</Td>
-                  <Td>{item.electricityRate}</Td>
-                  <Td color="green.400">{item.electricityTotal}</Td>
+                  <Td>{item.electricityRate ? item.electricityRate : '-'}</Td>
+                  <Td color="green.400">
+                    {typeof item.electricityTotal === 'number'
+                      ? item.electricityTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                      : '-'}
+                  </Td>
                   <Td>{item.waterUnit}</Td>
-                  <Td>{item.waterRate}</Td>
-                  <Td color="blue.400">{item.waterTotal}</Td>
+                  <Td>{item.waterRate ? item.waterRate : '-'}</Td>
+                  <Td color="blue.400">
+                    {typeof item.waterTotal === 'number'
+                      ? item.waterTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                      : '-'}
+                  </Td>
+                  <Td>
+                    <Button size="sm" colorScheme="red" variant="ghost" onClick={() => handleDeleteBill(item.id)} leftIcon={<FaTrash />}>
+                      ลบ
+                    </Button>
+                  </Td>
                 </Tr>
               ))}
             </Tbody>

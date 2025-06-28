@@ -8,6 +8,7 @@ interface RoomCardProps {
   area: number;
   latestTotal: number;
   electricity: number;
+  water: number;
   rent: number;
   service: number;
   overdueDays: number;
@@ -26,7 +27,7 @@ const statusMap = {
   complete: { color: "green", label: "COMPLETE", bg: "green.100", text: "green.700" },
 };
 
-export default function RoomCard({ id, status, tenantName, area, latestTotal, electricity, rent, service, overdueDays, dueDate, billStatus = "paid", onViewBill, onAddData, onDelete, onSettings }: RoomCardProps) {
+export default function RoomCard({ id, status, tenantName, area, latestTotal, electricity, water, rent, service, overdueDays, dueDate, billStatus = "paid", onViewBill, onAddData, onDelete, onSettings }: RoomCardProps) {
   const statusInfo = statusMap[billStatus] || statusMap.paid;
   return (
     <Box
@@ -74,6 +75,7 @@ export default function RoomCard({ id, status, tenantName, area, latestTotal, el
       <Divider my={1} borderColor="gray.100" />
       <Flex align="center" gap={2} mb={1} zIndex={1} justify="space-between">
         <Tooltip label="ค่าไฟฟ้า" fontSize="xs"><Text color="gray.500" fontSize="xs">ไฟ: ฿{electricity.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text></Tooltip>
+        <Tooltip label="ค่าน้ำ" fontSize="xs"><Text color="gray.500" fontSize="xs">น้ำ: ฿{water.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text></Tooltip>
         <Tooltip label="ค่าเช่า" fontSize="xs"><Text color="gray.500" fontSize="xs">เช่า: ฿{rent.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text></Tooltip>
         <Tooltip label="ค่าบริการ" fontSize="xs"><Text color="gray.500" fontSize="xs">บริการ: ฿{service.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text></Tooltip>
       </Flex>

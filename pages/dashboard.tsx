@@ -1,14 +1,15 @@
 import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db } from "../lib/firebase";
-import { collection, getDocs, deleteDoc, doc, setDoc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit } from "firebase/firestore";
 import RoomCard from "../components/RoomCard";
 import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
 import AppHeader from "../components/AppHeader";
-import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload } from "react-icons/fa";
+import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt } from "react-icons/fa";
 import { saveAs } from "file-saver";
 import Papa from "papaparse";
+import EditRoomModal from "../components/EditRoomModal";
 
 interface Room {
   id: string;
@@ -17,6 +18,7 @@ interface Room {
   area: number;
   latestTotal: number;
   electricity: number;
+  water: number;
   rent: number;
   service: number;
   overdueDays: number;
@@ -75,6 +77,11 @@ export default function Dashboard() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<any[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [editRoom, setEditRoom] = useState<Room | null>(null);
+  const [isAddAllOpen, setIsAddAllOpen] = useState(false);
+  const [lastWaterMeter, setLastWaterMeter] = useState<number | undefined>(undefined);
+  const [lastElecMeter, setLastElecMeter] = useState<number | undefined>(undefined);
+  const [roomBills, setRoomBills] = useState<Record<string, any>>({});
 
   const user = {
     name: "xxx",
@@ -96,6 +103,7 @@ export default function Dashboard() {
             area: d.area || 0,
             latestTotal: d.latestTotal || 0,
             electricity: d.electricity || 0,
+            water: d.water || 0,
             rent: d.rent || 0,
             service: d.service || 0,
             overdueDays: d.overdueDays || 0,
@@ -111,6 +119,35 @@ export default function Dashboard() {
     };
     fetchRooms();
   }, [toast]);
+
+  useEffect(() => {
+    async function fetchAllBills() {
+      const bills: Record<string, any> = {};
+      for (const room of rooms) {
+        const q = query(
+          collection(db, "bills"),
+          where("roomId", "==", room.id),
+          orderBy("createdAt", "desc"),
+          limit(1)
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const bill = snap.docs[0].data();
+          let total = 0;
+          total += Number(bill.electricityTotal || 0);
+          total += Number(bill.waterTotal || 0);
+          total += Number(bill.rent || 0);
+          total += Number(bill.service || 0);
+          if (Array.isArray(bill.extraServices)) {
+            total += bill.extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0);
+          }
+          bills[room.id] = { ...bill, total };
+        }
+      }
+      setRoomBills(bills);
+    }
+    if (rooms.length > 0) fetchAllBills();
+  }, [rooms]);
 
   const handleDelete = async (id: string) => {
     setDeleteId(id);
@@ -131,8 +168,22 @@ export default function Dashboard() {
     }
   };
 
-  const handleAddRoom = async (room: Room) => {
+  const handleAddRoom = async (roomData: any) => {
     try {
+      // แปลงข้อมูลจาก AddRoomModal ให้ตรงกับ Room interface
+      const room: Room = {
+        id: roomData.id,
+        status: roomData.status || "occupied",
+        tenantName: roomData.tenantName,
+        area: roomData.area,
+        latestTotal: (roomData.elecTotal || 0) + (roomData.waterTotal || 0) + (roomData.rent || 0) + (roomData.service || 0),
+        electricity: roomData.elecTotal || 0,
+        water: roomData.waterTotal || 0,
+        rent: roomData.rent || 0,
+        service: roomData.service || 0,
+        overdueDays: 0,
+      };
+      
       await setDoc(doc(db, "rooms", room.id), room);
       setRooms(prev => [...prev, room]);
       toast({ title: "เพิ่มห้องใหม่สำเร็จ", status: "success" });
@@ -153,7 +204,18 @@ export default function Dashboard() {
     toast({ title: `ย้อนกลับห้อง ${id} (mockup)`, status: "info" });
   };
   const handleSettings = (id: string) => {
-    toast({ title: `ตั้งค่าห้อง ${id} (mockup)`, status: "info" });
+    const room = rooms.find(r => r.id === id);
+    if (room) setEditRoom(room);
+  };
+  const handleSaveEditRoom = async (room: Room) => {
+    try {
+      await setDoc(doc(db, "rooms", room.id), room);
+      setRooms(prev => prev.map(r => r.id === room.id ? room : r));
+      toast({ title: "บันทึกข้อมูลห้องสำเร็จ", status: "success" });
+    } catch (e) {
+      toast({ title: "บันทึกข้อมูลห้องไม่สำเร็จ", status: "error" });
+    }
+    setEditRoom(null);
   };
 
   function handleImportCSV(e: React.ChangeEvent<HTMLInputElement>) {
@@ -204,6 +266,7 @@ export default function Dashboard() {
           area: Number(r.Area || r.area || 0),
           latestTotal: Number(r.LatestTotal || r.latestTotal || 0),
           electricity: Number(r.Electricity || r.electricity || 0),
+          water: Number(r.Water || r.water || 0),
           rent: Number(r.Rent || r.rent || 0),
           service: Number(r.Service || r.service || 0),
           overdueDays: Number(r.OverdueDays || r.overdueDays || 0),
@@ -225,6 +288,34 @@ export default function Dashboard() {
     setImportFile(null);
     setImportPreview([]);
   }
+
+  const handleAddAllData = () => {
+    toast({ title: "ฟีเจอร์เพิ่มข้อมูลห้องทั้งหมด (mockup)", description: "สำหรับบันทึกยูนิตค่าน้ำค่าไฟเดือนใหม่", status: "info" });
+    setIsAddAllOpen(false);
+  };
+
+  const fetchLastMeter = async (roomId: string) => {
+    // สมมุติว่าเก็บใน collection 'bills' โดยมี field 'roomId', 'waterMeterCurrent', 'electricityMeterCurrent', 'createdAt'
+    const billsRef = collection(db, "bills");
+    const q = query(billsRef, where("roomId", "==", roomId), orderBy("createdAt", "desc"), limit(1));
+    const snap = await getDocs(q);
+    if (!snap.empty) {
+      const data = snap.docs[0].data();
+      setLastWaterMeter(data.waterMeterCurrent ?? 0);
+      setLastElecMeter(data.electricityMeterCurrent ?? 0);
+    } else {
+      setLastWaterMeter(0);
+      setLastElecMeter(0);
+    }
+  };
+
+  const handleOpenAddRoom = async () => {
+    // ถ้าต้องการ autofill จากห้องที่เลือก ให้ใส่ roomId ที่ต้องการ
+    // ตัวอย่างนี้จะไม่ autofill ถ้าไม่มี roomId (เพิ่มห้องใหม่จริง ๆ)
+    setLastWaterMeter(undefined);
+    setLastElecMeter(undefined);
+    onOpen();
+  };
 
   return (
     <>
@@ -258,8 +349,11 @@ export default function Dashboard() {
             Employee
           </Button>
           {/* Action buttons */}
-          <Button leftIcon={<FaPlus />} colorScheme="blue" w="full" borderRadius="xl" mb={2} onClick={onOpen}>
+          <Button leftIcon={<FaPlus />} colorScheme="blue" w="full" borderRadius="xl" mb={2} onClick={handleOpenAddRoom}>
             เพิ่มห้องใหม่
+          </Button>
+          <Button leftIcon={<FaBolt />} colorScheme="orange" w="full" borderRadius="xl" mb={2} onClick={() => setIsAddAllOpen(true)}>
+            เพิ่มข้อมูลห้องทั้งหมด
           </Button>
           <Button leftIcon={<FaUpload />} colorScheme="green" w="full" borderRadius="xl" mb={2} onClick={handleExportCSV}>
             อัปโหลด CSV
@@ -276,19 +370,50 @@ export default function Dashboard() {
             <IconButton aria-label="Filter" icon={<FaFilter />} variant="ghost" />
           </Flex>
           <SimpleGrid minChildWidth="260px" spacing={0}>
-            {rooms.map(room => (
-              <RoomCard
-                key={room.id}
-                {...room}
-                onDelete={() => handleDelete(room.id)}
-                onViewBill={() => handleViewBill(room.id)}
-                onAddData={() => handleAddData(room.id)}
-                onSettings={() => handleSettings(room.id)}
-              />
-            ))}
+            {rooms.map(room => {
+              const electricity = roomBills[room.id]?.electricityTotal || room.electricity || 0;
+              const water = roomBills[room.id]?.waterTotal || room.water || 0;
+              const rent = roomBills[room.id]?.rent || room.rent || 0;
+              const extraServicesTotal = Array.isArray(roomBills[room.id]?.extraServices)
+                ? roomBills[room.id].extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0)
+                : 0;
+              const service = extraServicesTotal;
+              const latestTotal = electricity + water + rent + service;
+              console.log('[DEBUG] dashboard room:', room);
+              console.log('[DEBUG] dashboard bill:', roomBills[room.id]);
+              console.log('[DEBUG] RoomCard props:', {
+                ...room,
+                latestTotal,
+                electricity,
+                water,
+                rent,
+                service
+              });
+              return (
+                <RoomCard
+                  key={room.id}
+                  {...room}
+                  latestTotal={latestTotal}
+                  electricity={electricity}
+                  water={water}
+                  rent={rent}
+                  service={service}
+                  onDelete={() => handleDelete(room.id)}
+                  onViewBill={() => handleViewBill(room.id)}
+                  onAddData={() => handleAddData(room.id)}
+                  onSettings={() => handleSettings(room.id)}
+                />
+              );
+            })}
           </SimpleGrid>
         </Box>
-        <AddRoomModal isOpen={isOpen} onClose={onClose} onAdd={handleAddRoom} />
+        <AddRoomModal isOpen={isOpen} onClose={onClose} onAdd={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} />
+        <EditRoomModal
+          isOpen={!!editRoom}
+          onClose={() => setEditRoom(null)}
+          onSave={handleSaveEditRoom}
+          initialRoom={editRoom || rooms[0]}
+        />
         <AlertDialog
           isOpen={isDialogOpen}
           leastDestructiveRef={cancelRef}
@@ -366,6 +491,21 @@ export default function Dashboard() {
             <ModalFooter>
               <Button onClick={handleCloseImport} variant="ghost" mr={2}>ยกเลิก</Button>
               <Button colorScheme="blue" onClick={handleConfirmImport} isDisabled={!importPreview.length}>ยืนยันนำเข้า</Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+        {/* Modal หรือ Toast แจ้งเตือน (mockup) */}
+        <Modal isOpen={isAddAllOpen} onClose={() => setIsAddAllOpen(false)} isCentered>
+          <ModalOverlay />
+          <ModalContent borderRadius="2xl" p={2}>
+            <ModalHeader fontWeight="bold" color="orange.500">เพิ่มข้อมูลห้องทั้งหมด</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <Text mb={2}>ฟีเจอร์นี้สำหรับบันทึกยูนิตค่าน้ำค่าไฟเดือนใหม่ของทุกห้องในครั้งเดียว (อยู่ระหว่างพัฒนา)</Text>
+            </ModalBody>
+            <ModalFooter>
+              <Button colorScheme="orange" mr={3} onClick={handleAddAllData}>ตกลง</Button>
+              <Button onClick={() => setIsAddAllOpen(false)}>ยกเลิก</Button>
             </ModalFooter>
           </ModalContent>
         </Modal>
