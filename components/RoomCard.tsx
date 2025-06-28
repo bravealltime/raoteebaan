@@ -1,5 +1,5 @@
-import { Box, Flex, Text, Badge, Switch, HStack, Divider, IconButton, useColorModeValue, Tooltip } from "@chakra-ui/react";
-import { FaUser, FaRulerCombined, FaPlus, FaFileInvoice, FaTrash, FaCog } from "react-icons/fa";
+import { Box, Flex, Text, Badge, Button, Divider, Icon, Tooltip, IconButton } from "@chakra-ui/react";
+import { FaChevronRight, FaDoorOpen, FaPlus, FaUser, FaCalendarAlt, FaFileInvoice, FaTrash } from "react-icons/fa";
 
 interface RoomCardProps {
   id: string;
@@ -11,68 +11,97 @@ interface RoomCardProps {
   rent: number;
   service: number;
   overdueDays: number;
-  onDelete?: () => void;
+  dueDate?: string;
+  billStatus?: "paid" | "unpaid" | "pending" | "complete";
   onViewBill?: () => void;
   onAddData?: () => void;
+  onDelete?: () => void;
   onSettings?: () => void;
 }
 
-export default function RoomCard({ id, status, tenantName, area, latestTotal, electricity, rent, service, overdueDays, onDelete, onViewBill, onAddData, onSettings }: RoomCardProps) {
-  const cardBg = useColorModeValue("white", "grayBg.800");
-  const cardShadow = "0 4px 24px 0 rgba(33, 150, 243, 0.10)";
+const statusMap = {
+  paid: { color: "green", label: "PAID", bg: "green.100", text: "green.700" },
+  unpaid: { color: "red", label: "UNPAID", bg: "red.100", text: "red.700" },
+  pending: { color: "orange", label: "PENDING", bg: "orange.100", text: "orange.700" },
+  complete: { color: "green", label: "COMPLETE", bg: "green.100", text: "green.700" },
+};
+
+export default function RoomCard({ id, status, tenantName, area, latestTotal, electricity, rent, service, overdueDays, dueDate, billStatus = "paid", onViewBill, onAddData, onDelete }: RoomCardProps) {
+  const statusInfo = statusMap[billStatus] || statusMap.paid;
   return (
     <Box
-      bg={cardBg}
+      bg="white"
       borderRadius="2xl"
-      boxShadow={cardShadow}
-      p={7}
-      minW="300px"
-      maxW="340px"
-      color="gray.800"
+      border="1.5px solid #e3f2fd"
+      boxShadow="0 4px 24px 0 rgba(33,150,243,0.12)"
+      p={4}
+      minW="220px"
+      maxW="260px"
+      w="full"
+      minH="320px"
+      display="flex"
+      flexDirection="column"
+      gap={1}
+      transition="box-shadow 0.15s"
+      _hover={{ boxShadow: "0 8px 32px 0 rgba(33,150,243,0.18)" }}
       position="relative"
-      transition="transform 0.15s, box-shadow 0.15s"
-      _hover={{ transform: "translateY(-4px) scale(1.03)", boxShadow: "0 8px 32px 0 rgba(33,150,243,0.18)" }}
+      m={0}
     >
-      <Flex align="center" justify="space-between" mb={2}>
-        <Text fontWeight="bold" fontSize="2xl" color="brand.700">{id}</Text>
-        <HStack>
-          <Badge colorScheme={status === "occupied" ? "green" : "gray"} borderRadius="full" px={2} fontSize="sm">
-            {status === "occupied" ? "มีคนอยู่" : "ว่าง"}
-          </Badge>
-          <Switch colorScheme="green" isChecked={status === "occupied"} isReadOnly size="md" />
-        </HStack>
+      {onDelete && (
+        <IconButton
+          aria-label="ลบการ์ด"
+          icon={<FaTrash />}
+          size="sm"
+          colorScheme="red"
+          variant="ghost"
+          position="absolute"
+          top={2}
+          right={2}
+          zIndex={2}
+          onClick={onDelete}
+        />
+      )}
+      <Icon as={FaFileInvoice} color="blue.100" boxSize={24} position="absolute" top={-2} right={-2} zIndex={0} opacity={0.18} pointerEvents="none" />
+      <Flex align="center" gap={2} mb={1} zIndex={1}>
+        <Icon as={FaDoorOpen} color="blue.300" boxSize={5} />
+        <Text fontWeight="bold" fontSize="lg" color="blue.700">Room {id}</Text>
+        <Badge colorScheme={status === "occupied" ? "green" : "gray"} borderRadius="full" px={2} fontSize="xs" bg={status === "occupied" ? "green.100" : "gray.100"} color={status === "occupied" ? "green.700" : "gray.600"}>
+          {status === "occupied" ? "มีคนอยู่" : "ว่าง"}
+        </Badge>
       </Flex>
-      <Flex align="center" color="gray.500" fontSize="md" mb={1} gap={2}>
-        <FaUser /> <Text>{tenantName}</Text>
+      <Flex align="center" gap={2} mb={1} zIndex={1}>
+        <Icon as={FaUser} color="gray.300" boxSize={4} />
+        <Text color="gray.600" fontSize="sm" noOfLines={1}>{tenantName}</Text>
       </Flex>
-      <Flex align="center" color="gray.400" fontSize="sm" mb={2} gap={2}>
-        <FaRulerCombined /> <Text>{area} ตร.ม.</Text>
+      <Flex align="center" gap={2} mb={1} zIndex={1}>
+        <Icon as={FaCalendarAlt} color="gray.300" boxSize={4} />
+        <Text color="gray.400" fontSize="xs">ขนาด {area} ตร.ม.</Text>
+        {dueDate && <Text color="blue.400" fontSize="xs" ml={2}>ครบกำหนด: {dueDate}</Text>}
       </Flex>
-      <Divider my={2} borderColor="gray.200" />
-      <Text color="gray.500" fontSize="sm">ยอดชำระล่าสุด</Text>
-      <Text color="red.400" fontSize="2xl" fontWeight="bold" mb={2}>฿{latestTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
-      <Flex justify="space-between" color="gray.600" fontSize="sm" mb={1}>
-        <Text>ค่าไฟ</Text>
-        <Text>฿{electricity.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+      <Divider my={1} borderColor="gray.100" />
+      <Flex align="center" gap={2} mb={1} zIndex={1}>
+        <Badge bg={statusInfo.bg} color={statusInfo.text} borderRadius="full" fontSize="xs" px={2}>{statusInfo.label}</Badge>
       </Flex>
-      <Flex justify="space-between" color="gray.600" fontSize="sm" mb={1}>
-        <Text>ค่าเช่า</Text>
-        <Text>฿{rent.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+      <Box bg="blue.50" borderRadius="lg" py={2} px={2} my={1} zIndex={1} boxShadow="sm">
+        <Text color="gray.800" fontWeight="bold" fontSize="2xl" textAlign="center">฿{latestTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+      </Box>
+      <Divider my={1} borderColor="gray.100" />
+      <Flex align="center" gap={2} mb={1} zIndex={1} justify="space-between">
+        <Tooltip label="ค่าไฟฟ้า" fontSize="xs"><Text color="gray.500" fontSize="xs">ไฟ: ฿{electricity.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text></Tooltip>
+        <Tooltip label="ค่าเช่า" fontSize="xs"><Text color="gray.500" fontSize="xs">เช่า: ฿{rent.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text></Tooltip>
+        <Tooltip label="ค่าบริการ" fontSize="xs"><Text color="gray.500" fontSize="xs">บริการ: ฿{service.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text></Tooltip>
       </Flex>
-      <Flex justify="space-between" color="gray.600" fontSize="sm" mb={2}>
-        <Text>บริการเสริม</Text>
-        <Text>฿{service.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
-      </Flex>
-      <Flex align="center" fontSize="sm" color="gray.500" mb={3}>
-        <Text>กำหนดชำระ:</Text>
-        <Text ml={2} color="red.400" fontWeight="bold">เกินกำหนด {overdueDays} วัน</Text>
-      </Flex>
-      <Divider my={2} borderColor="gray.200" />
-      <Flex justify="space-between" mt={2}>
-        <Tooltip label="เพิ่มข้อมูล" hasArrow><IconButton aria-label="เพิ่มข้อมูล" icon={<FaPlus />} variant="ghost" colorScheme="blue" onClick={onAddData} size="lg" fontSize="xl" /></Tooltip>
-        <Tooltip label="ดูบิล" hasArrow><IconButton aria-label="ดูบิล" icon={<FaFileInvoice />} variant="ghost" colorScheme="blue" onClick={onViewBill} size="lg" fontSize="xl" /></Tooltip>
-        <Tooltip label="ลบ" hasArrow><IconButton aria-label="ลบ" icon={<FaTrash />} variant="ghost" colorScheme="red" onClick={onDelete} size="lg" fontSize="xl" /></Tooltip>
-        <Tooltip label="ตั้งค่า" hasArrow><IconButton aria-label="ตั้งค่า" icon={<FaCog />} variant="ghost" colorScheme="gray" onClick={onSettings} size="lg" fontSize="xl" /></Tooltip>
+      {overdueDays > 0 && (
+        <Text color="red.400" fontSize="xs" fontWeight="bold" zIndex={1}>เกินกำหนด {overdueDays} วัน</Text>
+      )}
+      <Divider my={1} borderColor="gray.100" />
+      <Flex align="center" justify="flex-end" mt="auto" gap={2} zIndex={1}>
+        <Button size="sm" colorScheme="gray" variant="outline" leftIcon={<FaPlus />} borderRadius="xl" onClick={onAddData} px={3} py={1.5} fontSize="sm">
+          เพิ่มข้อมูล
+        </Button>
+        <Button size="sm" colorScheme="blue" variant="solid" rightIcon={<FaChevronRight />} borderRadius="xl" onClick={onViewBill} px={3} py={1.5} fontSize="sm">
+          ดูรายละเอียด
+        </Button>
       </Flex>
     </Box>
   );
