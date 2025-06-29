@@ -13,7 +13,7 @@ interface RoomCardProps {
   service: number;
   overdueDays: number;
   dueDate?: string;
-  billStatus?: "paid" | "unpaid" | "pending" | "complete";
+  billStatus?: string;
   onViewBill?: () => void;
   onAddData?: () => void;
   onDelete?: () => void;

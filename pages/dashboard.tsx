@@ -1,4 +1,4 @@
-import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton } from "@chakra-ui/react";
+import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db } from "../lib/firebase";
 import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit } from "firebase/firestore";
@@ -22,6 +22,7 @@ interface Room {
   rent: number;
   service: number;
   overdueDays: number;
+  billStatus: string;
 }
 
 function generateSampleRoomsCSV() {
@@ -82,6 +83,8 @@ export default function Dashboard() {
   const [lastWaterMeter, setLastWaterMeter] = useState<number | undefined>(undefined);
   const [lastElecMeter, setLastElecMeter] = useState<number | undefined>(undefined);
   const [roomBills, setRoomBills] = useState<Record<string, any>>({});
+  const [searchRoom, setSearchRoom] = useState("");
+  const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
 
   const user = {
     name: "xxx",
@@ -107,6 +110,7 @@ export default function Dashboard() {
             rent: d.rent || 0,
             service: d.service || 0,
             overdueDays: d.overdueDays || 0,
+            billStatus: d.billStatus || "paid",
           };
         });
         setRooms(data);
@@ -182,6 +186,7 @@ export default function Dashboard() {
         rent: roomData.rent || 0,
         service: roomData.service || 0,
         overdueDays: 0,
+        billStatus: "paid",
       };
       
       await setDoc(doc(db, "rooms", room.id), room);
@@ -270,6 +275,7 @@ export default function Dashboard() {
           rent: Number(r.Rent || r.rent || 0),
           service: Number(r.Service || r.service || 0),
           overdueDays: Number(r.OverdueDays || r.overdueDays || 0),
+          billStatus: r.BillStatus || "paid",
         };
         await setDoc(doc(db, "rooms", room.id), room);
       }));
@@ -316,6 +322,18 @@ export default function Dashboard() {
     setLastElecMeter(undefined);
     onOpen();
   };
+
+  const filteredRooms = rooms.filter(room => {
+    const matchSearch = room.id.toLowerCase().includes(searchRoom.trim().toLowerCase()) ||
+      room.tenantName.toLowerCase().includes(searchRoom.trim().toLowerCase());
+    let matchFilter = true;
+    if (filterType === 'unpaid') {
+      matchFilter = room.billStatus === 'unpaid';
+    } else if (filterType === 'vacant') {
+      matchFilter = room.status === 'vacant';
+    }
+    return matchSearch && matchFilter;
+  });
 
   return (
     <>
@@ -366,11 +384,26 @@ export default function Dashboard() {
         <Box flex={1} p={[2, 4, 8]}>
           <Flex align="center" mb={6} gap={3} flexWrap="wrap">
             <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4}>Room</Text>
-            <Input placeholder="Enter room NO." maxW="220px" bg="white" borderRadius="xl" mr={2} />
-            <IconButton aria-label="Filter" icon={<FaFilter />} variant="ghost" />
+            <Input
+              placeholder="Enter room NO."
+              maxW="220px"
+              bg="white"
+              borderRadius="xl"
+              mr={2}
+              value={searchRoom}
+              onChange={e => setSearchRoom(e.target.value)}
+            />
+            <Menu>
+              <MenuButton as={IconButton} aria-label="Filter" icon={<FaFilter />} variant="outline" borderRadius="xl" />
+              <MenuList>
+                <MenuItem onClick={() => setFilterType('all')}>แสดงทั้งหมด</MenuItem>
+                <MenuItem onClick={() => setFilterType('unpaid')}>ห้องที่ยังไม่จ่าย</MenuItem>
+                <MenuItem onClick={() => setFilterType('vacant')}>ห้องว่าง</MenuItem>
+              </MenuList>
+            </Menu>
           </Flex>
           <SimpleGrid minChildWidth="260px" spacing={0}>
-            {rooms.map(room => {
+            {filteredRooms.map(room => {
               const electricity = roomBills[room.id]?.electricityTotal || room.electricity || 0;
               const water = roomBills[room.id]?.waterTotal || room.water || 0;
               const rent = roomBills[room.id]?.rent || room.rent || 0;

@@ -1,5 +1,10 @@
 import { Flex, Box, Text, Avatar, IconButton, Spacer } from "@chakra-ui/react";
 import { FaCog, FaBell } from "react-icons/fa";
+import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import { auth } from "../lib/firebase";
+import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 interface AppHeaderProps {
   user?: {
@@ -10,6 +15,26 @@ interface AppHeaderProps {
 }
 
 export default function AppHeader({ user }: AppHeaderProps) {
+  const router = useRouter();
+  const [profile, setProfile] = useState<{ name: string; avatar?: string; greeting?: string }>({ name: user?.name || "xxx", avatar: user?.avatar, greeting: user?.greeting });
+
+  useEffect(() => {
+    const u = auth.currentUser;
+    if (u) {
+      setProfile({
+        name: u.displayName || user?.name || "xxx",
+        avatar: u.photoURL || user?.avatar,
+        greeting: new Date().toLocaleString("th-TH", { dateStyle: "full", timeStyle: "short" }),
+      });
+    } else {
+      setProfile({
+        name: user?.name || "xxx",
+        avatar: user?.avatar,
+        greeting: new Date().toLocaleString("th-TH", { dateStyle: "full", timeStyle: "short" }),
+      });
+    }
+  }, [user]);
+
   return (
     <Flex
       as="header"
@@ -36,19 +61,21 @@ export default function AppHeader({ user }: AppHeaderProps) {
       <Flex align="center" gap={3}>
         <Avatar
           size="md"
-          name={user?.name || ""}
-          src={user?.avatar}
+          name={profile.name || ""}
+          src={profile.avatar}
           border="2.5px solid white"
           boxShadow="md"
           bg="blue.100"
           color="blue.700"
+          cursor="pointer"
+          onClick={() => router.push("/profile")}
         />
-        <Box textAlign="left">
+        <Box textAlign="left" cursor="pointer" onClick={() => router.push("/profile")}>
           <Text fontWeight="bold" fontSize="md" color="gray.800">
-            สวัสดีคุณ {user?.name || "xxx"}
+            สวัสดีคุณ {profile.name || "xxx"}
           </Text>
           <Text fontSize="xs" color="gray.400">
-            {user?.greeting || "อาทิตย์ 21 มิ.ย. 2568"}
+            {profile.greeting || "อาทิตย์ 21 มิ.ย. 2568"}
           </Text>
         </Box>
         <IconButton

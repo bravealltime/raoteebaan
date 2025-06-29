@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
-  Box, Heading, Text, Flex, Button, Input, Table, Thead, Tbody, Tr, Th, Td, Icon, InputGroup, InputLeftElement, Stack, useToast, useBreakpointValue
+  Box, Heading, Text, Flex, Button, Input, Table, Thead, Tbody, Tr, Th, Td, Icon, InputGroup, InputLeftElement, Stack, useToast, useBreakpointValue, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay
 } from "@chakra-ui/react";
 import { FaArrowLeft, FaCalculator, FaBolt, FaTint, FaTrash } from "react-icons/fa";
 import AppHeader from "../../components/AppHeader";
@@ -17,6 +17,8 @@ export default function HistoryRoom() {
   const [roomData, setRoomData] = useState<any>(null);
   const toast = useToast();
   const isMobile = useBreakpointValue({ base: true, md: false });
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const cancelRef = useRef<any>(null);
 
   // โหลดข้อมูลห้องจาก Firestore
   useEffect(() => {
@@ -155,8 +157,13 @@ export default function HistoryRoom() {
   };
 
   const handleDeleteBill = async (billId: string) => {
+    setDeleteConfirmId(billId);
+  };
+
+  const confirmDeleteBill = async () => {
+    if (!deleteConfirmId) return;
     try {
-      await deleteDoc(doc(db, "bills", billId));
+      await deleteDoc(doc(db, "bills", deleteConfirmId));
       toast({ title: "ลบข้อมูลสำเร็จ", status: "success" });
       // โหลดประวัติใหม่
       if (!roomId) return;
@@ -166,6 +173,8 @@ export default function HistoryRoom() {
       setHistory(newHistory);
     } catch (e) {
       toast({ title: "ลบข้อมูลไม่สำเร็จ", status: "error" });
+    } finally {
+      setDeleteConfirmId(null);
     }
   };
 
@@ -328,6 +337,25 @@ export default function HistoryRoom() {
             </Tbody>
           </Table>
         </Box>
+        <AlertDialog
+          isOpen={!!deleteConfirmId}
+          leastDestructiveRef={cancelRef}
+          onClose={() => setDeleteConfirmId(null)}
+        >
+          <AlertDialogOverlay />
+          <AlertDialogContent borderRadius="2xl">
+            <AlertDialogHeader fontWeight="bold">ยืนยันการลบข้อมูล</AlertDialogHeader>
+            <AlertDialogBody>คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลบิลนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={() => setDeleteConfirmId(null)}>
+                ยกเลิก
+              </Button>
+              <Button colorScheme="red" onClick={confirmDeleteBill} ml={3}>
+                ลบ
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </Box>
     </>
   );
