@@ -21,14 +21,16 @@ export default function Parcel() {
       const snap = await getDoc(doc(db, "users", u.uid));
       const userRole = snap.exists() ? snap.data().role : "user";
       setRole(userRole);
-      if (userRole !== "admin" && userRole !== "owner") {
-        router.replace("/dashboard");
+      // Allow admin, owner, and user to access this page
+      if (!["admin", "owner", "user"].includes(userRole)) {
+        router.replace("/login");
       }
     });
     return () => unsub();
   }, []);
   if (role === null) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
-  if (role !== "admin" && role !== "owner") return null;
+  // Render content for admin, owner, and user
+  if (!["admin", "owner", "user"].includes(role)) return null;
   return (
     <MainLayout role={role}>
       <Flex flex={1} align="center" justify="center" p={4}>

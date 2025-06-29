@@ -1,5 +1,5 @@
 import { Box, Flex, Text, Badge, Button, Divider, Icon, Tooltip, IconButton } from "@chakra-ui/react";
-import { FaChevronRight, FaDoorOpen, FaPlus, FaUser, FaCalendarAlt, FaFileInvoice, FaTrash, FaCog } from "react-icons/fa";
+import { FaChevronRight, FaDoorOpen, FaPlus, FaUser, FaCalendarAlt, FaFileInvoice, FaTrash, FaCog, FaUpload } from "react-icons/fa";
 
 interface RoomCardProps {
   id: string;
@@ -14,10 +14,12 @@ interface RoomCardProps {
   overdueDays: number;
   dueDate?: string;
   billStatus?: string;
+  role?: string | null;
   onViewBill?: () => void;
   onAddData?: () => void;
   onDelete?: () => void;
   onSettings?: () => void;
+  onUploadProof?: () => void;
 }
 
 const statusMap = {
@@ -27,7 +29,7 @@ const statusMap = {
   complete: { color: "green", label: "COMPLETE", bg: "green.100", text: "green.700" },
 };
 
-export default function RoomCard({ id, status, tenantName, area, latestTotal, electricity, water, rent, service, overdueDays, dueDate, billStatus = "paid", onViewBill, onAddData, onDelete, onSettings }: RoomCardProps) {
+export default function RoomCard({ id, status, tenantName, area, latestTotal, electricity, water, rent, service, overdueDays, dueDate, billStatus = "paid", role, onViewBill, onAddData, onDelete, onSettings, onUploadProof }: RoomCardProps) {
   const statusInfo = statusMap[billStatus] || statusMap.paid;
   return (
     <Box
@@ -95,57 +97,88 @@ export default function RoomCard({ id, status, tenantName, area, latestTotal, el
         px={2}
         boxShadow="sm"
       >
-        <Tooltip label="เพิ่มข้อมูลใหม่" fontSize="xs" hasArrow placement="top">
-          <IconButton
-            aria-label="เพิ่มข้อมูล"
-            icon={<FaPlus />}
-            colorScheme="teal"
-            variant="ghost"
-            borderRadius="full"
-            size="md"
-            _hover={{ bg: "teal.100", color: "teal.600", transform: "scale(1.08)" }}
-            onClick={onAddData}
-          />
-        </Tooltip>
-        <Tooltip label="ดูใบแจ้งค่าใช้จ่าย" fontSize="xs" hasArrow placement="top">
-          <IconButton
-            aria-label="ดูใบแจ้งค่าใช้จ่าย"
-            icon={<FaFileInvoice />}
-            colorScheme="blue"
-            variant="ghost"
-            borderRadius="full"
-            size="md"
-            _hover={{ bg: "blue.50", color: "blue.600", transform: "scale(1.08)" }}
-            onClick={onViewBill}
-          />
-        </Tooltip>
-        {onSettings && (
-          <Tooltip label="ตั้งค่าห้อง" fontSize="xs" hasArrow placement="top">
-            <IconButton
-              aria-label="ตั้งค่าห้อง"
-              icon={<FaCog />}
-              size="md"
-              colorScheme="gray"
-              variant="ghost"
-              borderRadius="full"
-              _hover={{ bg: "gray.200", color: "gray.700", transform: "scale(1.08)" }}
-              onClick={onSettings}
-            />
-          </Tooltip>
-        )}
-        {onDelete && (
-          <Tooltip label="ลบห้องนี้" fontSize="xs" hasArrow placement="top">
-            <IconButton
-              aria-label="ลบการ์ด"
-              icon={<FaTrash />}
-              size="md"
-              colorScheme="red"
-              variant="ghost"
-              borderRadius="full"
-              _hover={{ bg: "red.100", color: "red.600", transform: "scale(1.08)" }}
-              onClick={onDelete}
-            />
-          </Tooltip>
+        {role === 'user' ? (
+          <Flex direction="column" w="full" gap={2}>
+            <Button 
+              leftIcon={<FaUpload />} 
+              colorScheme="green" 
+              variant="solid" 
+              size="md" 
+              w="full" 
+              borderRadius="lg" 
+              boxShadow="sm"
+              _hover={{ transform: "translateY(-2px)", boxShadow: "md" }}
+              onClick={onUploadProof}
+            >
+              Upload Slip
+            </Button>
+            <Button 
+              leftIcon={<FaFileInvoice />} 
+              colorScheme="blue" 
+              variant="outline" 
+              size="sm" 
+              w="full" 
+              borderRadius="lg"
+              onClick={onViewBill}
+            >
+              View Invoice
+            </Button>
+          </Flex>
+        ) : (
+          <>
+            <Tooltip label="เพิ่มข้อมูลใหม่" fontSize="xs" hasArrow placement="top">
+              <IconButton
+                aria-label="เพิ่มข้อมูล"
+                icon={<FaPlus />}
+                colorScheme="teal"
+                variant="ghost"
+                borderRadius="full"
+                size="md"
+                _hover={{ bg: "teal.100", color: "teal.600", transform: "scale(1.08)" }}
+                onClick={onAddData}
+              />
+            </Tooltip>
+            <Tooltip label="ดูใบแจ้งค่าใช้จ่าย" fontSize="xs" hasArrow placement="top">
+              <IconButton
+                aria-label="ดูใบแจ้งค่าใช้จ่าย"
+                icon={<FaFileInvoice />}
+                colorScheme="blue"
+                variant="ghost"
+                borderRadius="full"
+                size="md"
+                _hover={{ bg: "blue.50", color: "blue.600", transform: "scale(1.08)" }}
+                onClick={onViewBill}
+              />
+            </Tooltip>
+            {onSettings && (
+              <Tooltip label="ตั้งค่าห้อง" fontSize="xs" hasArrow placement="top">
+                <IconButton
+                  aria-label="ตั้งค่าห้อง"
+                  icon={<FaCog />}
+                  size="md"
+                  colorScheme="gray"
+                  variant="ghost"
+                  borderRadius="full"
+                  _hover={{ bg: "gray.200", color: "gray.700", transform: "scale(1.08)" }}
+                  onClick={onSettings}
+                />
+              </Tooltip>
+            )}
+            {onDelete && (
+              <Tooltip label="ลบห้องนี้" fontSize="xs" hasArrow placement="top">
+                <IconButton
+                  aria-label="ลบการ์ด"
+                  icon={<FaTrash />}
+                  size="md"
+                  colorScheme="red"
+                  variant="ghost"
+                  borderRadius="full"
+                  _hover={{ bg: "red.100", color: "red.600", transform: "scale(1.08)" }}
+                  onClick={onDelete}
+                />
+              </Tooltip>
+            )}
+          </>
         )}
       </Flex>
     </Box>

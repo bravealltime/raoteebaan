@@ -134,12 +134,14 @@ export default function Rooms() {
       const snap = await getDoc(doc(db, "users", u.uid));
       const userRole = snap.exists() ? snap.data().role : "user";
       setRole(userRole);
-      if (userRole === "admin") {
-        // Admin can see all rooms, no redirect needed
-      } else if (userRole === "owner") {
-        // Owner is already on the correct page
+      if (userRole === "admin" || userRole === "owner") {
+        // Admins and Owners stay on this page to manage rooms
+      } else if (userRole === "user") {
+        // Users (tenants) are also directed to the rooms page to see their room
+        // The filtering logic will handle showing only their room
       } else {
-        router.replace("/dashboard");
+        // Redirect any other roles or unauthenticated users to login
+        router.replace("/login");
       }
     });
     return () => unsub();
@@ -156,6 +158,8 @@ export default function Rooms() {
           roomsQuery = collection(db, "rooms");
         } else if (role === 'owner') {
           roomsQuery = query(collection(db, "rooms"), where("ownerId", "==", userId));
+        } else if (role === 'user') {
+          roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", userId));
         } else {
           setRooms([]);
           setLoading(false);
@@ -727,7 +731,6 @@ export default function Rooms() {
   const closeDelete = () => router.push("/rooms", undefined, { shallow: true });
 
   if (role === null) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
-  if (role !== "admin" && role !== "owner") return null;
 
   return (
     <MainLayout role={role}>
@@ -807,6 +810,7 @@ export default function Rooms() {
               <RoomCard
                 key={room.id}
                 {...room}
+                role={role} // Pass role to RoomCard
                 latestTotal={latestTotal}
                 electricity={electricity}
                 water={water}
