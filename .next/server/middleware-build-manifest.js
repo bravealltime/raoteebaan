@@ -25,6 +25,11 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/main.js",
       "static/chunks/pages/admin-users.js"
     ],
+    "/inbox": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/inbox.js"
+    ],
     "/rooms": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
