@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { auth, db } from "../lib/firebase";
-import { collection, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
-import { Box, Flex, Heading, Text, Button, Avatar, Badge, IconButton, Input, Table, Thead, Tbody, Tr, Th, Td, Select, useToast, Spinner, Center, SimpleGrid, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, FormControl, FormLabel, Alert, AlertIcon, AlertTitle, AlertDescription, Link } from "@chakra-ui/react";
-import { FaUserShield, FaUser, FaCrown, FaUserFriends, FaEdit, FaTrash, FaBan, FaPlus, FaHome, FaFileInvoice, FaEnvelope } from "react-icons/fa";
+import { collection, getDocs, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
+import { Box, Flex, Heading, Text, Button, Avatar, Badge, IconButton, Input, Table, Thead, Tbody, Tr, Th, Td, Select, useToast, Spinner, Center, SimpleGrid, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, FormControl, FormLabel, Alert, AlertIcon, AlertTitle, AlertDescription, Link, Tooltip } from "@chakra-ui/react";
+import { FaUserShield, FaUser, FaCrown, FaUserFriends, FaEdit, FaTrash, FaBan, FaPlus, FaHome, FaFileInvoice, FaEnvelope, FaUserTag } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import Sidebar from "../components/Sidebar";
 import { onAuthStateChanged } from "firebase/auth";
@@ -24,6 +24,14 @@ export default function AdminUsers() {
   const [addLoading, setAddLoading] = useState(false);
   const [resetLink, setResetLink] = useState<string | null>(null);
   const [showResetLink, setShowResetLink] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<any | null>(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [isConfirmBanOpen, setIsConfirmBanOpen] = useState(false);
+  const [userToBan, setUserToBan] = useState<any | null>(null);
+  const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<any | null>(null);
+  const [isManagePermissionsOpen, setIsManagePermissionsOpen] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -51,19 +59,33 @@ export default function AdminUsers() {
 
   useEffect(() => {
     if (role === "admin") {
-      setLoading(true);
-      Promise.all([
+      fetchData();
+    }
+  }, [role]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [userSnap, roomSnap, billSnap] = await Promise.all([
         getDocs(collection(db, "users")),
         getDocs(collection(db, "rooms")),
         getDocs(collection(db, "bills")),
-      ]).then(([userSnap, roomSnap, billSnap]) => {
-        setUsers(userSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        setRooms(roomSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        setBills(billSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        setLoading(false);
+      ]);
+      setUsers(userSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setRooms(roomSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      setBills(billSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    } catch (error) {
+      toast({
+        title: "เกิดข้อผิดพลาดในการโหลดข้อมูล",
+        description: "ไม่สามารถดึงข้อมูลผู้ใช้ ห้อง หรือบิลได้",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
       });
+    } finally {
+      setLoading(false);
     }
-  }, [role]);
+  };
 
   const handleAddUser = async () => {
     setAddLoading(true);
@@ -95,8 +117,7 @@ export default function AdminUsers() {
         setAddForm({ name: "", email: "", role: "user", status: "active" });
         
         // Refresh users
-        const userSnap = await getDocs(collection(db, "users"));
-        setUsers(userSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        fetchData();
       } else {
         toast({ 
           title: "เพิ่มผู้ใช้ไม่สำเร็จ", 
@@ -112,6 +133,102 @@ export default function AdminUsers() {
       });
     } finally {
       setAddLoading(false);
+    }
+  };
+
+  const handleEditClick = (user: any) => {
+    setEditForm({ ...user });
+    setIsEditOpen(true);
+  };
+
+  const handleEditUser = async () => {
+    if (!editForm) return;
+    setEditLoading(true);
+    try {
+      await setDoc(doc(db, "users", editForm.id), {
+        name: editForm.name,
+        email: editForm.email,
+        role: editForm.role,
+        status: editForm.status,
+      }, { merge: true });
+      toast({
+        title: "อัปเดตผู้ใช้สำเร็จ",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      setIsEditOpen(false);
+      fetchData();
+    } catch (error) {
+      toast({
+        title: "อัปเดตผู้ใช้ไม่สำเร็จ",
+        description: "เกิดข้อผิดพลาดในการอัปเดตข้อมูลผู้ใช้",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleBanClick = (user: any) => {
+    setUserToBan(user);
+    setIsConfirmBanOpen(true);
+  };
+
+  const handleBanUser = async () => {
+    if (!userToBan) return;
+    try {
+      await setDoc(doc(db, "users", userToBan.id), { status: "inactive" }, { merge: true });
+      toast({
+        title: "ระงับผู้ใช้สำเร็จ",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      setIsConfirmBanOpen(false);
+      fetchData();
+    } catch (error) {
+      toast({
+        title: "ระงับผู้ใช้ไม่สำเร็จ",
+        description: "เกิดข้อผิดพลาดในการระงับผู้ใช้",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleDeleteClick = (user: any) => {
+    setUserToDelete(user);
+    setIsConfirmDeleteOpen(true);
+  };
+
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    try {
+      // Note: Deleting user from Firebase Authentication is not directly possible from client-side.
+      // This will only delete the user document from Firestore.
+      // A Cloud Function or server-side logic would be needed to delete from Auth.
+      await deleteDoc(doc(db, "users", userToDelete.id));
+      toast({
+        title: "ลบผู้ใช้สำเร็จ",
+        description: "ผู้ใช้ถูกลบออกจากฐานข้อมูลแล้ว (หากต้องการลบจากระบบยืนยันตัวตน ต้องทำผ่าน Firebase Console)",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      setIsConfirmDeleteOpen(false);
+      fetchData();
+    } catch (error) {
+      toast({
+        title: "ลบผู้ใช้ไม่สำเร็จ",
+        description: "เกิดข้อผิดพลาดในการลบผู้ใช้",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
     }
   };
 
@@ -176,7 +293,7 @@ export default function AdminUsers() {
             <Button leftIcon={<FaUserFriends />} colorScheme="blue" variant="solid" borderRadius="xl" fontWeight="bold" mr={2}>
               จัดการผู้ใช้
             </Button>
-            <Button colorScheme="gray" variant="ghost" borderRadius="xl" fontWeight="bold" mr={2}>
+            <Button colorScheme="gray" variant="ghost" borderRadius="xl" fontWeight="bold" mr={2} onClick={() => setIsManagePermissionsOpen(true)}>
               จัดการสิทธิ์
             </Button>
             <Button colorScheme="gray" variant="ghost" borderRadius="xl" fontWeight="bold">
@@ -196,16 +313,16 @@ export default function AdminUsers() {
             </Button>
           </Flex>
           <Box overflowX="auto">
-            <Table variant="simple" colorScheme="gray" bg="white" borderRadius="xl">
+            <Table variant="simple" colorScheme="gray" bg="white" borderRadius="xl" size="md">
               <Thead>
                 <Tr>
-                  <Th color="blue.700">รูปโปรไฟล์</Th>
-                  <Th color="blue.700">ชื่อ</Th>
-                  <Th color="blue.700">อีเมล</Th>
-                  <Th color="blue.700">สิทธิ์</Th>
-                  <Th color="blue.700">วันที่สมัคร</Th>
-                  <Th color="blue.700">สถานะ</Th>
-                  <Th color="blue.700">จัดการ</Th>
+                  <Th color="blue.700" fontSize="sm">รูปโปรไฟล์</Th>
+                  <Th color="blue.700" fontSize="sm" minW="120px">ชื่อ</Th>
+                  <Th color="blue.700" fontSize="sm">อีเมล</Th>
+                  <Th color="blue.700" fontSize="sm">สิทธิ์</Th>
+                  <Th color="blue.700" fontSize="sm">วันที่สมัคร</Th>
+                  <Th color="blue.700" fontSize="sm">สถานะ</Th>
+                  <Th color="blue.700" fontSize="sm">จัดการ</Th>
                 </Tr>
               </Thead>
               <Tbody>
@@ -215,25 +332,25 @@ export default function AdminUsers() {
                   users.filter(u => (!search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())) && (!filter || u.role === filter)).map((u, i) => (
                     <Tr key={u.id} _hover={{ bg: "blue.50" }}>
                       <Td><Avatar name={u.name} src={u.avatar} size="sm" /></Td>
-                      <Td fontWeight="bold">{u.name}</Td>
-                      <Td>{u.email}</Td>
+                      <Td fontWeight="bold" fontSize="sm">{u.name}</Td>
+                      <Td fontSize="sm">{u.email}</Td>
                       <Td>
-                        {u.role === "admin" ? <Badge colorScheme="yellow" borderRadius="full">ผู้ดูแลระบบ</Badge> :
-                          u.role === "juristic" ? <Badge colorScheme="purple" borderRadius="full">นิติ</Badge> :
-                          u.role === "technician" ? <Badge colorScheme="orange" borderRadius="full">ช่าง</Badge> :
-                          u.role === "owner" ? <Badge colorScheme="green" borderRadius="full">เจ้าของห้อง</Badge> :
-                          <Badge colorScheme="blue" borderRadius="full">ลูกบ้าน</Badge>}
+                        {u.role === "admin" ? <Badge colorScheme="yellow" borderRadius="full" fontSize="xs">ผู้ดูแลระบบ</Badge> :
+                          u.role === "juristic" ? <Badge colorScheme="purple" borderRadius="full" fontSize="xs">นิติ</Badge> :
+                          u.role === "technician" ? <Badge colorScheme="orange" borderRadius="full" fontSize="xs">ช่าง</Badge> :
+                          u.role === "owner" ? <Badge colorScheme="green" borderRadius="full" fontSize="xs">เจ้าของห้อง</Badge> :
+                          <Badge colorScheme="blue" borderRadius="full" fontSize="xs">ลูกบ้าน</Badge>}
                       </Td>
-                      <Td>{u.createdAt ? new Date(u.createdAt.seconds * 1000).toLocaleDateString("th-TH") : "-"}</Td>
+                      <Td fontSize="sm">{u.createdAt ? new Date(u.createdAt.seconds * 1000).toLocaleDateString("th-TH") : "-"}</Td>
                       <Td>
-                        <Badge colorScheme={u.status === "active" ? "green" : "gray"} borderRadius="full">
+                        <Badge colorScheme={u.status === "active" ? "green" : "gray"} borderRadius="full" fontSize="xs">
                           {u.status === "active" ? "ใช้งานได้" : "ไม่ใช้งาน"}
                         </Badge>
                       </Td>
                       <Td>
-                        <IconButton aria-label="edit" icon={<FaEdit />} colorScheme="blue" variant="ghost" borderRadius="full" mr={1} />
-                        <IconButton aria-label="ban" icon={<FaBan />} colorScheme="orange" variant="ghost" borderRadius="full" mr={1} />
-                        <IconButton aria-label="delete" icon={<FaTrash />} colorScheme="red" variant="ghost" borderRadius="full" />
+                        <IconButton aria-label="edit" icon={<FaEdit />} colorScheme="blue" variant="ghost" borderRadius="full" size="sm" mr={2} onClick={() => handleEditClick(u)} />
+                        <IconButton aria-label="ban" icon={<FaBan />} colorScheme="orange" variant="ghost" borderRadius="full" size="sm" mr={2} onClick={() => handleBanClick(u)} />
+                        <IconButton aria-label="delete" icon={<FaTrash />} colorScheme="red" variant="ghost" borderRadius="full" size="sm" onClick={() => handleDeleteClick(u)} />
                       </Td>
                     </Tr>
                   ))
@@ -250,18 +367,18 @@ export default function AdminUsers() {
         <ModalContent borderRadius="2xl" p={2}>
           <ModalHeader fontWeight="bold" color="blue.600">เพิ่มผู้ใช้ใหม่</ModalHeader>
           <ModalCloseButton />
-          <ModalBody>
-            <FormControl mb={3}>
+          <ModalBody pb={6}>
+            <FormControl mt={4}>
               <FormLabel>ชื่อ</FormLabel>
-              <Input value={addForm.name} onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))} placeholder="ชื่อผู้ใช้" />
+              <Input value={addForm.name} onChange={e => setAddForm(f => ({ ...f, name: e.target.value }))} placeholder="ชื่อผู้ใช้" borderRadius="lg" />
             </FormControl>
-            <FormControl mb={3}>
+            <FormControl mt={4}>
               <FormLabel>อีเมล</FormLabel>
-              <Input value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} placeholder="อีเมล" type="email" />
+              <Input value={addForm.email} onChange={e => setAddForm(f => ({ ...f, email: e.target.value }))} placeholder="อีเมล" type="email" borderRadius="lg" />
             </FormControl>
-            <FormControl mb={3}>
+            <FormControl mt={4}>
               <FormLabel>สิทธิ์</FormLabel>
-              <Select value={addForm.role} onChange={e => setAddForm(f => ({ ...f, role: e.target.value }))}>
+              <Select value={addForm.role} onChange={e => setAddForm(f => ({ ...f, role: e.target.value }))} borderRadius="lg">
                 <option value="admin">ผู้ดูแลระบบ</option>
                 <option value="juristic">นิติ</option>
                 <option value="technician">ช่าง</option>
@@ -269,9 +386,9 @@ export default function AdminUsers() {
                 <option value="user">ลูกบ้าน</option>
               </Select>
             </FormControl>
-            <FormControl mb={3}>
+            <FormControl mt={4}>
               <FormLabel>สถานะ</FormLabel>
-              <Select value={addForm.status} onChange={e => setAddForm(f => ({ ...f, status: e.target.value }))}>
+              <Select value={addForm.status} onChange={e => setAddForm(f => ({ ...f, status: e.target.value }))} borderRadius="lg">
                 <option value="active">ใช้งานได้</option>
                 <option value="inactive">ไม่ใช้งาน</option>
               </Select>
@@ -325,6 +442,184 @@ export default function AdminUsers() {
             <Button colorScheme="green" onClick={closeResetLinkModal} borderRadius="xl" fontWeight="bold">
               เข้าใจแล้ว
             </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Edit User Modal */}
+      <Modal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} isCentered size="md">
+        <ModalOverlay />
+        <ModalContent borderRadius="2xl" p={2}>
+          <ModalHeader fontWeight="bold" color="blue.600">แก้ไขผู้ใช้</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            {editForm && (
+              <>
+                <FormControl mt={4}>
+                  <FormLabel>ชื่อ</FormLabel>
+                  <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} placeholder="ชื่อผู้ใช้" borderRadius="lg" />
+                </FormControl>
+                <FormControl mt={4}>
+                  <FormLabel>อีเมล</FormLabel>
+                  <Input value={editForm.email} onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))} placeholder="อีเมล" type="email" isDisabled borderRadius="lg" />
+                </FormControl>
+                <FormControl mt={4}>
+                  <FormLabel>สิทธิ์</FormLabel>
+                  <Select value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))} borderRadius="lg">
+                    <option value="admin">ผู้ดูแลระบบ</option>
+                    <option value="juristic">นิติ</option>
+                    <option value="technician">ช่าง</option>
+                    <option value="owner">เจ้าของห้อง</option>
+                    <option value="user">ลูกบ้าน</option>
+                  </Select>
+                </FormControl>
+                <FormControl mt={4}>
+                  <FormLabel>สถานะ</FormLabel>
+                  <Select value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))} borderRadius="lg">
+                    <option value="active">ใช้งานได้</option>
+                    <option value="inactive">ไม่ใช้งาน</option>
+                  </Select>
+                </FormControl>
+              </>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={handleEditUser} isLoading={editLoading} borderRadius="xl" fontWeight="bold">บันทึก</Button>
+            <Button variant="ghost" onClick={() => setIsEditOpen(false)} borderRadius="xl">ยกเลิก</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Confirm Ban Modal */}
+      <Modal isOpen={isConfirmBanOpen} onClose={() => setIsConfirmBanOpen(false)} isCentered size="sm">
+        <ModalOverlay />
+        <ModalContent borderRadius="2xl" p={2}>
+          <ModalHeader fontWeight="bold" color="orange.600">ยืนยันการระงับผู้ใช้</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Alert status="warning" borderRadius="xl" mb={4}>
+              <AlertIcon />
+              คุณแน่ใจหรือไม่ว่าต้องการระงับผู้ใช้ <b>{userToBan?.name}</b>? ผู้ใช้จะไม่สามารถเข้าสู่ระบบได้
+            </Alert>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="orange" mr={3} onClick={handleBanUser} borderRadius="xl" fontWeight="bold">ระงับ</Button>
+            <Button variant="ghost" onClick={() => setIsConfirmBanOpen(false)} borderRadius="xl">ยกเลิก</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Confirm Delete Modal */}
+      <Modal isOpen={isConfirmDeleteOpen} onClose={() => setIsConfirmDeleteOpen(false)} isCentered size="sm">
+        <ModalOverlay />
+        <ModalContent borderRadius="2xl" p={2}>
+          <ModalHeader fontWeight="bold" color="red.600">ยืนยันการลบผู้ใช้</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Alert status="error" borderRadius="xl" mb={4}>
+              <AlertIcon />
+              คุณแน่ใจหรือไม่ว่าต้องการลบผู้ใช้ <b>{userToDelete?.name}</b>? การดำเนินการนี้ไม่สามารถย้อนกลับได้
+            </Alert>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="red" mr={3} onClick={handleDeleteUser} borderRadius="xl" fontWeight="bold">ลบ</Button>
+            <Button variant="ghost" onClick={() => setIsConfirmDeleteOpen(false)} borderRadius="xl">ยกเลิก</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Manage Permissions Modal */}
+      <Modal isOpen={isManagePermissionsOpen} onClose={() => setIsManagePermissionsOpen(false)} isCentered size="xl">
+        <ModalOverlay />
+        <ModalContent borderRadius="2xl" p={2}>
+          <ModalHeader fontWeight="bold" color="blue.600" display="flex" alignItems="center" gap={2}>
+            <FaUserTag /> จัดการสิทธิ์ผู้ใช้
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <Box mb={4}>
+              <Text color="gray.600" fontSize="sm">
+                คุณสามารถเปลี่ยนสิทธิ์ของผู้ใช้แต่ละคนได้ที่นี่ <br />
+                <b>โปรดระวัง:</b> การเปลี่ยนสิทธิ์จะมีผลทันที
+              </Text>
+            </Box>
+            <Table variant="simple" colorScheme="gray" bg="white" borderRadius="xl" size="md">
+              <Thead>
+                <Tr>
+                  <Th color="blue.700" fontSize="sm" minW="180px">ชื่อ</Th>
+                  <Th color="blue.700" fontSize="sm">อีเมล</Th>
+                  <Th color="blue.700" fontSize="sm">สิทธิ์ปัจจุบัน</Th>
+                  <Th color="blue.700" fontSize="sm">เปลี่ยนสิทธิ์เป็น</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {users.map((u) => (
+                  <Tr key={u.id} _hover={{ bg: "blue.50" }}>
+                    <Td fontWeight="bold" fontSize="sm" minW="180px" whiteSpace="nowrap" display="flex" alignItems="center" gap={2}>
+                      <Avatar name={u.name} src={u.avatar} size="sm" mr={2} />
+                      {u.name}
+                    </Td>
+                    <Td fontSize="sm">{u.email}</Td>
+                    <Td>
+                      <Tooltip label={
+                        u.role === "admin" ? "ผู้ดูแลระบบ" :
+                        u.role === "juristic" ? "นิติ" :
+                        u.role === "technician" ? "ช่าง" :
+                        u.role === "owner" ? "เจ้าของห้อง" : "ลูกบ้าน"
+                      } hasArrow>
+                        {u.role === "admin" ? <Badge colorScheme="yellow" borderRadius="full" fontSize="xs" px={2}>ผู้ดูแลระบบ</Badge> :
+                          u.role === "juristic" ? <Badge colorScheme="purple" borderRadius="full" fontSize="xs" px={2}>นิติ</Badge> :
+                          u.role === "technician" ? <Badge colorScheme="orange" borderRadius="full" fontSize="xs" px={2}>ช่าง</Badge> :
+                          u.role === "owner" ? <Badge colorScheme="green" borderRadius="full" fontSize="xs" px={2}>เจ้าของห้อง</Badge> :
+                          <Badge colorScheme="blue" borderRadius="full" fontSize="xs" px={2}>ลูกบ้าน</Badge>}
+                      </Tooltip>
+                    </Td>
+                    <Td>
+                      <Select
+                        value={u.role}
+                        onChange={async (e) => {
+                          try {
+                            await setDoc(doc(db, "users", u.id), { role: e.target.value }, { merge: true });
+                            toast({
+                              title: "อัปเดตสิทธิ์สำเร็จ",
+                              status: "success",
+                              duration: 3000,
+                              isClosable: true,
+                            });
+                            fetchData();
+                          } catch (error) {
+                            toast({
+                              title: "อัปเดตสิทธิ์ไม่สำเร็จ",
+                              description: "เกิดข้อผิดพลาดในการอัปเดตสิทธิ์ผู้ใช้",
+                              status: "error",
+                              duration: 5000,
+                              isClosable: true,
+                            });
+                          }
+                        }}
+                        borderRadius="lg"
+                        size="sm"
+                        bg="gray.50"
+                        fontWeight="bold"
+                        icon={<FaUserTag />}
+                        _focus={{ borderColor: "blue.400" }}
+                        _hover={{ borderColor: "blue.300" }}
+                        minW="140px"
+                      >
+                        <option value="admin">🛡️ ผู้ดูแลระบบ</option>
+                        <option value="juristic">🏢 นิติ</option>
+                        <option value="technician">🛠️ ช่าง</option>
+                        <option value="owner">🏠 เจ้าของห้อง</option>
+                        <option value="user">👤 ลูกบ้าน</option>
+                      </Select>
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={() => setIsManagePermissionsOpen(false)} borderRadius="xl" colorScheme="blue" leftIcon={<FaUserTag />}>ปิดหน้าจัดการสิทธิ์</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
