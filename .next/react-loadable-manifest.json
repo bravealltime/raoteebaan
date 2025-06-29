@@ -16,11 +16,5 @@
     "files": [
       "static/chunks/_pages-dir-browser_node_modules_html2canvas_dist_html2canvas_js.js"
     ]
-  },
-  "pages/bill/[roomId].tsx -> html2pdf.js": {
-    "id": "pages/bill/[roomId].tsx -> html2pdf.js",
-    "files": [
-      "static/chunks/_pages-dir-browser_node_modules_html2pdf_js_dist_html2pdf_js.js"
-    ]
   }
 }

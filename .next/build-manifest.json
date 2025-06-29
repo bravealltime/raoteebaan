@@ -23,15 +23,20 @@
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/bill/[roomId]": [
+    "/admin-users": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/bill/[roomId].js"
+      "static/chunks/pages/admin-users.js"
     ],
-    "/history/[roomId]": [
+    "/dashboard": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/history/[roomId].js"
+      "static/chunks/pages/dashboard.js"
+    ],
+    "/profile": [
+      "static/chunks/webpack.js",
+      "static/chunks/main.js",
+      "static/chunks/pages/profile.js"
     ],
     "/rooms": [
       "static/chunks/webpack.js",
