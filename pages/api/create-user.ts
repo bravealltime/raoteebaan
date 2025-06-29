@@ -8,7 +8,7 @@ if (!admin.apps.length) {
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\n/g, '\n'),
     }),
   });
 }
@@ -38,40 +38,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Missing name or email' });
     }
 
-    // Create user with temporary password
-    const userRecord = await admin.auth().createUser({
-      email,
-      password: Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12), // Random password
-      displayName: name,
-      emailVerified: false,
-    });
+    // Check if user already exists
+    let userRecord;
+    try {
+      userRecord = await admin.auth().getUserByEmail(email);
+    } catch (error: any) {
+      if (error.code === 'auth/user-not-found') {
+        // Create user with temporary password
+        userRecord = await admin.auth().createUser({
+          email,
+          password: Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12), // Random password
+          displayName: name,
+          emailVerified: false,
+        });
 
-    // Save user data to Firestore
-    await admin.firestore().collection('users').doc(userRecord.uid).set({
-      name,
-      email,
-      role: 'user', // Explicitly set role to 'user'
-      status: status || 'active',
-      avatar: '',
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      uid: userRecord.uid,
-    });
+        // Save user data to Firestore
+        await admin.firestore().collection('users').doc(userRecord.uid).set({
+          name,
+          email,
+          role: 'user', // Explicitly set role to 'user'
+          status: status || 'active',
+          avatar: '',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          uid: userRecord.uid,
+        });
 
-    // Generate password reset link
-    const resetLink = await admin.auth().generatePasswordResetLink(email);
+        // Generate password reset link
+        const resetLink = await admin.auth().generatePasswordResetLink(email);
 
-    // Send password reset email
-    await transporter.sendMail({
-      from: `"Your App Name" <${process.env.SMTP_USER}>`,
-      to: email,
-      subject: 'ตั้งรหัสผ่านสำหรับบัญชีใหม่ของคุณ',
-      html: `
-        <p>สวัสดีคุณ ${name},</p>
-        <p>บัญชีของคุณถูกสร้างขึ้นเรียบร้อยแล้ว กรุณาคลิกที่ลิงก์ด้านล่างเพื่อตั้งรหัสผ่านใหม่:</p>
-        <a href="${resetLink}">ตั้งรหัสผ่าน</a>
-        <p>หากคุณไม่ได้ร้องขอการสร้างบัญชีนี้ กรุณาไม่ต้องดำเนินการใดๆ</p>
-      `,
-    });
+        // Send password reset email
+        await transporter.sendMail({
+          from: `"Your App Name" <${process.env.SMTP_USER}>`,
+          to: email,
+          subject: 'ตั้งรหัสผ่านสำหรับบัญชีใหม่ของคุณ',
+          html: `
+            <p>สวัสดีคุณ ${name},</p>
+            <p>บัญชีของคุณถูกสร้างขึ้นเรียบร้อยแล้ว กรุณาคลิกที่ลิงก์ด้านล่างเพื่อตั้งรหัสผ่านใหม่:</p>
+            <a href="${resetLink}">ตั้งรหัสผ่าน</a>
+            <p>หากคุณไม่ได้ร้องขอการสร้างบัญชีนี้ กรุณาไม่ต้องดำเนินการใดๆ</p>
+          `,
+        });
+      } else {
+        throw error;
+      }
+    }
 
     res.status(200).json({ 
       success: true, 

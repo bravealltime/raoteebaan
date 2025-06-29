@@ -1,4 +1,4 @@
-import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox } from "@chakra-ui/react";
+import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox, Image } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db, auth } from "../lib/firebase";
 import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, addDoc, updateDoc } from "firebase/firestore";
@@ -16,6 +16,8 @@ import { onAuthStateChanged } from "firebase/auth";
 import Sidebar from "../components/Sidebar";
 import MainLayout from "../components/MainLayout";
 import MeterReadingModal from "../components/MeterReadingModal";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import UploadSlipModal from "../components/UploadSlipModal";
 
 interface Room {
   id: string;
@@ -33,45 +35,6 @@ interface Room {
   tenantId?: string | null;
   tenantEmail?: string | null;
   ownerId?: string;
-}
-
-function generateSampleRoomsCSV() {
-  const headers = [
-    "Room,Status,Tenant,Area,LatestTotal,Electricity,Rent,Service,OverdueDays,DueDate,BillStatus"
-  ];
-  const rows = [];
-  for (let i = 1; i <= 30; i++) {
-    const status = i % 3 === 0 ? "vacant" : "occupied";
-    const tenant = status === "occupied" ? `สมชาย ${i}` : "-";
-    const area = 28 + (i % 5) * 2;
-    const total = 5000 + i * 123;
-    const elec = 100 + i * 3;
-    const rent = 5000;
-    const service = 200 + (i % 4) * 50;
-    const overdue = i % 4 === 0 ? i : 0;
-    const dueDate = `2025-07-${(i % 28 + 1).toString().padStart(2, "0")}`;
-    const billStatus = i % 5 === 0 ? "unpaid" : i % 3 === 0 ? "pending" : "paid";
-    rows.push([
-      `Room ${100 + i}`,
-      status,
-      tenant,
-      area,
-      total,
-      elec,
-      rent,
-      service,
-      overdue,
-      dueDate,
-      billStatus
-    ].join(","));
-  }
-  return headers.concat(rows).join("\n");
-}
-
-function handleExportCSV() {
-  const csv = generateSampleRoomsCSV();
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  saveAs(blob, "rooms_sample.csv");
 }
 
 export default function Rooms() {
@@ -116,12 +79,10 @@ export default function Rooms() {
   const [role, setRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-
-  const user = {
-    name: "xxx",
-    avatar: "/avatar.png", // เปลี่ยน path ตามจริงถ้ามี
-    greeting: "อาทิตย์ 21 มิ.ย. 2568"
-  };
+  const [isUploadSlipModalOpen, setIsUploadSlipModalOpen] = useState(false);
+  const [selectedRoomForSlip, setSelectedRoomForSlip] = useState<Room | null>(null);
+  const [isSlipViewModalOpen, setIsSlipViewModalOpen] = useState(false);
+  const [currentSlipUrl, setCurrentSlipUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -134,15 +95,6 @@ export default function Rooms() {
       const snap = await getDoc(doc(db, "users", u.uid));
       const userRole = snap.exists() ? snap.data().role : "user";
       setRole(userRole);
-      if (userRole === "admin" || userRole === "owner") {
-        // Admins and Owners stay on this page to manage rooms
-      } else if (userRole === "user") {
-        // Users (tenants) are also directed to the rooms page to see their room
-        // The filtering logic will handle showing only their room
-      } else {
-        // Redirect any other roles or unauthenticated users to login
-        router.replace("/login");
-      }
     });
     return () => unsub();
   }, []);
@@ -168,7 +120,7 @@ export default function Rooms() {
 
         const roomsSnapshot = await getDocs(roomsQuery);
         const roomsData: Room[] = roomsSnapshot.docs.map(doc => {
-          const d = doc.data();
+          const d = doc.data() as Room;
           return {
             id: doc.id,
             status: d.status || "occupied",
@@ -249,7 +201,6 @@ export default function Rooms() {
   const handleAddRoom = async (roomData: any) => {
     try {
       let tenantId = null;
-      // If an email is provided, create a new user account
       if (roomData.tenantEmail) {
         const res = await fetch('/api/create-user', {
           method: 'POST',
@@ -261,7 +212,7 @@ export default function Rooms() {
           const errorData = await res.json();
           throw new Error(errorData.error || 'Failed to create user');
         }
-        tenantId = data.user.uid; // Correctly access the UID
+        tenantId = data.user.uid;
         toast({ title: "สร้างบัญชีผู้เช่าสำเร็จ", description: `รหัสผ่านถูกส่งไปที่ ${roomData.tenantEmail}`, status: "success" });
       }
 
@@ -289,18 +240,14 @@ export default function Rooms() {
     } catch (e: any) {
       toast({ title: "เพิ่มห้องใหม่ไม่สำเร็จ", description: e.message, status: "error" });
     }
-    setIsAddRoomOpen(false); // Close modal after operation
+    setIsAddRoomOpen(false);
   };
 
-  // ปุ่ม action อื่น ๆ สามารถเพิ่มฟังก์ชันได้ที่นี่
   const handleViewBill = (id: string) => {
     router.push(`/bill/${id}`);
   };
   const handleAddData = (id: string) => {
     router.push(`/history/${id}`);
-  };
-  const handleUndo = (id: string) => {
-    toast({ title: `ย้อนกลับห้อง ${id} (mockup)`, status: "info" });
   };
   const handleSettings = (id: string) => {
     const room = rooms.find(r => r.id === id);
@@ -310,7 +257,6 @@ export default function Rooms() {
     try {
       const originalRoom = rooms.find(r => r.id === editedRoom.id);
 
-      // Check if the tenant's email has been changed or added
       if (editedRoom.tenantEmail && editedRoom.tenantEmail !== originalRoom?.tenantEmail) {
         const res = await fetch('/api/create-user', {
           method: 'POST',
@@ -324,22 +270,20 @@ export default function Rooms() {
         const data = await res.json();
 
         if (!res.ok) {
-          // If user already exists, try to find the user to link them
           if (res.status === 400 && data.error.includes('อีเมลนี้มีผู้ใช้งานแล้ว')) {
              toast({ title: "ผู้เช่ามีบัญชีอยู่แล้ว", description: "กำลังเชื่อมโยงบัญชี...", status: "info" });
-             // Potentially find the user by email and link them, for now, we just notify.
           } else {
             throw new Error(data.error || 'Failed to create or link user');
           }
         } else {
-            editedRoom.tenantId = data.user.uid; // Correctly access the UID
+            editedRoom.tenantId = data.user.uid;
             toast({ title: "สร้างบัญชีผู้เช่าสำเร็จ", description: `รหัสผ่านถูกส่งไปที่ ${editedRoom.tenantEmail}`, status: "success" });
         }
       }
 
       await setDoc(doc(db, "rooms", editedRoom.id!), {
         ...editedRoom,
-      }, { merge: true }); // Use merge to avoid overwriting fields
+      }, { merge: true });
 
       setRooms(prev => prev.map(r => r.id === editedRoom.id ? { ...r, ...editedRoom } : r));
       toast({ title: "บันทึกข้อมูลห้องสำเร็จ", status: "success" });
@@ -363,7 +307,6 @@ export default function Rooms() {
       const billSnap = await getDocs(q);
       if (!billSnap.empty) {
         const lastBill = billSnap.docs[0].data();
-        console.log('Last Bill Data for room', room.id, ':', lastBill);
         readings[room.id] = {
           electricity: lastBill.electricityMeterCurrent || 0,
           water: lastBill.waterMeterCurrent || 0,
@@ -385,7 +328,7 @@ export default function Rooms() {
     const toastId = toast({
       title: "กำลังบันทึกข้อมูล...",
       status: "info",
-      duration: null, // Indefinite
+      duration: null,
       isClosable: true,
     });
 
@@ -406,7 +349,7 @@ export default function Rooms() {
         const hasNewWater = reading.water && String(reading.water).trim() !== '';
 
         if (!hasNewElec && !hasNewWater) {
-          return; // Skip if no new readings for this room
+          return;
         }
 
         const newElec = hasNewElec ? Number(reading.electricity) : prevElec;
@@ -436,7 +379,6 @@ export default function Rooms() {
           dueDate: new Date(dueDate),
           status: "unpaid",
           
-          // Align with history page structure
           electricityMeterCurrent: newElec,
           electricityMeterPrev: prevElec,
           electricityRate: rates.electricity,
@@ -478,7 +420,6 @@ export default function Rooms() {
       });
       
       if (warnings.length > 0) {
-          // Show warnings in a separate toast
           toast({
               title: "คำเตือน",
               description: warnings.join(', '),
@@ -489,7 +430,6 @@ export default function Rooms() {
       }
 
       setIsMeterReadingModalOpen(false);
-      // Refresh data to reflect the changes
       window.location.reload();
 
     } catch (error) {
@@ -503,200 +443,244 @@ export default function Rooms() {
     }
   };
 
-  function handleImportCSV(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImportFile(file);
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const importedRooms = results.data as any[];
-        setImportPreview(importedRooms);
-      },
-      error: (err) => {
-        toast({ title: "นำเข้า CSV ไม่สำเร็จ", description: err.message, status: "error" });
-      }
-    });
-    e.target.value = "";
-  }
+  const handleOpenUploadSlipModal = (room: Room) => {
+    setSelectedRoomForSlip(room);
+    setIsUploadSlipModalOpen(true);
+  };
 
-  function handleDropCSV(e: DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    setIsDragActive(false);
-    const file = e.dataTransfer.files?.[0];
-    if (!file) return;
-    setImportFile(file);
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const importedRooms = results.data as any[];
-        setImportPreview(importedRooms);
-      },
-      error: (err) => {
-        toast({ title: "นำเข้า CSV ไม่สำเร็จ", description: err.message, status: "error" });
-      }
-    });
-  }
+  const handleViewProof = async (room: Room) => {
+    const latestBillQuery = query(
+      collection(db, "bills"),
+      where("roomId", "==", room.id),
+      orderBy("createdAt", "desc"),
+      limit(1)
+    );
+    const billSnap = await getDocs(latestBillQuery);
 
-  async function handleConfirmImport() {
-    if (!importPreview.length) return;
+    if (billSnap.empty) {
+      toast({ title: "No bill found for this room.", status: "error" });
+      return;
+    }
+
+    const billData = billSnap.docs[0].data();
+    if (billData.slipUrl) {
+      setCurrentSlipUrl(billData.slipUrl);
+      setIsSlipViewModalOpen(true);
+    } else {
+      toast({ title: "No proof of payment found for this bill.", status: "error" });
+    }
+  };
+
+  const handleConfirmUploadSlip = async (file: File, amount: number) => {
+    if (!selectedRoomForSlip) return;
+
+    const toastId = toast({
+      title: "Submitting Payment...",
+      status: "info",
+      duration: null,
+      isClosable: true,
+    });
+
     try {
-      await Promise.all(importPreview.map(async (r) => {
-        const room = {
-          id: r.Room || r.room || r.id,
-          status: r.Status || r.status || "occupied",
-          tenantName: r.Tenant || r.tenantName || "-",
-          area: Number(r.Area || r.area || 0),
-          latestTotal: Number(r.LatestTotal || r.latestTotal || 0),
-          electricity: Number(r.Electricity || r.electricity || 0),
-          water: Number(r.Water || r.water || 0),
-          rent: Number(r.Rent || r.rent || 0),
-          service: Number(r.Service || r.service || 0),
-          overdueDays: Number(r.OverdueDays || r.overdueDays || 0),
-          billStatus: r.BillStatus || "paid",
-          tenantId: r.TenantId || null,
-          tenantEmail: r.TenantEmail || null,
-        };
-        await setDoc(doc(db, "rooms", room.id), room);
+      console.log("Starting handleConfirmUploadSlip...");
+      // 1. Send slip to Discord via webhook
+      const webhookUrl = process.env.NEXT_PUBLIC_DISCORD_WEBHOOK_URL;
+      if (!webhookUrl) {
+        console.error("Discord webhook URL is not configured.");
+        throw new Error("Discord webhook URL is not configured.");
+      }
+      console.log("Webhook URL found.");
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("payload_json", JSON.stringify({
+        content: `**New Payment Submitted for Room ${selectedRoomForSlip.id}**`,
+        embeds: [
+          {
+            title: "Payment Details",
+            color: 5814783, // Blue color
+            fields: [
+              { name: "Room ID", value: selectedRoomForSlip.id, inline: true },
+              { name: "Tenant Name", value: selectedRoomForSlip.tenantName, inline: true },
+              { name: "Amount Paid", value: `฿${amount.toLocaleString()}`, inline: true },
+              { name: "Bill Status", value: "Pending Review", inline: true },
+            ],
+            timestamp: new Date().toISOString(),
+          },
+        ],
       }));
-      toast({ title: `นำเข้า ${importPreview.length} ห้องสำเร็จ`, status: "success" });
-      setIsImportOpen(false);
-      setImportFile(null);
-      setImportPreview([]);
-      window.location.reload();
-    } catch (e) {
-      toast({ title: "นำเข้าข้อมูลไม่สำเร็จ", status: "error" });
-    }
-  }
 
-  function handleCloseImport() {
-    setIsImportOpen(false);
-    setImportFile(null);
-    setImportPreview([]);
-  }
-
-  const handleAddAllData = () => {
-    toast({ title: "เพิ่มข้อมูลห้องทั้งหมดสำเร็จ (mockup)", status: "success" });
-    setIsAddAllOpen(false);
-  };
-
-  const handleDownloadEquipmentAssessment = () => {
-    setIsEquipmentModalOpen(true);
-  };
-
-  const handleConfirmEquipmentDownload = async () => {
-    if (!selectedRoomForEquipment) {
-      toast({ title: "กรุณาเลือกห้อง", status: "warning" });
-      return;
-    }
-
-    const room = rooms.find(r => r.id === selectedRoomForEquipment);
-    if (!room) {
-      toast({ title: "ไม่พบข้อมูลห้อง", status: "error" });
-      return;
-    }
-
-    const selectedItems = equipmentList.filter(item => item.selected);
-    if (selectedItems.length === 0) {
-      toast({ title: "กรุณาเลือกอุปกรณ์อย่างน้อย 1 รายการ", status: "warning" });
-      return;
-    }
-
-    try {
-      const fontResponse = await fetch('/Kanit-Regular.ttf');
-      const fontBuffer = await fontResponse.arrayBuffer();
-      const fontBase64 = btoa(new Uint8Array(fontBuffer).reduce((data, byte) => data + String.fromCharCode(byte), ''));
-
-      const pdf = new jsPDF();
-      pdf.addFileToVFS('Kanit-Regular.ttf', fontBase64);
-      pdf.addFont('Kanit-Regular.ttf', 'Kanit', 'normal');
-      pdf.setFont('Kanit');
-
-      pdf.setFontSize(20);
-      pdf.setTextColor(41, 128, 185);
-      pdf.text("ใบประเมินสภาพห้องและอุปกรณ์", 105, 20, { align: "center" });
-
-      pdf.setFontSize(12);
-      pdf.setTextColor(52, 73, 94);
-      pdf.text(`หมายเลขห้อง: ${room.id}`, 20, 40);
-      pdf.text(`ผู้เช่า: ${room.tenantName || "ว่าง"}`, 20, 50);
-      pdf.text(`วันที่ประเมิน: ${new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}`, 130, 40);
-
-      const tableHeaderY = 65;
-      pdf.setFillColor(236, 240, 241);
-      pdf.rect(15, tableHeaderY, 180, 10, "F");
-      pdf.setTextColor(44, 62, 80);
-      pdf.setFontSize(10);
-      pdf.text("ลำดับ", 18, tableHeaderY + 7);
-      pdf.text("รายการอุปกรณ์", 35, tableHeaderY + 7);
-      pdf.text("สภาพ", 110, tableHeaderY + 7);
-      pdf.text("หมายเหตุ", 165, tableHeaderY + 7);
-      pdf.text("ดี", 112, tableHeaderY + 7);
-      pdf.text("พอใช้", 128, tableHeaderY + 7);
-      pdf.text("ชำรุด", 145, tableHeaderY + 7);
-
-      pdf.setTextColor(52, 73, 94);
-      pdf.setFontSize(10);
-      let tableContentY = tableHeaderY + 10;
-      selectedItems.forEach((item, index) => {
-        tableContentY += 10;
-        if (tableContentY > 260) {
-            pdf.addPage();
-            tableContentY = 20;
-        }
-        pdf.text(`${index + 1}.`, 18, tableContentY);
-        pdf.text(item.name, 35, tableContentY);
-        pdf.rect(112, tableContentY - 4, 5, 5); // Checkbox for "ดี"
-        pdf.rect(128, tableContentY - 4, 5, 5); // Checkbox for "พอใช้"
-        pdf.rect(145, tableContentY - 4, 5, 5); // Checkbox for "ชำรุด"
-        pdf.line(165, tableContentY + 1, 195, tableContentY + 1); // Line for notes
+      console.log("Sending to Discord...");
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        body: formData,
       });
 
-      const signatureY = tableContentY + 30 > 240 ? 20 : tableContentY + 30;
-      if (signatureY === 20) pdf.addPage();
-      
-      pdf.setFontSize(12);
-      pdf.setTextColor(44, 62, 80);
-      pdf.text("ลงชื่อผู้ประเมิน:", 20, signatureY);
-      pdf.text("ลงชื่อผู้เช่า:", 110, signatureY);
-      
-      pdf.setLineWidth(0.2);
-      pdf.line(20, signatureY + 15, 80, signatureY + 15);
-      pdf.line(110, signatureY + 15, 170, signatureY + 15);
-      
-      pdf.setFontSize(10);
-      pdf.text("(.................................................)", 20, signatureY + 20);
-      pdf.text("(.................................................)", 110, signatureY + 20);
-      pdf.text("วันที่: .................................", 20, signatureY + 30);
-      pdf.text("วันที่: .................................", 110, signatureY + 30);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Discord API error: ${response.statusText}, Response: ${errorText}`);
+        throw new Error(`Discord API error: ${response.statusText}`);
+      }
+      console.log("Discord response received.");
 
-      pdf.setFontSize(8);
-      pdf.setTextColor(127, 140, 141);
-      pdf.text("เอกสารฉบับนี้ใช้เพื่อยืนยันสภาพอุปกรณ์ ณ วันที่เข้าพัก โปรดตรวจสอบอย่างละเอียด", 105, 285, { align: "center" });
+      const discordResponse = await response.json();
+      const slipUrl = discordResponse.attachments?.[0]?.url;
+      console.log("Discord Response JSON:", discordResponse);
+      console.log("Extracted Slip URL:", slipUrl);
 
-      const fileName = `equipment-assessment-room-${selectedRoomForEquipment}-${new Date().toISOString().split('T')[0]}.pdf`;
-      pdf.save(fileName);
+      if (!slipUrl) {
+        throw new Error("Could not get slip URL from Discord response.");
+      }
+      console.log("Slip URL obtained.");
 
-      toast({ title: "ดาวน์โหลดใบประเมินสำเร็จ", status: "success" });
-      setIsEquipmentModalOpen(false);
-      setSelectedRoomForEquipment("");
+      // 2. Update Firestore bill status with the Discord URL
+      console.log("Querying latest bill...");
+      const latestBillQuery = query(
+        collection(db, "bills"),
+        where("roomId", "==", selectedRoomForSlip.id),
+        orderBy("createdAt", "desc"),
+        limit(1)
+      );
+      const billSnap = await getDocs(latestBillQuery);
+
+      if (billSnap.empty) {
+        console.warn("No bill found for this room. Cannot update status.");
+        throw new Error("No bill found for this room. Cannot update status.");
+      }
+      console.log("Bill found. Updating Firestore...");
+      const billDocRef = billSnap.docs[0].ref;
+      await updateDoc(billDocRef, {
+        paidAmount: amount,
+        status: "pending",
+        paidAt: new Date(),
+        slipUrl: slipUrl,
+      });
+      await updateDoc(doc(db, "rooms", selectedRoomForSlip.id), {
+        billStatus: "pending",
+      });
+      console.log("Firestore updated successfully.");
+
+      toast.update(toastId, {
+        title: "Upload Successful",
+        description: "Your payment has been submitted for review.",
+        status: "success",
+        duration: 5000,
+      });
+
+      setIsUploadSlipModalOpen(false);
+      setSelectedRoomForSlip(null);
+      window.location.reload();
 
     } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast({ title: "เกิดข้อผิดพลาดในการสร้าง PDF", description: "ไม่สามารถโหลดฟอนต์ได้", status: "error" });
+      console.error("Error submitting payment:", error);
+      toast.update(toastId, {
+        title: "Submission Failed",
+        description: "There was an error submitting your payment. Please try again.",
+        status: "error",
+        duration: 5000,
+      });
     }
   };
 
-  const fetchLastMeter = async (roomId: string) => {
-    // ... (fetch meter code as before)
+  const handleMarkAsPaid = async (roomId: string) => {
+    const toastId = toast({
+      title: "Marking as Paid...",
+      status: "info",
+      duration: null,
+      isClosable: true,
+    });
+
+    try {
+      const latestBillQuery = query(
+        collection(db, "bills"),
+        where("roomId", "==", roomId),
+        orderBy("createdAt", "desc"),
+        limit(1)
+      );
+      const billSnap = await getDocs(latestBillQuery);
+
+      if (billSnap.empty) {
+        throw new Error("No pending bill found for this room.");
+      }
+
+      const billDocRef = billSnap.docs[0].ref;
+      await updateDoc(billDocRef, {
+        status: "paid",
+      });
+
+      await updateDoc(doc(db, "rooms", roomId), {
+        billStatus: "paid",
+      });
+
+      toast.update(toastId, {
+        title: "Marked as Paid",
+        description: `Bill for Room ${roomId} has been marked as paid.`, 
+        status: "success",
+        duration: 5000,
+      });
+      window.location.reload();
+
+    } catch (error) {
+      console.error("Error marking as paid:", error);
+      toast.update(toastId, {
+        title: "Error",
+        description: "Could not mark bill as paid. Please try again.",
+        status: "error",
+        duration: 5000,
+      });
+    }
   };
 
-  const handleOpenAddRoom = async () => {
-    setLastWaterMeter(undefined);
-    setLastElecMeter(undefined);
-    onOpen();
+  const handleDeleteProof = async (roomId: string) => {
+    const toastId = toast({
+      title: "Deleting Proof...",
+      status: "info",
+      duration: null,
+      isClosable: true,
+    });
+
+    try {
+      const latestBillQuery = query(
+        collection(db, "bills"),
+        where("roomId", "==", roomId),
+        orderBy("createdAt", "desc"),
+        limit(1)
+      );
+      const billSnap = await getDocs(latestBillQuery);
+
+      if (billSnap.empty) {
+        throw new Error("No pending bill found for this room.");
+      }
+
+      const billDocRef = billSnap.docs[0].ref;
+      await updateDoc(billDocRef, {
+        status: "unpaid",
+        paidAmount: 0,
+        paidAt: null,
+        slipUrl: null,
+      });
+
+      await updateDoc(doc(db, "rooms", roomId), {
+        billStatus: "unpaid",
+      });
+
+      toast.update(toastId, {
+        title: "Proof Deleted",
+        description: `Proof for Room ${roomId} has been deleted.`, 
+        status: "success",
+        duration: 5000,
+      });
+      window.location.reload();
+
+    } catch (error) {
+      console.error("Error deleting proof:", error);
+      toast.update(toastId, {
+        title: "Error",
+        description: "Could not delete proof. Please try again.",
+        status: "error",
+        duration: 5000,
+      });
+    }
   };
 
   const filteredRooms = rooms.filter(room => {
@@ -711,26 +695,7 @@ export default function Rooms() {
     return matchSearch && matchFilter;
   });
 
-  // --- Modal open/close handlers ---
-  const openAddRoom = () => router.push("/rooms?modal=add", undefined, { shallow: true });
-  const closeAddRoom = () => router.push("/rooms", undefined, { shallow: true });
-
-  const openEditRoom = (id: string) => router.push(`/rooms?modal=edit&id=${id}`, undefined, { shallow: true });
-  const closeEditRoom = () => router.push("/rooms", undefined, { shallow: true });
-
-  const openImport = () => router.push("/rooms?modal=import", undefined, { shallow: true });
-  const closeImport = () => router.push("/rooms", undefined, { shallow: true });
-
-  const openAddAll = () => router.push("/rooms?modal=addall", undefined, { shallow: true });
-  const closeAddAll = () => router.push("/rooms", undefined, { shallow: true });
-
-  const openEquipment = () => router.push("/rooms?modal=equipment", undefined, { shallow: true });
-  const closeEquipment = () => router.push("/rooms", undefined, { shallow: true });
-
-  const openDelete = (id: string) => router.push(`/rooms?modal=delete&id=${id}`, undefined, { shallow: true });
-  const closeDelete = () => router.push("/rooms", undefined, { shallow: true });
-
-  if (role === null) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
+  if (loading) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
 
   return (
     <MainLayout role={role}>
@@ -762,7 +727,7 @@ export default function Rooms() {
                 colorScheme="purple"
                 variant="outline"
                 borderRadius="xl"
-                onClick={handleDownloadEquipmentAssessment}
+                onClick={() => {}}
               >
                 ใบประเมินอุปกรณ์
               </Button>
@@ -810,7 +775,7 @@ export default function Rooms() {
               <RoomCard
                 key={room.id}
                 {...room}
-                role={role} // Pass role to RoomCard
+                role={role}
                 latestTotal={latestTotal}
                 electricity={electricity}
                 water={water}
@@ -820,92 +785,49 @@ export default function Rooms() {
                 onViewBill={() => handleViewBill(room.id)}
                 onAddData={() => handleAddData(room.id)}
                 onSettings={() => handleSettings(room.id)}
+                onUploadProof={() => handleOpenUploadSlipModal(room)}
+                onViewProof={() => handleViewProof(room)}
+                onMarkAsPaid={() => handleMarkAsPaid(room.id)}
+                onDeleteProof={() => handleDeleteProof(room.id)}
               />
             );
           })}
         </SimpleGrid>
       </Box>
-      {/* AddRoomModal */}
-      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} userRole={role} />
-      {/* AddAll Modal (mockup) */}
-      <Modal isOpen={isAddAllOpen} onClose={() => setIsAddAllOpen(false)}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>เพิ่มข้อมูลห้องทั้งหมด</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
-          <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={() => setIsAddAllOpen(false)}>ปิด</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-      {/* Import CSV Modal (mockup) */}
-      <Modal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>นำเข้า CSV</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
-          <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={() => setIsImportOpen(false)}>ปิด</Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-      {/* Equipment Assessment Modal */}
-      <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>ดาวน์โหลดไฟล์ประเมินอุปกรณ์</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <Text mb={2} fontWeight="bold">เลือกห้อง</Text>
-            <Select
-              placeholder="เลือกห้อง"
-              value={selectedRoomForEquipment}
-              onChange={(e) => setSelectedRoomForEquipment(e.target.value)}
-              mb={4}
-            >
-              {rooms.map(room => (
-                <option key={room.id} value={room.id}>
-                  ห้อง {room.id} ({room.tenantName})
-                </option>
-              ))}
-            </Select>
-            <Text mb={2} fontWeight="bold">เลือกรายการอุปกรณ์</Text>
-            <SimpleGrid columns={2} spacing={2}>
-              {equipmentList.map((item, index) => (
-                <Checkbox 
-                  key={item.name} 
-                  isChecked={item.selected}
-                  onChange={e => {
-                    const newList = [...equipmentList];
-                    newList[index].selected = e.target.checked;
-                    setEquipmentList(newList);
-                  }}
-                >
-                  {item.name}
-                </Checkbox>
-              ))}
-            </SimpleGrid>
-          </ModalBody>
-          <ModalFooter>
-            <Button variant="ghost" mr={3} onClick={() => setIsEquipmentModalOpen(false)}>ยกเลิก</Button>
-            <Button colorScheme="blue" onClick={handleConfirmEquipmentDownload} disabled={!selectedRoomForEquipment}>
-              ดาวน์โหลด
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-      {/* EditRoomModal */}
-      {editRoom && (
-        <EditRoomModal
-          isOpen={!!editRoom}
-          initialRoom={editRoom}
-          onClose={() => setEditRoom(null)}
-          onSave={room => handleSaveEditRoom({ ...editRoom, ...room })}
+
+      {selectedRoomForSlip && (
+        <UploadSlipModal
+          isOpen={isUploadSlipModalOpen}
+          onClose={() => setIsUploadSlipModalOpen(false)}
+          onConfirm={handleConfirmUploadSlip}
+          roomName={selectedRoomForSlip.id}
         />
       )}
-      {/* Confirm Delete Dialog */}
+
+      {/* Slip View Modal */}
+      <Modal isOpen={isSlipViewModalOpen} onClose={() => setIsSlipViewModalOpen(false)} size="xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Payment Slip</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {currentSlipUrl && <Image src={currentSlipUrl} alt="Payment Slip" objectFit="contain" />}
+          </ModalBody>
+          <ModalFooter>
+            <Button onClick={() => setIsSlipViewModalOpen(false)}>Close</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} userRole={role} />
+
+      <EditRoomModal
+        isOpen={!!editRoom}
+        initialRoom={editRoom}
+        onClose={() => setEditRoom(null)}
+        onSave={room => handleSaveEditRoom({ ...editRoom, ...room })}
+      />
+
       <AlertDialog
         isOpen={isDialogOpen}
         leastDestructiveRef={cancelRef}
@@ -934,10 +856,9 @@ export default function Rooms() {
         isOpen={isMeterReadingModalOpen}
         onClose={() => setIsMeterReadingModalOpen(false)}
         onSave={handleSaveMeterReadings}
-        rooms={filteredRooms} // Use filtered rooms instead of all rooms
+        rooms={filteredRooms}
         previousReadings={previousReadings}
       />
-
     </MainLayout>
   );
-} 
+}
