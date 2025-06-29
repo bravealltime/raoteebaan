@@ -89,7 +89,6 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom }: 
       overdueDays,
       extraServices,
     });
-    onClose();
   };
 
   return (

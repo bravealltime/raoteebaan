@@ -76,18 +76,19 @@ export default function Rooms() {
   const toast = useToast();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isAddRoomOpen, setIsAddRoomOpen] = useState(false);
+  const [isAddAllOpen, setIsAddAllOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<any[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
   const [editRoom, setEditRoom] = useState<Room | null>(null);
-  const [isAddAllOpen, setIsAddAllOpen] = useState(false);
   const [lastWaterMeter, setLastWaterMeter] = useState<number | undefined>(undefined);
   const [lastElecMeter, setLastElecMeter] = useState<number | undefined>(undefined);
   const [roomBills, setRoomBills] = useState<Record<string, any>>({});
   const [searchRoom, setSearchRoom] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
-  const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
 
   const user = {
@@ -157,7 +158,7 @@ export default function Rooms() {
     if (rooms.length > 0) fetchAllBills();
   }, [rooms]);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = (id: string) => {
     setDeleteId(id);
     setIsDialogOpen(true);
   };
@@ -216,10 +217,13 @@ export default function Rooms() {
     const room = rooms.find(r => r.id === id);
     if (room) setEditRoom(room);
   };
-  const handleSaveEditRoom = async (room: Room) => {
+  const handleSaveEditRoom = async (room: Partial<Room>) => {
     try {
-      await setDoc(doc(db, "rooms", room.id), room);
-      setRooms(prev => prev.map(r => r.id === room.id ? room : r));
+      await setDoc(doc(db, "rooms", room.id!), {
+        ...room,
+        billStatus: room.billStatus || "paid"
+      });
+      setRooms(prev => prev.map(r => r.id === room.id ? { ...r, ...room } : r));
       toast({ title: "บันทึกข้อมูลห้องสำเร็จ", status: "success" });
     } catch (e) {
       toast({ title: "บันทึกข้อมูลห้องไม่สำเร็จ", status: "error" });
@@ -338,7 +342,7 @@ export default function Rooms() {
     return matchSearch && matchFilter;
   });
 
-  // --- Modal open/close handlers with URL state ---
+  // --- Modal open/close handlers ---
   const openAddRoom = () => router.push("/rooms?modal=add", undefined, { shallow: true });
   const closeAddRoom = () => router.push("/rooms", undefined, { shallow: true });
 
@@ -356,29 +360,6 @@ export default function Rooms() {
 
   const openDelete = (id: string) => router.push(`/rooms?modal=delete&id=${id}`, undefined, { shallow: true });
   const closeDelete = () => router.push("/rooms", undefined, { shallow: true });
-
-  // --- Effect: open/close modal by URL ---
-  useEffect(() => {
-    const { modal, id } = router.query;
-    if (modal === "add" && !isOpen) onOpen();
-    if (modal !== "add" && isOpen) onClose();
-    if (modal === "edit" && id && !editRoom) {
-      const room = rooms.find(r => r.id === id);
-      if (room) setEditRoom(room);
-    }
-    if (modal !== "edit" && editRoom) setEditRoom(null);
-    if (modal === "import" && !isImportOpen) setIsImportOpen(true);
-    if (modal !== "import" && isImportOpen) setIsImportOpen(false);
-    if (modal === "addall" && !isAddAllOpen) setIsAddAllOpen(true);
-    if (modal !== "addall" && isAddAllOpen) setIsAddAllOpen(false);
-    if (modal === "equipment" && !isEquipmentModalOpen) setIsEquipmentModalOpen(true);
-    if (modal !== "equipment" && isEquipmentModalOpen) setIsEquipmentModalOpen(false);
-    if (modal === "delete" && id && !isDialogOpen) {
-      setDeleteId(id as string);
-      setIsDialogOpen(true);
-    }
-    if (modal !== "delete" && isDialogOpen) setIsDialogOpen(false);
-  }, [router.query, isOpen, editRoom, isImportOpen, isAddAllOpen, isEquipmentModalOpen, isDialogOpen, rooms, onOpen, onClose]);
 
   return (
     <>
@@ -400,38 +381,38 @@ export default function Rooms() {
         >
           {/* Main menu */}
           <Link href="/dashboard" passHref legacyBehavior>
-            <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant="solid" borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start" isActive={router.pathname === "/dashboard"}>
+            <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/dashboard" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
               Dashboard
             </Button>
           </Link>
           <Link href="/rooms" passHref legacyBehavior>
-            <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant="ghost" borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start" isActive={router.pathname === "/rooms"}>
+            <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/rooms" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
               Rooms
             </Button>
           </Link>
-          <Button leftIcon={<FaInbox />} colorScheme="gray" variant="ghost" borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
+          <Button leftIcon={<FaInbox />} colorScheme="gray" variant={router.pathname === "/inbox" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
             Inbox
           </Button>
-          <Button leftIcon={<FaBox />} colorScheme="gray" variant="ghost" borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
+          <Button leftIcon={<FaBox />} colorScheme="gray" variant={router.pathname === "/parcel" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
             Parcel
           </Button>
-          <Button leftIcon={<FaUserFriends />} colorScheme="gray" variant="ghost" borderRadius="xl" mb={8} w="full" justifyContent="flex-start">
+          <Button leftIcon={<FaUserFriends />} colorScheme="gray" variant={router.pathname === "/employee" ? "solid" : "ghost"} borderRadius="xl" mb={8} w="full" justifyContent="flex-start">
             Employee
           </Button>
           {/* Action buttons */}
-          <Button leftIcon={<FaPlus />} colorScheme="blue" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'blue.500', color: 'white' }} onClick={openAddRoom}>
+          <Button leftIcon={<FaPlus />} colorScheme="blue" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'blue.500', color: 'white' }} onClick={() => setIsAddRoomOpen(true)}>
             เพิ่มห้องใหม่
           </Button>
-          <Button leftIcon={<FaBolt />} colorScheme="orange" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'orange.400', color: 'white' }} onClick={openAddAll}>
+          <Button leftIcon={<FaBolt />} colorScheme="orange" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'orange.400', color: 'white' }} onClick={() => setIsAddAllOpen(true)}>
             เพิ่มข้อมูลห้องทั้งหมด
           </Button>
           <Button leftIcon={<FaUpload />} colorScheme="green" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'green.500', color: 'white' }} onClick={handleExportCSV}>
             อัปโหลด CSV
           </Button>
-          <Button leftIcon={<FaFileCsv />} colorScheme="gray" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'gray.200', color: 'gray.700' }} onClick={openImport}>
+          <Button leftIcon={<FaFileCsv />} colorScheme="gray" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'gray.200', color: 'gray.700' }} onClick={() => setIsImportOpen(true)}>
             นำเข้า CSV
           </Button>
-          <Button leftIcon={<FaFilePdf />} colorScheme="purple" w="full" borderRadius="2xl" size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'purple.400', color: 'white' }} onClick={openEquipment}>
+          <Button leftIcon={<FaFilePdf />} colorScheme="purple" w="full" borderRadius="2xl" size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'purple.400', color: 'white' }} onClick={() => setIsEquipmentModalOpen(true)}>
             ดาวน์โหลดไฟล์ประเมินอุปกรณ์
           </Button>
         </Box>
@@ -485,7 +466,77 @@ export default function Rooms() {
             })}
           </SimpleGrid>
         </Box>
-        {/* ... (AddRoomModal, EditRoomModal, AlertDialog, Modal ต่าง ๆ เหมือนเดิม) ... */}
+        {/* AddRoomModal */}
+        <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} />
+        {/* AddAll Modal (mockup) */}
+        <Modal isOpen={isAddAllOpen} onClose={() => setIsAddAllOpen(false)}>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>เพิ่มข้อมูลห้องทั้งหมด</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
+            <ModalFooter>
+              <Button colorScheme="blue" mr={3} onClick={() => setIsAddAllOpen(false)}>ปิด</Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+        {/* Import CSV Modal (mockup) */}
+        <Modal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)}>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>นำเข้า CSV</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
+            <ModalFooter>
+              <Button colorScheme="blue" mr={3} onClick={() => setIsImportOpen(false)}>ปิด</Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+        {/* Equipment Assessment Modal (mockup) */}
+        <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)}>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>ดาวน์โหลดไฟล์ประเมินอุปกรณ์</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
+            <ModalFooter>
+              <Button colorScheme="blue" mr={3} onClick={() => setIsEquipmentModalOpen(false)}>ปิด</Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+        {/* EditRoomModal */}
+        {editRoom && (
+          <EditRoomModal
+            isOpen={!!editRoom}
+            initialRoom={editRoom}
+            onClose={() => setEditRoom(null)}
+            onSave={room => handleSaveEditRoom({ ...editRoom, ...room })}
+          />
+        )}
+        {/* Confirm Delete Dialog */}
+        <AlertDialog
+          isOpen={isDialogOpen}
+          leastDestructiveRef={cancelRef}
+          onClose={() => setIsDialogOpen(false)}
+        >
+          <AlertDialogOverlay />
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              ยืนยันการลบห้อง
+            </AlertDialogHeader>
+            <AlertDialogBody>
+              คุณแน่ใจหรือไม่ว่าต้องการลบห้องนี้? การลบจะไม่สามารถย้อนกลับได้
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={() => setIsDialogOpen(false)}>
+                ยกเลิก
+              </Button>
+              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
+                ลบ
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </Flex>
     </>
   );
