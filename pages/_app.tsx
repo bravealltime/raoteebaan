@@ -1,11 +1,14 @@
 import { ChakraProvider, extendTheme } from "@chakra-ui/react";
 import type { AppProps } from "next/app";
+import Head from "next/head";
 import ErrorBoundary from "../components/ErrorBoundary";
+import "../styles/fonts.css";
+import "../styles/globals.css";
 
 const theme = extendTheme({
   fonts: {
-    heading: "'Sarabun', 'Prompt', 'Kanit', 'Noto Sans Thai', 'Inter', sans-serif",
-    body: "'Sarabun', 'Prompt', 'Kanit', 'Noto Sans Thai', 'Inter', sans-serif",
+    heading: "'Kanit', 'Sarabun', 'Prompt', 'Noto Sans Thai', 'Inter', sans-serif",
+    body: "'Kanit', 'Sarabun', 'Prompt', 'Noto Sans Thai', 'Inter', sans-serif",
   },
   colors: {
     brand: {
@@ -31,6 +34,7 @@ const theme = extendTheme({
       body: {
         bg: "linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)",
         color: "gray.800",
+        fontFamily: "'Kanit', 'Sarabun', 'Prompt', 'Noto Sans Thai', 'Inter', sans-serif",
       },
     },
   },
@@ -39,6 +43,14 @@ const theme = extendTheme({
 function MyApp({ Component, pageProps }: AppProps) {
   return (
     <ErrorBoundary>
+      <Head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </Head>
       <ChakraProvider theme={theme}>
         <Component {...pageProps} />
       </ChakraProvider>

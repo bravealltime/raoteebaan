@@ -6,10 +6,12 @@ import RoomCard from "../components/RoomCard";
 import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
 import AppHeader from "../components/AppHeader";
-import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt } from "react-icons/fa";
+import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf } from "react-icons/fa";
 import { saveAs } from "file-saver";
 import Papa from "papaparse";
 import EditRoomModal from "../components/EditRoomModal";
+import jsPDF from "jspdf";
+import Link from "next/link";
 
 interface Room {
   id: string;
@@ -85,6 +87,8 @@ export default function Dashboard() {
   const [roomBills, setRoomBills] = useState<Record<string, any>>({});
   const [searchRoom, setSearchRoom] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
+  const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
+  const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
 
   const user = {
     name: "xxx",
@@ -296,8 +300,115 @@ export default function Dashboard() {
   }
 
   const handleAddAllData = () => {
-    toast({ title: "ฟีเจอร์เพิ่มข้อมูลห้องทั้งหมด (mockup)", description: "สำหรับบันทึกยูนิตค่าน้ำค่าไฟเดือนใหม่", status: "info" });
+    toast({ title: "เพิ่มข้อมูลห้องทั้งหมดสำเร็จ (mockup)", status: "success" });
     setIsAddAllOpen(false);
+  };
+
+  const handleDownloadEquipmentAssessment = () => {
+    setIsEquipmentModalOpen(true);
+  };
+
+  const handleConfirmEquipmentDownload = () => {
+    if (!selectedRoomForEquipment) {
+      toast({ title: "กรุณาเลือกห้อง", status: "warning" });
+      return;
+    }
+    
+    // Mockup equipment data
+    const equipmentData = {
+      roomId: selectedRoomForEquipment,
+      date: new Date().toLocaleDateString('th-TH'),
+      tenantName: rooms.find(r => r.id === selectedRoomForEquipment)?.tenantName || "ว่าง",
+      items: [
+        { name: "เตียง", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "ที่นอน", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "โต๊ะทำงาน", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "เก้าอี้", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "ตู้เสื้อผ้า", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "แอร์คอนดิชัน", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "พัดลม", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "โคมไฟ", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "ผ้าม่าน", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "พรม", status: "ครบ", condition: "ดี", notes: "" }
+      ]
+    };
+
+    // Create PDF
+    const pdf = new jsPDF();
+    
+    // Set font for Thai text
+    pdf.setFont("helvetica");
+    
+    // Header
+    pdf.setFontSize(20);
+    pdf.setTextColor(75, 0, 130); // Purple color
+    pdf.text("ใบประเมินอุปกรณ์ในห้องพัก", 105, 20, { align: "center" });
+    
+    // Room information
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(`ห้อง: ${equipmentData.roomId}`, 20, 40);
+    pdf.text(`ผู้เช่า: ${equipmentData.tenantName}`, 20, 50);
+    pdf.text(`วันที่ประเมิน: ${equipmentData.date}`, 20, 60);
+    
+    // Table header
+    pdf.setFillColor(75, 0, 130);
+    pdf.rect(20, 75, 170, 10, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(10);
+    pdf.text("ลำดับ", 25, 82);
+    pdf.text("รายการอุปกรณ์", 45, 82);
+    pdf.text("สถานะ", 100, 82);
+    pdf.text("สภาพ", 130, 82);
+    pdf.text("หมายเหตุ", 160, 82);
+    
+    // Table content
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFontSize(9);
+    equipmentData.items.forEach((item, index) => {
+      const y = 90 + (index * 8);
+      if (y > 250) {
+        pdf.addPage();
+        return;
+      }
+      
+      pdf.text(`${index + 1}`, 25, y);
+      pdf.text(item.name, 45, y);
+      pdf.text(item.status, 100, y);
+      pdf.text(item.condition, 130, y);
+      pdf.text(item.notes || "-", 160, y);
+    });
+    
+    // Signature section
+    const signatureY = 220;
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text("ลายเซ็นผู้ประเมิน:", 20, signatureY);
+    pdf.text("ลายเซ็นผู้เช่า:", 110, signatureY);
+    
+    // Signature lines
+    pdf.line(20, signatureY + 10, 80, signatureY + 10);
+    pdf.line(110, signatureY + 10, 170, signatureY + 10);
+    
+    pdf.setFontSize(10);
+    pdf.text("(_________________)", 20, signatureY + 25);
+    pdf.text("(_________________)", 110, signatureY + 25);
+    
+    pdf.text("วันที่: _________________", 20, signatureY + 40);
+    pdf.text("วันที่: _________________", 110, signatureY + 40);
+    
+    // Footer note
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text("หมายเหตุ: ใบประเมินนี้เป็นเอกสารสำหรับตรวจสอบอุปกรณ์ในห้องพัก กรุณาตรวจสอบและเซ็นยืนยัน", 20, 270);
+    
+    // Save PDF
+    const fileName = `equipment-assessment-room-${selectedRoomForEquipment}-${new Date().toISOString().split('T')[0]}.pdf`;
+    pdf.save(fileName);
+    
+    toast({ title: "ดาวน์โหลดใบประเมินอุปกรณ์สำเร็จ", status: "success" });
+    setIsEquipmentModalOpen(false);
+    setSelectedRoomForEquipment("");
   };
 
   const fetchLastMeter = async (roomId: string) => {
@@ -336,9 +447,9 @@ export default function Dashboard() {
   });
 
   return (
-    <>
-      <AppHeader user={user} />
-      <Flex minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)" p={0}>
+    <Box minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)">
+      <AppHeader user={{ name: "xxx", avatar: "/avatar.png", greeting: "อาทิตย์ 21 มิ.ย. 2568" }} />
+      <Flex minH="100vh" p={0}>
         {/* Sidebar */}
         <Box
           w={["70px", "220px"]}
@@ -354,9 +465,16 @@ export default function Dashboard() {
           zIndex={2}
         >
           {/* Main menu */}
-          <Button leftIcon={<FaHome />} colorScheme="blue" variant="ghost" borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start" isActive>
-            Room
-          </Button>
+          <Link href="/dashboard" passHref legacyBehavior>
+            <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant="solid" borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start" isActive={router.pathname === "/dashboard"}>
+              Dashboard
+            </Button>
+          </Link>
+          <Link href="/rooms" passHref legacyBehavior>
+            <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant="ghost" borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start" isActive={router.pathname === "/rooms"}>
+              Rooms
+            </Button>
+          </Link>
           <Button leftIcon={<FaInbox />} colorScheme="gray" variant="ghost" borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
             Inbox
           </Button>
@@ -366,183 +484,15 @@ export default function Dashboard() {
           <Button leftIcon={<FaUserFriends />} colorScheme="gray" variant="ghost" borderRadius="xl" mb={8} w="full" justifyContent="flex-start">
             Employee
           </Button>
-          {/* Action buttons */}
-          <Button leftIcon={<FaPlus />} colorScheme="blue" w="full" borderRadius="xl" mb={2} onClick={handleOpenAddRoom}>
-            เพิ่มห้องใหม่
-          </Button>
-          <Button leftIcon={<FaBolt />} colorScheme="orange" w="full" borderRadius="xl" mb={2} onClick={() => setIsAddAllOpen(true)}>
-            เพิ่มข้อมูลห้องทั้งหมด
-          </Button>
-          <Button leftIcon={<FaUpload />} colorScheme="green" w="full" borderRadius="xl" mb={2} onClick={handleExportCSV}>
-            อัปโหลด CSV
-          </Button>
-          <Button leftIcon={<FaFileCsv />} colorScheme="gray" w="full" borderRadius="xl" onClick={() => setIsImportOpen(true)}>
-            นำเข้า CSV
-          </Button>
         </Box>
         {/* Main content */}
-        <Box flex={1} p={[2, 4, 8]}>
-          <Flex align="center" mb={6} gap={3} flexWrap="wrap">
-            <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4}>Room</Text>
-            <Input
-              placeholder="Enter room NO."
-              maxW="220px"
-              bg="white"
-              borderRadius="xl"
-              mr={2}
-              value={searchRoom}
-              onChange={e => setSearchRoom(e.target.value)}
-            />
-            <Menu>
-              <MenuButton as={IconButton} aria-label="Filter" icon={<FaFilter />} variant="outline" borderRadius="xl" />
-              <MenuList>
-                <MenuItem onClick={() => setFilterType('all')}>แสดงทั้งหมด</MenuItem>
-                <MenuItem onClick={() => setFilterType('unpaid')}>ห้องที่ยังไม่จ่าย</MenuItem>
-                <MenuItem onClick={() => setFilterType('vacant')}>ห้องว่าง</MenuItem>
-              </MenuList>
-            </Menu>
-          </Flex>
-          <SimpleGrid minChildWidth="260px" spacing={0}>
-            {filteredRooms.map(room => {
-              const electricity = roomBills[room.id]?.electricityTotal || room.electricity || 0;
-              const water = roomBills[room.id]?.waterTotal || room.water || 0;
-              const rent = roomBills[room.id]?.rent || room.rent || 0;
-              const extraServicesTotal = Array.isArray(roomBills[room.id]?.extraServices)
-                ? roomBills[room.id].extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0)
-                : 0;
-              const service = extraServicesTotal;
-              const latestTotal = electricity + water + rent + service;
-              console.log('[DEBUG] dashboard room:', room);
-              console.log('[DEBUG] dashboard bill:', roomBills[room.id]);
-              console.log('[DEBUG] RoomCard props:', {
-                ...room,
-                latestTotal,
-                electricity,
-                water,
-                rent,
-                service
-              });
-              return (
-                <RoomCard
-                  key={room.id}
-                  {...room}
-                  latestTotal={latestTotal}
-                  electricity={electricity}
-                  water={water}
-                  rent={rent}
-                  service={service}
-                  onDelete={() => handleDelete(room.id)}
-                  onViewBill={() => handleViewBill(room.id)}
-                  onAddData={() => handleAddData(room.id)}
-                  onSettings={() => handleSettings(room.id)}
-                />
-              );
-            })}
-          </SimpleGrid>
-        </Box>
-        <AddRoomModal isOpen={isOpen} onClose={onClose} onAdd={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} />
-        <EditRoomModal
-          isOpen={!!editRoom}
-          onClose={() => setEditRoom(null)}
-          onSave={handleSaveEditRoom}
-          initialRoom={editRoom || rooms[0]}
-        />
-        <AlertDialog
-          isOpen={isDialogOpen}
-          leastDestructiveRef={cancelRef}
-          onClose={() => setIsDialogOpen(false)}
-        >
-          <AlertDialogOverlay>
-            <AlertDialogContent>
-              <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                ยืนยันการลบห้อง
-              </AlertDialogHeader>
-              <AlertDialogBody>
-                คุณแน่ใจหรือไม่ว่าต้องการลบห้องนี้? การกระทำนี้ไม่สามารถย้อนกลับได้
-              </AlertDialogBody>
-              <AlertDialogFooter>
-                <Button ref={cancelRef} onClick={() => setIsDialogOpen(false)}>
-                  ยกเลิก
-                </Button>
-                <Button colorScheme="red" onClick={confirmDelete} ml={3}>
-                  ลบ
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialogOverlay>
-        </AlertDialog>
-        {/* Modal Import CSV */}
-        <Modal isOpen={isImportOpen} onClose={handleCloseImport} isCentered size="md">
-          <ModalOverlay />
-          <ModalContent borderRadius="2xl" p={2}>
-            <ModalHeader fontWeight="bold" color="blue.600">นำเข้าข้อมูลห้อง (CSV)</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <Box mb={4}>
-                <input
-                  type="file"
-                  accept=".csv"
-                  style={{ display: "none" }}
-                  id="import-csv-input"
-                  onChange={handleImportCSV}
-                />
-                <Box
-                  border={isDragActive ? "2.5px dashed #3182ce" : "2px dashed #cbd5e1"}
-                  borderRadius="xl"
-                  p={6}
-                  textAlign="center"
-                  bg={isDragActive ? "blue.50" : "gray.50"}
-                  color="blue.600"
-                  fontWeight="bold"
-                  fontSize="md"
-                  cursor="pointer"
-                  transition="all 0.2s"
-                  onClick={() => document.getElementById("import-csv-input")?.click()}
-                  onDragOver={e => { e.preventDefault(); setIsDragActive(true); }}
-                  onDragLeave={e => { e.preventDefault(); setIsDragActive(false); }}
-                  onDrop={handleDropCSV}
-                  mb={2}
-                >
-                  {isDragActive ? "ปล่อยไฟล์ที่นี่เพื่ออัปโหลด" : "ลากไฟล์ CSV มาวาง หรือคลิกเพื่อเลือกไฟล์"}
-                </Box>
-                {importFile && (
-                  <Text fontSize="sm" color="gray.600" mb={2}>ไฟล์ที่เลือก: {importFile.name}</Text>
-                )}
-                {importPreview.length > 0 && (
-                  <Box bg="gray.50" borderRadius="md" p={3} mt={2}>
-                    <Text fontWeight="bold" color="blue.700" mb={1}>ตัวอย่างข้อมูล ({importPreview.length} ห้อง)</Text>
-                    <Box as="ul" pl={4} fontSize="sm" color="gray.700">
-                      {importPreview.slice(0, 5).map((r, idx) => (
-                        <li key={idx}>{r.Room || r.room || JSON.stringify(r)}</li>
-                      ))}
-                      {importPreview.length > 5 && <li>...และอื่นๆ</li>}
-                    </Box>
-                  </Box>
-                )}
-              </Box>
-            </ModalBody>
-            <ModalFooter>
-              <Button onClick={handleCloseImport} variant="ghost" mr={2}>ยกเลิก</Button>
-              <Button colorScheme="blue" onClick={handleConfirmImport} isDisabled={!importPreview.length}>ยืนยันนำเข้า</Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-        {/* Modal หรือ Toast แจ้งเตือน (mockup) */}
-        <Modal isOpen={isAddAllOpen} onClose={() => setIsAddAllOpen(false)} isCentered>
-          <ModalOverlay />
-          <ModalContent borderRadius="2xl" p={2}>
-            <ModalHeader fontWeight="bold" color="orange.500">เพิ่มข้อมูลห้องทั้งหมด</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              <Text mb={2}>ฟีเจอร์นี้สำหรับบันทึกยูนิตค่าน้ำค่าไฟเดือนใหม่ของทุกห้องในครั้งเดียว (อยู่ระหว่างพัฒนา)</Text>
-            </ModalBody>
-            <ModalFooter>
-              <Button colorScheme="orange" mr={3} onClick={handleAddAllData}>ตกลง</Button>
-              <Button onClick={() => setIsAddAllOpen(false)}>ยกเลิก</Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
+        <Flex align="center" justify="center" flex={1} minH="80vh">
+          <Box bg="white" borderRadius="2xl" boxShadow="xl" p={12} textAlign="center">
+            <Heading fontSize="3xl" color="blue.600" mb={4}>Dashboard</Heading>
+            <Text color="gray.600">สรุปข้อมูลภาพรวมระบบ (Coming soon...)</Text>
+          </Box>
+        </Flex>
       </Flex>
-    </>
+    </Box>
   );
 } 

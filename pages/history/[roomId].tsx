@@ -189,7 +189,7 @@ export default function HistoryRoom() {
       <AppHeader user={user} />
       <Box minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)" p={[2, 8]} color="gray.800">
         <Flex align="center" mb={8}>
-          <Button leftIcon={<FaArrowLeft />} variant="ghost" colorScheme="blue" onClick={() => router.push("/dashboard")}>กลับหน้าหลัก</Button>
+          <Button leftIcon={<FaArrowLeft />} variant="ghost" colorScheme="blue" borderRadius="xl" fontFamily="Kanit" size="md" onClick={() => router.push("/dashboard")}>กลับหน้าหลัก</Button>
           <Heading fontWeight="bold" fontSize={["xl", "2xl"]} color="blue.700" ml={4}>ประวัติค่าไฟ - ห้อง {roomId}</Heading>
         </Flex>
         
@@ -214,7 +214,7 @@ export default function HistoryRoom() {
               </Box>
               <Box>
                 <Text color="gray.600" fontSize="sm">ค่าเช่า</Text>
-                <Text fontWeight="semibold" color="gray.800">฿{roomData.rent?.toLocaleString() || 0}</Text>
+                <Text fontWeight="semibold" color="gray.800">฿{roomData.rent?.toLocaleString('th-TH') || 0}</Text>
               </Box>
             </Flex>
           </Box>
@@ -289,7 +289,7 @@ export default function HistoryRoom() {
         </Flex>
         {/* ปุ่มบันทึกข้อมูลรวม */}
         <Flex justify="flex-end" mb={8}>
-          <Button leftIcon={<FaCalculator />} colorScheme="blue" size="lg" borderRadius="xl" px={8} onClick={handleSaveData}>
+          <Button leftIcon={<FaCalculator />} colorScheme="blue" size="md" borderRadius="xl" fontFamily="Kanit" fontWeight="bold" px={6} onClick={handleSaveData}>
             บันทึกข้อมูล
           </Button>
         </Flex>
@@ -317,18 +317,18 @@ export default function HistoryRoom() {
                   <Td>{item.electricityRate ? item.electricityRate : '-'}</Td>
                   <Td color="green.400">
                     {typeof item.electricityTotal === 'number'
-                      ? item.electricityTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                      ? item.electricityTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                       : '-'}
                   </Td>
                   <Td>{item.waterUnit}</Td>
                   <Td>{item.waterRate ? item.waterRate : '-'}</Td>
                   <Td color="blue.400">
                     {typeof item.waterTotal === 'number'
-                      ? item.waterTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                      ? item.waterTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                       : '-'}
                   </Td>
                   <Td>
-                    <Button size="sm" colorScheme="red" variant="ghost" onClick={() => handleDeleteBill(item.id)} leftIcon={<FaTrash />}>
+                    <Button size="sm" colorScheme="red" variant="ghost" borderRadius="xl" fontFamily="Kanit" onClick={() => handleDeleteBill(item.id)} leftIcon={<FaTrash />}>
                       ลบ
                     </Button>
                   </Td>
@@ -347,10 +347,10 @@ export default function HistoryRoom() {
             <AlertDialogHeader fontWeight="bold">ยืนยันการลบข้อมูล</AlertDialogHeader>
             <AlertDialogBody>คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลบิลนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</AlertDialogBody>
             <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={() => setDeleteConfirmId(null)}>
+              <Button ref={cancelRef} onClick={() => setDeleteConfirmId(null)} borderRadius="xl" fontFamily="Kanit" size="md">
                 ยกเลิก
               </Button>
-              <Button colorScheme="red" onClick={confirmDeleteBill} ml={3}>
+              <Button colorScheme="red" onClick={confirmDeleteBill} ml={3} borderRadius="xl" fontFamily="Kanit" size="md">
                 ลบ
               </Button>
             </AlertDialogFooter>

@@ -209,7 +209,7 @@ export default function Profile() {
             <FormLabel>รูปโปรไฟล์</FormLabel>
             {editMode ? (
               <>
-                <Button size="sm" onClick={() => fileInputRef.current?.click()} mb={2}>อัปโหลดรูปใหม่</Button>
+                <Button size="md" onClick={() => fileInputRef.current?.click()} mb={2} borderRadius="xl" fontFamily="Kanit">อัปโหลดรูปใหม่</Button>
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -242,13 +242,13 @@ export default function Profile() {
         <Flex gap={3}>
           {editMode ? (
             <>
-              <Button colorScheme="blue" flex={1} onClick={handleSave} isLoading={loading}>บันทึก</Button>
-              <Button flex={1} variant="outline" onClick={handleCancel}>ยกเลิก</Button>
+              <Button colorScheme="blue" flex={1} onClick={handleSave} isLoading={loading} borderRadius="xl" fontFamily="Kanit" size="md">บันทึก</Button>
+              <Button flex={1} variant="outline" onClick={handleCancel} borderRadius="xl" fontFamily="Kanit" size="md">ยกเลิก</Button>
             </>
           ) : (
             <>
-              <Button colorScheme="blue" flex={1} onClick={handleEdit}>แก้ไขโปรไฟล์</Button>
-              <Button colorScheme="red" flex={1} variant="outline" onClick={handleLogout}>ออกจากระบบ</Button>
+              <Button colorScheme="blue" flex={1} onClick={handleEdit} borderRadius="xl" fontFamily="Kanit" size="md">แก้ไขโปรไฟล์</Button>
+              <Button colorScheme="red" flex={1} variant="outline" onClick={handleLogout} borderRadius="xl" fontFamily="Kanit" size="md">ออกจากระบบ</Button>
             </>
           )}
         </Flex>

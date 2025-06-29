@@ -157,15 +157,15 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom }: 
                   <CloseButton onClick={() => handleRemoveService(idx)} />
                 </HStack>
               ))}
-              <Button onClick={handleAddService} colorScheme="teal" variant="ghost" size="sm" borderRadius="xl" mt={1} alignSelf="flex-start">
-                + เพิ่มค่าบริการเสริม
+              <Button onClick={handleAddService} colorScheme="teal" variant="outline" size="md" borderRadius="xl" mt={1} alignSelf="flex-start" fontFamily="Kanit" fontWeight="medium">
+                + เพิ่มบริการเสริม
               </Button>
             </VStack>
           </SimpleGrid>
         </ModalBody>
         <ModalFooter>
-          <Button colorScheme="blue" mr={3} onClick={handleSave} borderRadius="xl" px={6} fontWeight="bold">บันทึก</Button>
-          <Button onClick={onClose} borderRadius="xl">ยกเลิก</Button>
+          <Button colorScheme="blue" mr={3} onClick={handleSave} borderRadius="xl" px={6} fontWeight="bold" fontFamily="Kanit" size="md">บันทึก</Button>
+          <Button onClick={onClose} borderRadius="xl" fontFamily="Kanit" size="md">ยกเลิก</Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

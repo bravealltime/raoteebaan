@@ -1,0 +1,30 @@
+/* Global styles */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  font-family: 'Kanit', 'Sarabun', 'Prompt', 'Noto Sans Thai', 'Inter', sans-serif;
+  line-height: 1.6;
+}
+
+/* Ensure Kanit font is applied to all elements */
+h1, h2, h3, h4, h5, h6,
+p, span, div, button, input, textarea, select {
+  font-family: 'Kanit', 'Sarabun', 'Prompt', 'Noto Sans Thai', 'Inter', sans-serif;
+}
+
+/* Font loading optimization */
+@font-face {
+  font-family: 'Kanit';
+  src: url('/Kanit-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Fallback for better performance */
+.font-kanit {
+  font-family: 'Kanit', 'Sarabun', 'Prompt', 'Noto Sans Thai', 'Inter', sans-serif;
+} 

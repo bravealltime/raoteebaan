@@ -250,7 +250,7 @@ export default function BillDetail() {
                 </Box>
               </Flex>
               <Text textAlign="center" fontSize={["2xl", "3xl"]} color="green.500" fontWeight="extrabold" my={4}>
-                ฿{bill.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                ฿{bill.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
               </Text>
               <Box mb={4} overflowX="auto">
                 <Text fontWeight="bold" mb={2} fontSize={["sm", "md"]}>รายละเอียดค่าใช้จ่าย</Text>
@@ -265,35 +265,35 @@ export default function BillDetail() {
                     {/* ค่าไฟฟ้า */}
                     <Tr>
                       <Td fontSize={["xs", "sm"]}>ค่าไฟฟ้า</Td>
-                      <Td isNumeric fontSize={["xs", "sm"]}>{(bill.rent !== undefined ? bill.items[0]?.value : 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</Td>
+                      <Td isNumeric fontSize={["xs", "sm"]}>{(bill.rent !== undefined ? bill.items[0]?.value : 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
                     </Tr>
                     {/* ค่าน้ำ */}
                     <Tr>
                       <Td fontSize={["xs", "sm"]}>ค่าน้ำ</Td>
-                      <Td isNumeric fontSize={["xs", "sm"]}>{(bill.rent !== undefined ? bill.items[1]?.value : 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</Td>
+                      <Td isNumeric fontSize={["xs", "sm"]}>{(bill.rent !== undefined ? bill.items[1]?.value : 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
                     </Tr>
                     {/* ค่าเช่า */}
                     <Tr>
                       <Td fontSize={["xs", "sm"]}>ค่าเช่า</Td>
-                      <Td isNumeric fontSize={["xs", "sm"]}>{bill.rent?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Td>
+                      <Td isNumeric fontSize={["xs", "sm"]}>{bill.rent?.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
                     </Tr>
                     {/* ค่าบริการ (รวม addon) */}
                     <Tr>
                       <Td fontSize={["xs", "sm"]}>ค่าบริการ</Td>
                       <Td isNumeric fontSize={["xs", "sm"]}>{Array.isArray(bill.extraServices)
-                        ? bill.extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })
+                        ? bill.extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })
                         : "0.00"}</Td>
                     </Tr>
                     {/* extraServices แยกรายการ */}
                     {Array.isArray(bill.extraServices) && bill.extraServices.map((svc: any, idx: number) => (
                       <Tr key={"extra-"+idx}>
                         <Td fontSize={["xs", "sm"]}>{svc.label || "ค่าบริการเสริม"}</Td>
-                        <Td isNumeric fontSize={["xs", "sm"]}>{svc.value?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Td>
+                        <Td isNumeric fontSize={["xs", "sm"]}>{svc.value?.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
                       </Tr>
                     ))}
                     <Tr fontWeight="bold">
                       <Td fontSize={["xs", "sm"]}>รวมทั้งสิ้น</Td>
-                      <Td isNumeric fontSize={["xs", "sm"]}>{bill.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Td>
+                      <Td isNumeric fontSize={["xs", "sm"]}>{bill.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
                     </Tr>
                   </Tbody>
                 </Table>
@@ -333,7 +333,7 @@ export default function BillDetail() {
                       PromptPay: <b>{bill.promptpay}</b>
                     </Text>
                     <Text fontSize={["sm", "md"]} color="gray.700">
-                      ยอดเงิน: <b>{bill.total.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท</b>
+                      ยอดเงิน: <b>{bill.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท</b>
                     </Text>
                   </Flex>
                 </Box>

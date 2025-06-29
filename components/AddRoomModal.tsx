@@ -214,17 +214,17 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
                   <CloseButton onClick={() => handleRemoveService(idx)} />
                 </HStack>
               ))}
-              <Button leftIcon={<FaPlus />} colorScheme="green" variant="outline" size="sm" mt={2} onClick={handleAddService}>
+              <Button leftIcon={<FaPlus />} colorScheme="green" variant="outline" size="md" mt={2} borderRadius="xl" fontFamily="Kanit" fontWeight="medium" onClick={handleAddService}>
                 เพิ่มบริการเสริม
               </Button>
             </Box>
           </SimpleGrid>
         </ModalBody>
         <ModalFooter>
-          <Button colorScheme="blue" mr={3} onClick={handleAdd} size="lg">
+          <Button colorScheme="blue" mr={3} onClick={handleAdd} size="md" borderRadius="xl" fontFamily="Kanit" fontWeight="bold">
             เพิ่ม
           </Button>
-          <Button variant="ghost" onClick={onClose} size="lg">ยกเลิก</Button>
+          <Button variant="ghost" onClick={onClose} size="md" borderRadius="xl" fontFamily="Kanit">ยกเลิก</Button>
         </ModalFooter>
       </ModalContent>
     </Modal>

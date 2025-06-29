@@ -70,14 +70,14 @@ export default function RoomCard({ id, status, tenantName, area, latestTotal, el
         <Badge bg={statusInfo.bg} color={statusInfo.text} borderRadius="full" fontSize="xs" px={2}>{statusInfo.label}</Badge>
       </Flex>
       <Box bg="blue.50" borderRadius="lg" py={2} px={2} my={1} zIndex={1} boxShadow="sm">
-        <Text color="gray.800" fontWeight="bold" fontSize="2xl" textAlign="center">฿{latestTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+        <Text color="gray.800" fontWeight="bold" fontSize="2xl" textAlign="center">฿{latestTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Text>
       </Box>
       <Divider my={1} borderColor="gray.100" />
       <Flex align="center" gap={2} mb={1} zIndex={1} justify="space-between">
-        <Tooltip label="ค่าไฟฟ้า" fontSize="xs"><Text color="gray.500" fontSize="xs">ไฟ: ฿{electricity.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text></Tooltip>
-        <Tooltip label="ค่าน้ำ" fontSize="xs"><Text color="gray.500" fontSize="xs">น้ำ: ฿{water.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text></Tooltip>
-        <Tooltip label="ค่าเช่า" fontSize="xs"><Text color="gray.500" fontSize="xs">เช่า: ฿{rent.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text></Tooltip>
-        <Tooltip label="ค่าบริการ" fontSize="xs"><Text color="gray.500" fontSize="xs">บริการ: ฿{service.toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text></Tooltip>
+        <Tooltip label="ค่าไฟฟ้า" fontSize="xs"><Text color="gray.500" fontSize="xs">ไฟ: ฿{electricity.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Text></Tooltip>
+        <Tooltip label="ค่าน้ำ" fontSize="xs"><Text color="gray.500" fontSize="xs">น้ำ: ฿{water.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Text></Tooltip>
+        <Tooltip label="ค่าเช่า" fontSize="xs"><Text color="gray.500" fontSize="xs">เช่า: ฿{rent.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Text></Tooltip>
+        <Tooltip label="ค่าบริการ" fontSize="xs"><Text color="gray.500" fontSize="xs">บริการ: ฿{service.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Text></Tooltip>
       </Flex>
       {overdueDays > 0 && (
         <Text color="red.400" fontSize="xs" fontWeight="bold" zIndex={1}>เกินกำหนด {overdueDays} วัน</Text>
