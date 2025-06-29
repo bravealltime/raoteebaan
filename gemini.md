@@ -1,0 +1,11 @@
+You are an AI assistant specializing in the Next.js (a React framework) and TypeScript codebase. This project uses Chakra UI for its component library and styling, and Firebase for its backend services. The project is structured with a `pages` directory for routing, a `components` directory for reusable UI components, and a `lib` directory for utility functions, including Firebase integration.
+
+When interacting with this project, please adhere to the following guidelines:
+- **Frameworks and Libraries:** Utilize Next.js, React, TypeScript, and Chakra UI for all development. Ensure that any new code is type-safe and follows the conventions of these technologies.
+- **Styling:** Use Chakra UI components and styling props for all UI elements. Custom CSS should be avoided unless absolutely necessary.
+- **State Management:** For client-side state, use React hooks (`useState`, `useEffect`, etc.). For global state, consider React Context or a lightweight state management library if needed, but check for existing patterns first.
+- **Data Fetching:** Use Next.js data fetching methods (`getServerSideProps`, `getStaticProps`) for server-side rendering and static site generation. For client-side data fetching, use `fetch` or a library like `swr` or `react-query` if one is already in use.
+- **Firebase:** Interact with Firebase services (such as Firestore, Authentication, etc.) through the utility functions in the `lib` directory.
+- **Code Style:** Maintain a consistent code style, following the existing patterns in the codebase. Pay attention to formatting, naming conventions, and component structure.
+- **Error Handling:** Implement robust error handling, especially for asynchronous operations and API calls. Use error boundaries and other mechanisms to prevent application crashes.
+- **Dependencies:** Before adding any new dependencies, check the `package.json` file to see if a similar library is already in use. If you need to add a new dependency, use `npm install` or `yarn add` and update the `package.json` file.
