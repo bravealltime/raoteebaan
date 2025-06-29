@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon } from "@chakra-ui/react";
 import { db } from "../../lib/firebase";
-import { collection, query, where, orderBy, limit, getDocs } from "firebase/firestore";
+import { collection, query, where, orderBy, limit, getDocs, doc, getDoc } from "firebase/firestore";
 import { FaFileInvoice, FaArrowLeft, FaDownload } from "react-icons/fa";
 import Script from "next/script";
 import AppHeader from "../../components/AppHeader";
@@ -52,19 +52,53 @@ export default function BillDetail() {
           limit(1)
         );
         const snap = await getDocs(q);
+        console.log(`[DEBUG] Query for roomId ${roomId} returned ${snap.docs.length} documents.`);
+        if (snap.empty) {
+          console.log(`[DEBUG] No bill found for roomId: ${roomId}`);
+        }
+        let roomData: any = null;
+        const roomSnap = await getDoc(doc(db, "rooms", String(roomId)));
+        if (roomSnap.exists()) {
+          roomData = roomSnap.data();
+          console.log(`[DEBUG] Room data for ${roomId}:`, roomData);
+        } else {
+          console.log(`[DEBUG] No room data found for roomId: ${roomId}`);
+        }
+
         if (!snap.empty) {
           const d = snap.docs[0].data();
           console.log('[DEBUG] bill doc from Firestore:', d);
+
+          const latestRent = roomData?.rent || d.rent || 0;
+          const latestExtraServices = roomData?.extraServices || d.extraServices || [];
+
           const items = [
             { label: "ค่าไฟฟ้า", value: d.electricityTotal || 0 },
             { label: "ค่าน้ำ", value: d.waterTotal || 0 },
-            { label: "ค่าเช่า", value: d.rent || 0 },
-            { label: "ค่าบริการ", value: d.service || 0 },
-            ...(Array.isArray(d.extraServices)
-              ? d.extraServices.map((svc: any) => ({ label: svc.label || "ค่าบริการเสริม", value: svc.value || 0 }))
+            { label: "ค่าเช่า", value: latestRent },
+            // { label: "ค่าบริการ", value: d.service || 0 }, // This will be covered by extraServices
+            ...(Array.isArray(latestExtraServices)
+              ? latestExtraServices.map((svc: any) => ({ label: svc.label || "ค่าบริการเสริม", value: svc.value || 0 }))
               : [])
           ];
           const total = items.reduce((sum, i) => sum + Number(i.value), 0);
+
+          const calculateOverdueDays = (dueDateStr: string) => {
+            const [day, month, year] = dueDateStr.split('/').map(Number);
+            const dueDate = new Date(year, month - 1, day);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Reset time for accurate day comparison
+            dueDate.setHours(0, 0, 0, 0); // Reset time for accurate day comparison
+
+            if (today > dueDate) {
+              const diffTime = Math.abs(today.getTime() - dueDate.getTime());
+              return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            }
+            return 0;
+          };
+
+          const overdueDays = calculateOverdueDays(d.dueDate);
+
           console.log('[DEBUG] mapped bill for setBill:', {
             date: d.date,
             dueDate: d.dueDate,
@@ -73,9 +107,12 @@ export default function BillDetail() {
             total,
             items,
             promptpay: d.promptpay || promptpay,
-            rent: d.rent || 0,
-            service: d.service || 0,
-            extraServices: d.extraServices || [],
+            rent: latestRent,
+            extraServices: latestExtraServices,
+            area: roomData?.area || 0,
+            status: roomData?.status || "vacant",
+            overdueDays: overdueDays,
+            billStatus: d.billStatus || "unpaid", // Assuming billStatus comes from the bill document
           });
           setBill({
             date: d.date,
@@ -85,9 +122,12 @@ export default function BillDetail() {
             total,
             items,
             promptpay: d.promptpay || promptpay,
-            rent: d.rent || 0,
-            service: d.service || 0,
-            extraServices: d.extraServices || [],
+            rent: latestRent,
+            extraServices: latestExtraServices,
+            area: roomData?.area || 0,
+            status: roomData?.status || "vacant",
+            overdueDays: overdueDays,
+            billStatus: d.billStatus || "unpaid",
           });
         } else {
           setBill(null);
@@ -159,28 +199,38 @@ export default function BillDetail() {
   }, []);
 
   useEffect(() => {
-    // โหลด qrcode-generator ก่อน
-    const script1 = document.createElement('script');
-    script1.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.5.0/qrcode.min.js';
-    script1.async = false;
-    script1.onload = () => {
-      // eslint-disable-next-line no-console
-      console.log('qrcode-generator loaded', typeof (window as any).qrcode);
-      // โหลด promptpay.js หลังจาก qrcode-generator โหลดเสร็จ
-      const script2 = document.createElement('script');
-      script2.src = '/scripts/promptpay.js';
-      script2.async = false;
-      script2.onload = () => {
-        // eslint-disable-next-line no-console
-        console.log('promptpay.js loaded', typeof (window as any).ThaiQRCode);
-      };
-      document.body.appendChild(script2);
+    const loadQrcodeGenerator = () => {
+      if (typeof window !== "undefined" && !(window as any).qrcode) {
+        const script1 = document.createElement('script');
+        script1.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.5.0/qrcode.min.js';
+        script1.async = false;
+        script1.onload = () => {
+          console.log('qrcode-generator loaded');
+          loadPromptpayScript();
+        };
+        document.body.appendChild(script1);
+      } else {
+        // qrcode-generator is already loaded, proceed to load promptpay.js
+        loadPromptpayScript();
+      }
     };
-    document.body.appendChild(script1);
 
-    return () => {
-      document.body.removeChild(script1);
+    const loadPromptpayScript = () => {
+      if (typeof window !== "undefined" && !(window as any).ThaiQRCode) {
+        const script2 = document.createElement('script');
+        script2.src = '/scripts/promptpay.js';
+        script2.async = false;
+        script2.onload = () => {
+          console.log('promptpay.js loaded');
+        };
+        document.body.appendChild(script2);
+      }
     };
+
+    loadQrcodeGenerator();
+
+    // No explicit cleanup needed for global scripts if we ensure they are loaded only once.
+    // The checks for `window.qrcode` and `window.ThaiQRCode` prevent re-appending.
   }, []);
 
   const handleExportPDF = async () => {
@@ -262,33 +312,10 @@ export default function BillDetail() {
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {/* ค่าไฟฟ้า */}
-                    <Tr>
-                      <Td fontSize={["xs", "sm"]}>ค่าไฟฟ้า</Td>
-                      <Td isNumeric fontSize={["xs", "sm"]}>{(bill.rent !== undefined ? bill.items[0]?.value : 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
-                    </Tr>
-                    {/* ค่าน้ำ */}
-                    <Tr>
-                      <Td fontSize={["xs", "sm"]}>ค่าน้ำ</Td>
-                      <Td isNumeric fontSize={["xs", "sm"]}>{(bill.rent !== undefined ? bill.items[1]?.value : 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
-                    </Tr>
-                    {/* ค่าเช่า */}
-                    <Tr>
-                      <Td fontSize={["xs", "sm"]}>ค่าเช่า</Td>
-                      <Td isNumeric fontSize={["xs", "sm"]}>{bill.rent?.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
-                    </Tr>
-                    {/* ค่าบริการ (รวม addon) */}
-                    <Tr>
-                      <Td fontSize={["xs", "sm"]}>ค่าบริการ</Td>
-                      <Td isNumeric fontSize={["xs", "sm"]}>{Array.isArray(bill.extraServices)
-                        ? bill.extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })
-                        : "0.00"}</Td>
-                    </Tr>
-                    {/* extraServices แยกรายการ */}
-                    {Array.isArray(bill.extraServices) && bill.extraServices.map((svc: any, idx: number) => (
-                      <Tr key={"extra-"+idx}>
-                        <Td fontSize={["xs", "sm"]}>{svc.label || "ค่าบริการเสริม"}</Td>
-                        <Td isNumeric fontSize={["xs", "sm"]}>{svc.value?.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
+                    {bill.items.map((item: any, index: number) => (
+                      <Tr key={index}>
+                        <Td fontSize={["xs", "sm"]}>{item.label}</Td>
+                        <Td isNumeric fontSize={["xs", "sm"]}>{item.value.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
                       </Tr>
                     ))}
                     <Tr fontWeight="bold">

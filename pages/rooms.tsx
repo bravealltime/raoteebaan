@@ -1,4 +1,4 @@
-import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner } from "@chakra-ui/react";
+import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db, auth } from "../lib/firebase";
 import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc } from "firebase/firestore";
@@ -26,6 +26,7 @@ interface Room {
   water: number;
   rent: number;
   service: number;
+  extraServices?: { label: string, value: number }[];
   overdueDays: number;
   billStatus: string;
   tenantId?: string | null;
@@ -95,6 +96,18 @@ export default function Rooms() {
   const [searchRoom, setSearchRoom] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
+  const [equipmentList, setEquipmentList] = useState([
+    { name: "เตียง", selected: true },
+    { name: "ที่นอน", selected: true },
+    { name: "โต๊ะทำงาน", selected: true },
+    { name: "เก้าอี้", selected: true },
+    { name: "ตู้เสื้อผ้า", selected: true },
+    { name: "เครื่องปรับอากาศ", selected: true },
+    { name: "พัดลม", selected: false },
+    { name: "โคมไฟ", selected: true },
+    { name: "ผ้าม่าน", selected: true },
+    { name: "เครื่องทำน้ำอุ่น", selected: true },
+  ]);
   const [role, setRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -116,7 +129,11 @@ export default function Rooms() {
       const snap = await getDoc(doc(db, "users", u.uid));
       const userRole = snap.exists() ? snap.data().role : "user";
       setRole(userRole);
-      if (userRole !== "admin" && userRole !== "owner") {
+      if (userRole === "admin") {
+        // Admin can see all rooms, no redirect needed
+      } else if (userRole === "owner") {
+        // Owner is already on the correct page
+      } else {
         router.replace("/dashboard");
       }
     });
@@ -124,11 +141,12 @@ export default function Rooms() {
   }, []);
 
   useEffect(() => {
-    const fetchRooms = async () => {
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const querySnapshot = await getDocs(collection(db, "rooms"));
-        let data: Room[] = querySnapshot.docs.map(doc => {
+        // 1. Fetch all rooms
+        const roomsSnapshot = await getDocs(collection(db, "rooms"));
+        const roomsData: Room[] = roomsSnapshot.docs.map(doc => {
           const d = doc.data();
           return {
             id: doc.id,
@@ -140,51 +158,45 @@ export default function Rooms() {
             water: d.water || 0,
             rent: d.rent || 0,
             service: d.service || 0,
+            extraServices: d.extraServices || [],
             overdueDays: d.overdueDays || 0,
             billStatus: d.billStatus || "paid",
             tenantId: d.tenantId || null,
             tenantEmail: d.tenantEmail || null,
           };
         });
-        setRooms(data);
+
+        // 2. Fetch the latest bill for each room
+        const bills: Record<string, any> = {};
+        for (const room of roomsData) {
+          const q = query(
+            collection(db, "bills"),
+            where("roomId", "==", room.id),
+            orderBy("createdAt", "desc"),
+            limit(1)
+          );
+          const billSnap = await getDocs(q);
+          if (!billSnap.empty) {
+            const bill = billSnap.docs[0].data();
+            bills[room.id] = bill;
+          }
+        }
+        
+        setRooms(roomsData);
+        setRoomBills(bills);
+
       } catch (e) {
-        toast({ title: "โหลดข้อมูลห้องพักล้มเหลว", status: "error" });
+        console.error(e);
+        toast({ title: "โหลดข้อมูลล้มเหลว", status: "error" });
         setRooms([]);
+        setRoomBills({});
       } finally {
         setLoading(false);
       }
     };
-    fetchRooms();
-  }, [toast]);
 
-  useEffect(() => {
-    async function fetchAllBills() {
-      const bills: Record<string, any> = {};
-      for (const room of rooms) {
-        const q = query(
-          collection(db, "bills"),
-          where("roomId", "==", room.id),
-          orderBy("createdAt", "desc"),
-          limit(1)
-        );
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          const bill = snap.docs[0].data();
-          let total = 0;
-          total += Number(bill.electricityTotal || 0);
-          total += Number(bill.waterTotal || 0);
-          total += Number(bill.rent || 0);
-          total += Number(bill.service || 0);
-          if (Array.isArray(bill.extraServices)) {
-            total += bill.extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0);
-          }
-          bills[room.id] = { ...bill, total };
-        }
-      }
-      setRoomBills(bills);
-    }
-    if (rooms.length > 0) fetchAllBills();
-  }, [rooms]);
+    fetchData();
+  }, [toast]);
 
   const handleDelete = (id: string) => {
     setDeleteId(id);
@@ -344,12 +356,107 @@ export default function Rooms() {
     setIsEquipmentModalOpen(true);
   };
 
-  const handleConfirmEquipmentDownload = () => {
+  const handleConfirmEquipmentDownload = async () => {
     if (!selectedRoomForEquipment) {
       toast({ title: "กรุณาเลือกห้อง", status: "warning" });
       return;
     }
-    // ... (PDF generation code as before)
+
+    const room = rooms.find(r => r.id === selectedRoomForEquipment);
+    if (!room) {
+      toast({ title: "ไม่พบข้อมูลห้อง", status: "error" });
+      return;
+    }
+
+    const selectedItems = equipmentList.filter(item => item.selected);
+    if (selectedItems.length === 0) {
+      toast({ title: "กรุณาเลือกอุปกรณ์อย่างน้อย 1 รายการ", status: "warning" });
+      return;
+    }
+
+    try {
+      const fontResponse = await fetch('/Kanit-Regular.ttf');
+      const fontBuffer = await fontResponse.arrayBuffer();
+      const fontBase64 = btoa(new Uint8Array(fontBuffer).reduce((data, byte) => data + String.fromCharCode(byte), ''));
+
+      const pdf = new jsPDF();
+      pdf.addFileToVFS('Kanit-Regular.ttf', fontBase64);
+      pdf.addFont('Kanit-Regular.ttf', 'Kanit', 'normal');
+      pdf.setFont('Kanit');
+
+      pdf.setFontSize(20);
+      pdf.setTextColor(41, 128, 185);
+      pdf.text("ใบประเมินสภาพห้องและอุปกรณ์", 105, 20, { align: "center" });
+
+      pdf.setFontSize(12);
+      pdf.setTextColor(52, 73, 94);
+      pdf.text(`หมายเลขห้อง: ${room.id}`, 20, 40);
+      pdf.text(`ผู้เช่า: ${room.tenantName || "ว่าง"}`, 20, 50);
+      pdf.text(`วันที่ประเมิน: ${new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}`, 130, 40);
+
+      const tableHeaderY = 65;
+      pdf.setFillColor(236, 240, 241);
+      pdf.rect(15, tableHeaderY, 180, 10, "F");
+      pdf.setTextColor(44, 62, 80);
+      pdf.setFontSize(10);
+      pdf.text("ลำดับ", 18, tableHeaderY + 7);
+      pdf.text("รายการอุปกรณ์", 35, tableHeaderY + 7);
+      pdf.text("สภาพ", 110, tableHeaderY + 7);
+      pdf.text("หมายเหตุ", 165, tableHeaderY + 7);
+      pdf.text("ดี", 112, tableHeaderY + 7);
+      pdf.text("พอใช้", 128, tableHeaderY + 7);
+      pdf.text("ชำรุด", 145, tableHeaderY + 7);
+
+      pdf.setTextColor(52, 73, 94);
+      pdf.setFontSize(10);
+      let tableContentY = tableHeaderY + 10;
+      selectedItems.forEach((item, index) => {
+        tableContentY += 10;
+        if (tableContentY > 260) {
+            pdf.addPage();
+            tableContentY = 20;
+        }
+        pdf.text(`${index + 1}.`, 18, tableContentY);
+        pdf.text(item.name, 35, tableContentY);
+        pdf.rect(112, tableContentY - 4, 5, 5); // Checkbox for "ดี"
+        pdf.rect(128, tableContentY - 4, 5, 5); // Checkbox for "พอใช้"
+        pdf.rect(145, tableContentY - 4, 5, 5); // Checkbox for "ชำรุด"
+        pdf.line(165, tableContentY + 1, 195, tableContentY + 1); // Line for notes
+      });
+
+      const signatureY = tableContentY + 30 > 240 ? 20 : tableContentY + 30;
+      if (signatureY === 20) pdf.addPage();
+      
+      pdf.setFontSize(12);
+      pdf.setTextColor(44, 62, 80);
+      pdf.text("ลงชื่อผู้ประเมิน:", 20, signatureY);
+      pdf.text("ลงชื่อผู้เช่า:", 110, signatureY);
+      
+      pdf.setLineWidth(0.2);
+      pdf.line(20, signatureY + 15, 80, signatureY + 15);
+      pdf.line(110, signatureY + 15, 170, signatureY + 15);
+      
+      pdf.setFontSize(10);
+      pdf.text("(.................................................)", 20, signatureY + 20);
+      pdf.text("(.................................................)", 110, signatureY + 20);
+      pdf.text("วันที่: .................................", 20, signatureY + 30);
+      pdf.text("วันที่: .................................", 110, signatureY + 30);
+
+      pdf.setFontSize(8);
+      pdf.setTextColor(127, 140, 141);
+      pdf.text("เอกสารฉบับนี้ใช้เพื่อยืนยันสภาพอุปกรณ์ ณ วันที่เข้าพัก โปรดตรวจสอบอย่างละเอียด", 105, 285, { align: "center" });
+
+      const fileName = `equipment-assessment-room-${selectedRoomForEquipment}-${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(fileName);
+
+      toast({ title: "ดาวน์โหลดใบประเมินสำเร็จ", status: "success" });
+      setIsEquipmentModalOpen(false);
+      setSelectedRoomForEquipment("");
+
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({ title: "เกิดข้อผิดพลาดในการสร้าง PDF", description: "ไม่สามารถโหลดฟอนต์ได้", status: "error" });
+    }
   };
 
   const fetchLastMeter = async (roomId: string) => {
@@ -363,6 +470,8 @@ export default function Rooms() {
   };
 
   const filteredRooms = rooms.filter(room => {
+    if (!role) return false; // Don't render if role is not set yet
+
     if (role === "admin") return true;
     if (role === "owner") {
       if (room.tenantId && userId && room.tenantId === userId) return true;
@@ -409,6 +518,37 @@ export default function Rooms() {
       <Box flex={1} p={[2, 4, 8]}>
         <Flex align="center" mb={6} gap={3} flexWrap="wrap">
           <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4}>Rooms</Text>
+          {role === 'admin' && (
+            <>
+              <Button
+                leftIcon={<FaPlus />}
+                colorScheme="blue"
+                variant="solid"
+                borderRadius="xl"
+                onClick={() => setIsAddRoomOpen(true)}
+              >
+                เพิ่มห้อง
+              </Button>
+              <Button
+                leftIcon={<FaUpload />}
+                colorScheme="teal"
+                variant="outline"
+                borderRadius="xl"
+                onClick={() => setIsImportOpen(true)}
+              >
+                นำเข้า CSV
+              </Button>
+              <Button
+                leftIcon={<FaFilePdf />}
+                colorScheme="purple"
+                variant="outline"
+                borderRadius="xl"
+                onClick={handleDownloadEquipmentAssessment}
+              >
+                ใบประเมินอุปกรณ์
+              </Button>
+            </>
+          )}
           <Input
             placeholder="Enter room NO."
             maxW="220px"
@@ -431,11 +571,12 @@ export default function Rooms() {
           {filteredRooms.map(room => {
             const electricity = roomBills[room.id]?.electricityTotal || room.electricity || 0;
             const water = roomBills[room.id]?.waterTotal || room.water || 0;
-            const rent = roomBills[room.id]?.rent || room.rent || 0;
-            const extraServicesTotal = Array.isArray(roomBills[room.id]?.extraServices)
-              ? roomBills[room.id].extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0)
+            const rent = room.rent || 0;
+            const baseService = room.service || 0;
+            const extraServicesTotal = Array.isArray(room.extraServices)
+              ? room.extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0)
               : 0;
-            const service = extraServicesTotal;
+            const service = baseService + extraServicesTotal;
             const latestTotal = electricity + water + rent + service;
             return (
               <RoomCard
@@ -481,15 +622,48 @@ export default function Rooms() {
           </ModalFooter>
         </ModalContent>
       </Modal>
-      {/* Equipment Assessment Modal (mockup) */}
+      {/* Equipment Assessment Modal */}
       <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)}>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>ดาวน์โหลดไฟล์ประเมินอุปกรณ์</ModalHeader>
           <ModalCloseButton />
-          <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
+          <ModalBody>
+            <Text mb={2} fontWeight="bold">เลือกห้อง</Text>
+            <Select
+              placeholder="เลือกห้อง"
+              value={selectedRoomForEquipment}
+              onChange={(e) => setSelectedRoomForEquipment(e.target.value)}
+              mb={4}
+            >
+              {rooms.map(room => (
+                <option key={room.id} value={room.id}>
+                  ห้อง {room.id} ({room.tenantName})
+                </option>
+              ))}
+            </Select>
+            <Text mb={2} fontWeight="bold">เลือกรายการอุปกรณ์</Text>
+            <SimpleGrid columns={2} spacing={2}>
+              {equipmentList.map((item, index) => (
+                <Checkbox 
+                  key={item.name} 
+                  isChecked={item.selected}
+                  onChange={e => {
+                    const newList = [...equipmentList];
+                    newList[index].selected = e.target.checked;
+                    setEquipmentList(newList);
+                  }}
+                >
+                  {item.name}
+                </Checkbox>
+              ))}
+            </SimpleGrid>
+          </ModalBody>
           <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={() => setIsEquipmentModalOpen(false)}>ปิด</Button>
+            <Button variant="ghost" mr={3} onClick={() => setIsEquipmentModalOpen(false)}>ยกเลิก</Button>
+            <Button colorScheme="blue" onClick={handleConfirmEquipmentDownload} disabled={!selectedRoomForEquipment}>
+              ดาวน์โหลด
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

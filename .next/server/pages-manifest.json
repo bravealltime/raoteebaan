@@ -2,7 +2,7 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/dashboard": "pages/dashboard.js",
-  "/inbox": "pages/inbox.js",
-  "/rooms": "pages/rooms.js"
+  "/rooms": "pages/rooms.js",
+  "/bill/[roomId]": "pages/bill/[roomId].js",
+  "/history/[roomId]": "pages/history/[roomId].js"
 }

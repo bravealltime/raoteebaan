@@ -20,15 +20,15 @@ globalThis.__BUILD_MANIFEST = {
       "static/chunks/main.js",
       "static/chunks/pages/_error.js"
     ],
-    "/dashboard": [
+    "/bill/[roomId]": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/dashboard.js"
+      "static/chunks/pages/bill/[roomId].js"
     ],
-    "/inbox": [
+    "/history/[roomId]": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",
-      "static/chunks/pages/inbox.js"
+      "static/chunks/pages/history/[roomId].js"
     ],
     "/rooms": [
       "static/chunks/webpack.js",

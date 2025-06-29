@@ -20,6 +20,10 @@ interface InvoiceModalProps {
     total: number;
     items: InvoiceItem[];
     promptpay?: string; // หมายเลขพร้อมเพย์
+    area: number;
+    status: "occupied" | "vacant";
+    overdueDays: number;
+    billStatus: "paid" | "unpaid" | "pending" | "complete";
   };
 }
 
@@ -144,10 +148,16 @@ export default function InvoiceModal({ isOpen, onClose, bill }: InvoiceModalProp
                 <Box>
                   <Text>ห้อง: <b>{bill.room}</b></Text>
                   <Text>ชื่อผู้เช่า: <b>{bill.tenant}</b></Text>
+                  <Text fontSize="sm" color="gray.500">ขนาด: {bill.area} ตร.ม.</Text>
                 </Box>
                 <Box textAlign="right">
+                  <Text>สถานะห้อง: <b>{bill.status === "occupied" ? "มีคนอยู่" : "ว่าง"}</b></Text>
                   <Text>รอบบิล: <b>{bill.date}</b></Text>
                   <Text>วันครบกำหนด: <b>{bill.dueDate}</b></Text>
+                  {bill.overdueDays > 0 && (
+                    <Text color="red.500" fontWeight="bold">เกินกำหนด {bill.overdueDays} วัน</Text>
+                  )}
+                  <Text>สถานะบิล: <b>{bill.billStatus}</b></Text>
                 </Box>
               </Flex>
               <Text textAlign="center" fontSize="3xl" color="green.500" fontWeight="extrabold" my={4}>
