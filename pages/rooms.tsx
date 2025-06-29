@@ -13,6 +13,8 @@ import EditRoomModal from "../components/EditRoomModal";
 import jsPDF from "jspdf";
 import Link from "next/link";
 import { onAuthStateChanged } from "firebase/auth";
+import Sidebar from "../components/Sidebar";
+import MainLayout from "../components/MainLayout";
 
 interface Room {
   id: string;
@@ -26,6 +28,8 @@ interface Room {
   service: number;
   overdueDays: number;
   billStatus: string;
+  tenantId?: string | null;
+  tenantEmail?: string | null;
 }
 
 function generateSampleRoomsCSV() {
@@ -92,6 +96,8 @@ export default function Rooms() {
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
   const [role, setRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const user = {
     name: "xxx",
@@ -105,12 +111,13 @@ export default function Rooms() {
         router.replace("/login");
         return;
       }
+      setUserId(u.uid);
+      setUserEmail(u.email);
       const snap = await getDoc(doc(db, "users", u.uid));
       const userRole = snap.exists() ? snap.data().role : "user";
       setRole(userRole);
-      if (userRole !== "admin") {
-        if (userRole === "employee") router.replace("/employee-dashboard");
-        else router.replace("/user-dashboard");
+      if (userRole !== "admin" && userRole !== "owner") {
+        router.replace("/dashboard");
       }
     });
     return () => unsub();
@@ -135,6 +142,8 @@ export default function Rooms() {
             service: d.service || 0,
             overdueDays: d.overdueDays || 0,
             billStatus: d.billStatus || "paid",
+            tenantId: d.tenantId || null,
+            tenantEmail: d.tenantEmail || null,
           };
         });
         setRooms(data);
@@ -211,6 +220,8 @@ export default function Rooms() {
         service: roomData.service || 0,
         overdueDays: 0,
         billStatus: "paid",
+        tenantId: roomData.tenantId || null,
+        tenantEmail: roomData.tenantEmail || null,
       };
       
       await setDoc(doc(db, "rooms", room.id), room);
@@ -303,6 +314,8 @@ export default function Rooms() {
           service: Number(r.Service || r.service || 0),
           overdueDays: Number(r.OverdueDays || r.overdueDays || 0),
           billStatus: r.BillStatus || "paid",
+          tenantId: r.TenantId || null,
+          tenantEmail: r.TenantEmail || null,
         };
         await setDoc(doc(db, "rooms", room.id), room);
       }));
@@ -350,6 +363,14 @@ export default function Rooms() {
   };
 
   const filteredRooms = rooms.filter(room => {
+    if (role === "admin") return true;
+    if (role === "owner") {
+      if (room.tenantId && userId && room.tenantId === userId) return true;
+      if (room.tenantEmail && userEmail && room.tenantEmail === userEmail) return true;
+      return false;
+    }
+    return false;
+  }).filter(room => {
     const matchSearch = room.id.toLowerCase().includes(searchRoom.trim().toLowerCase()) ||
       room.tenantName.toLowerCase().includes(searchRoom.trim().toLowerCase());
     let matchFilter = true;
@@ -381,191 +402,130 @@ export default function Rooms() {
   const closeDelete = () => router.push("/rooms", undefined, { shallow: true });
 
   if (role === null) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
-  if (role !== "admin") return null;
+  if (role !== "admin" && role !== "owner") return null;
 
   return (
-    <>
-      <AppHeader user={user} />
-      <Flex minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)" p={0}>
-        {/* Sidebar */}
-        <Box
-          w={["70px", "220px"]}
-          minH="calc(100vh - 64px)"
-          bg="white"
-          borderRight="1.5px solid #e3f2fd"
-          boxShadow="0 2px 16px 0 rgba(33,150,243,0.06)"
-          px={[1, 4]}
-          py={6}
-          display="flex"
-          flexDirection="column"
-          gap={4}
-          zIndex={2}
-        >
-          {/* Main menu */}
-          <Link href="/dashboard" passHref legacyBehavior>
-            <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/dashboard" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
-              Dashboard
-            </Button>
-          </Link>
-          <Link href="/rooms" passHref legacyBehavior>
-            <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/rooms" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
-              Rooms
-            </Button>
-          </Link>
-          <Link href="/inbox" passHref legacyBehavior>
-            <Button as="a" leftIcon={<FaInbox />} colorScheme="gray" variant={router.pathname === "/inbox" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
-              Inbox
-            </Button>
-          </Link>
-          <Link href="/parcel" passHref legacyBehavior>
-            <Button as="a" leftIcon={<FaBox />} colorScheme="gray" variant={router.pathname === "/parcel" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
-              Parcel
-            </Button>
-          </Link>
-          <Link href="/employee" passHref legacyBehavior>
-            <Button as="a" leftIcon={<FaUserFriends />} colorScheme="gray" variant={router.pathname === "/employee" ? "solid" : "ghost"} borderRadius="xl" mb={8} w="full" justifyContent="flex-start">
-              Employee
-            </Button>
-          </Link>
-          {/* Action buttons */}
-          <Button leftIcon={<FaPlus />} colorScheme="blue" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'blue.500', color: 'white' }} onClick={() => setIsAddRoomOpen(true)}>
-            เพิ่มห้องใหม่
-          </Button>
-          <Button leftIcon={<FaBolt />} colorScheme="orange" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'orange.400', color: 'white' }} onClick={() => setIsAddAllOpen(true)}>
-            เพิ่มข้อมูลห้องทั้งหมด
-          </Button>
-          <Button leftIcon={<FaUpload />} colorScheme="green" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'green.500', color: 'white' }} onClick={handleExportCSV}>
-            อัปโหลด CSV
-          </Button>
-          <Button leftIcon={<FaFileCsv />} colorScheme="gray" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'gray.200', color: 'gray.700' }} onClick={() => setIsImportOpen(true)}>
-            นำเข้า CSV
-          </Button>
-          <Button leftIcon={<FaFilePdf />} colorScheme="purple" w="full" borderRadius="2xl" size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'purple.400', color: 'white' }} onClick={() => setIsEquipmentModalOpen(true)}>
-            ดาวน์โหลดไฟล์ประเมินอุปกรณ์
-          </Button>
-        </Box>
-        {/* Main content */}
-        <Box flex={1} p={[2, 4, 8]}>
-          <Flex align="center" mb={6} gap={3} flexWrap="wrap">
-            <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4}>Rooms</Text>
-            <Input
-              placeholder="Enter room NO."
-              maxW="220px"
-              bg="white"
-              borderRadius="xl"
-              mr={2}
-              value={searchRoom}
-              onChange={e => setSearchRoom(e.target.value)}
-            />
-            <Menu>
-              <MenuButton as={IconButton} aria-label="Filter" icon={<FaFilter />} variant="outline" borderRadius="xl" />
-              <MenuList>
-                <MenuItem onClick={() => setFilterType('all')}>แสดงทั้งหมด</MenuItem>
-                <MenuItem onClick={() => setFilterType('unpaid')}>ห้องที่ยังไม่จ่าย</MenuItem>
-                <MenuItem onClick={() => setFilterType('vacant')}>ห้องว่าง</MenuItem>
-              </MenuList>
-            </Menu>
-          </Flex>
-          <SimpleGrid minChildWidth="260px" spacing={0}>
-            {filteredRooms.map(room => {
-              const electricity = roomBills[room.id]?.electricityTotal || room.electricity || 0;
-              const water = roomBills[room.id]?.waterTotal || room.water || 0;
-              const rent = roomBills[room.id]?.rent || room.rent || 0;
-              const extraServicesTotal = Array.isArray(roomBills[room.id]?.extraServices)
-                ? roomBills[room.id].extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0)
-                : 0;
-              const service = extraServicesTotal;
-              const latestTotal = electricity + water + rent + service;
-              return (
-                <RoomCard
-                  key={room.id}
-                  {...room}
-                  latestTotal={latestTotal}
-                  electricity={electricity}
-                  water={water}
-                  rent={rent}
-                  service={service}
-                  onDelete={() => handleDelete(room.id)}
-                  onViewBill={() => handleViewBill(room.id)}
-                  onAddData={() => handleAddData(room.id)}
-                  onSettings={() => handleSettings(room.id)}
-                />
-              );
-            })}
-          </SimpleGrid>
-        </Box>
-        {/* AddRoomModal */}
-        <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} />
-        {/* AddAll Modal (mockup) */}
-        <Modal isOpen={isAddAllOpen} onClose={() => setIsAddAllOpen(false)}>
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>เพิ่มข้อมูลห้องทั้งหมด</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
-            <ModalFooter>
-              <Button colorScheme="blue" mr={3} onClick={() => setIsAddAllOpen(false)}>ปิด</Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-        {/* Import CSV Modal (mockup) */}
-        <Modal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)}>
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>นำเข้า CSV</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
-            <ModalFooter>
-              <Button colorScheme="blue" mr={3} onClick={() => setIsImportOpen(false)}>ปิด</Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-        {/* Equipment Assessment Modal (mockup) */}
-        <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)}>
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>ดาวน์โหลดไฟล์ประเมินอุปกรณ์</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
-            <ModalFooter>
-              <Button colorScheme="blue" mr={3} onClick={() => setIsEquipmentModalOpen(false)}>ปิด</Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-        {/* EditRoomModal */}
-        {editRoom && (
-          <EditRoomModal
-            isOpen={!!editRoom}
-            initialRoom={editRoom}
-            onClose={() => setEditRoom(null)}
-            onSave={room => handleSaveEditRoom({ ...editRoom, ...room })}
+    <MainLayout role={role}>
+      <Box flex={1} p={[2, 4, 8]}>
+        <Flex align="center" mb={6} gap={3} flexWrap="wrap">
+          <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4}>Rooms</Text>
+          <Input
+            placeholder="Enter room NO."
+            maxW="220px"
+            bg="white"
+            borderRadius="xl"
+            mr={2}
+            value={searchRoom}
+            onChange={e => setSearchRoom(e.target.value)}
           />
-        )}
-        {/* Confirm Delete Dialog */}
-        <AlertDialog
-          isOpen={isDialogOpen}
-          leastDestructiveRef={cancelRef}
-          onClose={() => setIsDialogOpen(false)}
-        >
-          <AlertDialogOverlay />
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              ยืนยันการลบห้อง
-            </AlertDialogHeader>
-            <AlertDialogBody>
-              คุณแน่ใจหรือไม่ว่าต้องการลบห้องนี้? การลบจะไม่สามารถย้อนกลับได้
-            </AlertDialogBody>
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={() => setIsDialogOpen(false)}>
-                ยกเลิก
-              </Button>
-              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
-                ลบ
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </Flex>
-    </>
+          <Menu>
+            <MenuButton as={IconButton} aria-label="Filter" icon={<FaFilter />} variant="outline" borderRadius="xl" />
+            <MenuList>
+              <MenuItem onClick={() => setFilterType('all')}>แสดงทั้งหมด</MenuItem>
+              <MenuItem onClick={() => setFilterType('unpaid')}>ห้องที่ยังไม่จ่าย</MenuItem>
+              <MenuItem onClick={() => setFilterType('vacant')}>ห้องว่าง</MenuItem>
+            </MenuList>
+          </Menu>
+        </Flex>
+        <SimpleGrid minChildWidth="260px" spacing={0}>
+          {filteredRooms.map(room => {
+            const electricity = roomBills[room.id]?.electricityTotal || room.electricity || 0;
+            const water = roomBills[room.id]?.waterTotal || room.water || 0;
+            const rent = roomBills[room.id]?.rent || room.rent || 0;
+            const extraServicesTotal = Array.isArray(roomBills[room.id]?.extraServices)
+              ? roomBills[room.id].extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0)
+              : 0;
+            const service = extraServicesTotal;
+            const latestTotal = electricity + water + rent + service;
+            return (
+              <RoomCard
+                key={room.id}
+                {...room}
+                latestTotal={latestTotal}
+                electricity={electricity}
+                water={water}
+                rent={rent}
+                service={service}
+                onDelete={() => handleDelete(room.id)}
+                onViewBill={() => handleViewBill(room.id)}
+                onAddData={() => handleAddData(room.id)}
+                onSettings={() => handleSettings(room.id)}
+              />
+            );
+          })}
+        </SimpleGrid>
+      </Box>
+      {/* AddRoomModal */}
+      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} />
+      {/* AddAll Modal (mockup) */}
+      <Modal isOpen={isAddAllOpen} onClose={() => setIsAddAllOpen(false)}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>เพิ่มข้อมูลห้องทั้งหมด</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={() => setIsAddAllOpen(false)}>ปิด</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      {/* Import CSV Modal (mockup) */}
+      <Modal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>นำเข้า CSV</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={() => setIsImportOpen(false)}>ปิด</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      {/* Equipment Assessment Modal (mockup) */}
+      <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>ดาวน์โหลดไฟล์ประเมินอุปกรณ์</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={() => setIsEquipmentModalOpen(false)}>ปิด</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      {/* EditRoomModal */}
+      {editRoom && (
+        <EditRoomModal
+          isOpen={!!editRoom}
+          initialRoom={editRoom}
+          onClose={() => setEditRoom(null)}
+          onSave={room => handleSaveEditRoom({ ...editRoom, ...room })}
+        />
+      )}
+      {/* Confirm Delete Dialog */}
+      <AlertDialog
+        isOpen={isDialogOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={() => setIsDialogOpen(false)}
+      >
+        <AlertDialogOverlay />
+        <AlertDialogContent>
+          <AlertDialogHeader fontSize="lg" fontWeight="bold">
+            ยืนยันการลบห้อง
+          </AlertDialogHeader>
+          <AlertDialogBody>
+            คุณแน่ใจหรือไม่ว่าต้องการลบห้องนี้? การลบจะไม่สามารถย้อนกลับได้
+          </AlertDialogBody>
+          <AlertDialogFooter>
+            <Button ref={cancelRef} onClick={() => setIsDialogOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button colorScheme="red" onClick={confirmDelete} ml={3}>
+              ลบ
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </MainLayout>
   );
 } 

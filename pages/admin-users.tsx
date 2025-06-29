@@ -7,6 +7,7 @@ import { FaUserShield, FaUser, FaCrown, FaUserFriends, FaEdit, FaTrash, FaBan, F
 import AppHeader from "../components/AppHeader";
 import Sidebar from "../components/Sidebar";
 import { onAuthStateChanged } from "firebase/auth";
+import MainLayout from "../components/MainLayout";
 
 export default function AdminUsers() {
   const router = useRouter();
@@ -34,8 +35,15 @@ export default function AdminUsers() {
       const userRole = snap.exists() ? snap.data().role : "user";
       setRole(userRole);
       if (userRole !== "admin") {
-        if (userRole === "employee") router.replace("/employee-dashboard");
-        else router.replace("/user-dashboard");
+        if (userRole === "owner") {
+          router.replace("/rooms");
+          return;
+        }
+        if (userRole === "employee") {
+          router.replace("/employee-dashboard");
+          return;
+        }
+        router.replace("/dashboard");
       }
     });
     return () => unsub();
@@ -128,117 +136,113 @@ export default function AdminUsers() {
   if (role !== "admin") return null;
 
   return (
-    <Box minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)">
-      <AppHeader />
-      <Flex minH="100vh" p={0}>
-        <Sidebar />
-        <Box flex={1} p={[2, 4, 8]}>
-          <Heading color="blue.600" fontSize="2xl" mb={6} display="flex" alignItems="center" gap={2}>
-            <FaUserShield /> Admin Panel
-          </Heading>
-          <SimpleGrid columns={[1, 2, 4]} spacing={4} mb={6}>
-            <Box bg="white" borderRadius="xl" p={6} color="blue.700" display="flex" alignItems="center" gap={4} boxShadow="md" border="1.5px solid #e3f2fd">
-              <FaUserFriends fontSize="2xl" />
-              <Box>
-                <Text fontWeight="bold" fontSize="lg">ผู้ใช้ทั้งหมด</Text>
-                <Text fontSize="2xl">{users.length}</Text>
-              </Box>
-            </Box>
-            <Box bg="white" borderRadius="xl" p={6} color="yellow.700" display="flex" alignItems="center" gap={4} boxShadow="md" border="1.5px solid #ffe082">
-              <FaCrown fontSize="2xl" color="#ffd700" />
-              <Box>
-                <Text fontWeight="bold" fontSize="lg">ผู้ดูแลระบบ</Text>
-                <Text fontSize="2xl">{users.filter(u => u.role === "admin").length}</Text>
-              </Box>
-            </Box>
-            <Box bg="white" borderRadius="xl" p={6} color="green.700" display="flex" alignItems="center" gap={4} boxShadow="md" border="1.5px solid #c8e6c9">
-              <FaHome fontSize="2xl" />
-              <Box>
-                <Text fontWeight="bold" fontSize="lg">ห้องทั้งหมด</Text>
-                <Text fontSize="2xl">{rooms.length}</Text>
-              </Box>
-            </Box>
-            <Box bg="white" borderRadius="xl" p={6} color="purple.700" display="flex" alignItems="center" gap={4} boxShadow="md" border="1.5px solid #e1bee7">
-              <FaFileInvoice fontSize="2xl" />
-              <Box>
-                <Text fontWeight="bold" fontSize="lg">บิลทั้งหมด</Text>
-                <Text fontSize="2xl">{bills.length}</Text>
-              </Box>
-            </Box>
-          </SimpleGrid>
-          <Box bg="white" borderRadius="2xl" p={6} color="gray.800" boxShadow="xl" border="1.5px solid #e3f2fd">
-            <Flex mb={4} gap={2} align="center" flexWrap="wrap">
-              <Button leftIcon={<FaUserFriends />} colorScheme="blue" variant="solid" borderRadius="xl" fontWeight="bold" mr={2}>
-                จัดการผู้ใช้
-              </Button>
-              <Button colorScheme="gray" variant="ghost" borderRadius="xl" fontWeight="bold" mr={2}>
-                จัดการสิทธิ์
-              </Button>
-              <Button colorScheme="gray" variant="ghost" borderRadius="xl" fontWeight="bold">
-                รายงาน
-              </Button>
-              <Input placeholder="ค้นหาผู้ใช้..." maxW="220px" bg="gray.50" borderRadius="xl" color="gray.800" mr={2} value={search} onChange={e => setSearch(e.target.value)} />
-              <Select maxW="160px" bg="gray.50" borderRadius="xl" color="gray.800" value={filter} onChange={e => setFilter(e.target.value)}>
-                <option value="">ทุกสิทธิ์</option>
-                <option value="admin">ผู้ดูแลระบบ</option>
-                <option value="juristic">นิติ</option>
-                <option value="technician">ช่าง</option>
-                <option value="owner">เจ้าของห้อง</option>
-                <option value="user">ลูกบ้าน</option>
-              </Select>
-              <Button leftIcon={<FaPlus />} colorScheme="green" borderRadius="xl" fontWeight="bold" ml="auto" onClick={() => setIsAddOpen(true)}>
-                เพิ่มผู้ใช้
-              </Button>
-            </Flex>
-            <Box overflowX="auto">
-              <Table variant="simple" colorScheme="gray" bg="white" borderRadius="xl">
-                <Thead>
-                  <Tr>
-                    <Th color="blue.700">รูปโปรไฟล์</Th>
-                    <Th color="blue.700">ชื่อ</Th>
-                    <Th color="blue.700">อีเมล</Th>
-                    <Th color="blue.700">สิทธิ์</Th>
-                    <Th color="blue.700">วันที่สมัคร</Th>
-                    <Th color="blue.700">สถานะ</Th>
-                    <Th color="blue.700">จัดการ</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {loading ? (
-                    <Tr><Td colSpan={7}><Spinner color="blue.300" /></Td></Tr>
-                  ) : (
-                    users.filter(u => (!search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())) && (!filter || u.role === filter)).map((u, i) => (
-                      <Tr key={u.id} _hover={{ bg: "blue.50" }}>
-                        <Td><Avatar name={u.name} src={u.avatar} size="sm" /></Td>
-                        <Td fontWeight="bold">{u.name}</Td>
-                        <Td>{u.email}</Td>
-                        <Td>
-                          {u.role === "admin" ? <Badge colorScheme="yellow" borderRadius="full">ผู้ดูแลระบบ</Badge> :
-                            u.role === "juristic" ? <Badge colorScheme="purple" borderRadius="full">นิติ</Badge> :
-                            u.role === "technician" ? <Badge colorScheme="orange" borderRadius="full">ช่าง</Badge> :
-                            u.role === "owner" ? <Badge colorScheme="green" borderRadius="full">เจ้าของห้อง</Badge> :
-                            <Badge colorScheme="blue" borderRadius="full">ลูกบ้าน</Badge>}
-                        </Td>
-                        <Td>{u.createdAt ? new Date(u.createdAt.seconds * 1000).toLocaleDateString("th-TH") : "-"}</Td>
-                        <Td>
-                          <Badge colorScheme={u.status === "active" ? "green" : "gray"} borderRadius="full">
-                            {u.status === "active" ? "ใช้งานได้" : "ไม่ใช้งาน"}
-                          </Badge>
-                        </Td>
-                        <Td>
-                          <IconButton aria-label="edit" icon={<FaEdit />} colorScheme="blue" variant="ghost" borderRadius="full" mr={1} />
-                          <IconButton aria-label="ban" icon={<FaBan />} colorScheme="orange" variant="ghost" borderRadius="full" mr={1} />
-                          <IconButton aria-label="delete" icon={<FaTrash />} colorScheme="red" variant="ghost" borderRadius="full" />
-                        </Td>
-                      </Tr>
-                    ))
-                  )}
-                </Tbody>
-              </Table>
+    <MainLayout role={role}>
+      <Box flex={1} p={[2, 4, 8]}>
+        <Heading color="blue.600" fontSize="2xl" mb={6} display="flex" alignItems="center" gap={2}>
+          <FaUserShield /> Admin Panel
+        </Heading>
+        <SimpleGrid columns={[1, 2, 4]} spacing={4} mb={6}>
+          <Box bg="white" borderRadius="xl" p={6} color="blue.700" display="flex" alignItems="center" gap={4} boxShadow="md" border="1.5px solid #e3f2fd">
+            <FaUserFriends fontSize="2xl" />
+            <Box>
+              <Text fontWeight="bold" fontSize="lg">ผู้ใช้ทั้งหมด</Text>
+              <Text fontSize="2xl">{users.length}</Text>
             </Box>
           </Box>
+          <Box bg="white" borderRadius="xl" p={6} color="yellow.700" display="flex" alignItems="center" gap={4} boxShadow="md" border="1.5px solid #ffe082">
+            <FaCrown fontSize="2xl" color="#ffd700" />
+            <Box>
+              <Text fontWeight="bold" fontSize="lg">ผู้ดูแลระบบ</Text>
+              <Text fontSize="2xl">{users.filter(u => u.role === "admin").length}</Text>
+            </Box>
+          </Box>
+          <Box bg="white" borderRadius="xl" p={6} color="green.700" display="flex" alignItems="center" gap={4} boxShadow="md" border="1.5px solid #c8e6c9">
+            <FaHome fontSize="2xl" />
+            <Box>
+              <Text fontWeight="bold" fontSize="lg">ห้องทั้งหมด</Text>
+              <Text fontSize="2xl">{rooms.length}</Text>
+            </Box>
+          </Box>
+          <Box bg="white" borderRadius="xl" p={6} color="purple.700" display="flex" alignItems="center" gap={4} boxShadow="md" border="1.5px solid #e1bee7">
+            <FaFileInvoice fontSize="2xl" />
+            <Box>
+              <Text fontWeight="bold" fontSize="lg">บิลทั้งหมด</Text>
+              <Text fontSize="2xl">{bills.length}</Text>
+            </Box>
+          </Box>
+        </SimpleGrid>
+        <Box bg="white" borderRadius="2xl" p={6} color="gray.800" boxShadow="xl" border="1.5px solid #e3f2fd">
+          <Flex mb={4} gap={2} align="center" flexWrap="wrap">
+            <Button leftIcon={<FaUserFriends />} colorScheme="blue" variant="solid" borderRadius="xl" fontWeight="bold" mr={2}>
+              จัดการผู้ใช้
+            </Button>
+            <Button colorScheme="gray" variant="ghost" borderRadius="xl" fontWeight="bold" mr={2}>
+              จัดการสิทธิ์
+            </Button>
+            <Button colorScheme="gray" variant="ghost" borderRadius="xl" fontWeight="bold">
+              รายงาน
+            </Button>
+            <Input placeholder="ค้นหาผู้ใช้..." maxW="220px" bg="gray.50" borderRadius="xl" color="gray.800" mr={2} value={search} onChange={e => setSearch(e.target.value)} />
+            <Select maxW="160px" bg="gray.50" borderRadius="xl" color="gray.800" value={filter} onChange={e => setFilter(e.target.value)}>
+              <option value="">ทุกสิทธิ์</option>
+              <option value="admin">ผู้ดูแลระบบ</option>
+              <option value="juristic">นิติ</option>
+              <option value="technician">ช่าง</option>
+              <option value="owner">เจ้าของห้อง</option>
+              <option value="user">ลูกบ้าน</option>
+            </Select>
+            <Button leftIcon={<FaPlus />} colorScheme="green" borderRadius="xl" fontWeight="bold" ml="auto" onClick={() => setIsAddOpen(true)}>
+              เพิ่มผู้ใช้
+            </Button>
+          </Flex>
+          <Box overflowX="auto">
+            <Table variant="simple" colorScheme="gray" bg="white" borderRadius="xl">
+              <Thead>
+                <Tr>
+                  <Th color="blue.700">รูปโปรไฟล์</Th>
+                  <Th color="blue.700">ชื่อ</Th>
+                  <Th color="blue.700">อีเมล</Th>
+                  <Th color="blue.700">สิทธิ์</Th>
+                  <Th color="blue.700">วันที่สมัคร</Th>
+                  <Th color="blue.700">สถานะ</Th>
+                  <Th color="blue.700">จัดการ</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {loading ? (
+                  <Tr><Td colSpan={7}><Spinner color="blue.300" /></Td></Tr>
+                ) : (
+                  users.filter(u => (!search || u.name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())) && (!filter || u.role === filter)).map((u, i) => (
+                    <Tr key={u.id} _hover={{ bg: "blue.50" }}>
+                      <Td><Avatar name={u.name} src={u.avatar} size="sm" /></Td>
+                      <Td fontWeight="bold">{u.name}</Td>
+                      <Td>{u.email}</Td>
+                      <Td>
+                        {u.role === "admin" ? <Badge colorScheme="yellow" borderRadius="full">ผู้ดูแลระบบ</Badge> :
+                          u.role === "juristic" ? <Badge colorScheme="purple" borderRadius="full">นิติ</Badge> :
+                          u.role === "technician" ? <Badge colorScheme="orange" borderRadius="full">ช่าง</Badge> :
+                          u.role === "owner" ? <Badge colorScheme="green" borderRadius="full">เจ้าของห้อง</Badge> :
+                          <Badge colorScheme="blue" borderRadius="full">ลูกบ้าน</Badge>}
+                      </Td>
+                      <Td>{u.createdAt ? new Date(u.createdAt.seconds * 1000).toLocaleDateString("th-TH") : "-"}</Td>
+                      <Td>
+                        <Badge colorScheme={u.status === "active" ? "green" : "gray"} borderRadius="full">
+                          {u.status === "active" ? "ใช้งานได้" : "ไม่ใช้งาน"}
+                        </Badge>
+                      </Td>
+                      <Td>
+                        <IconButton aria-label="edit" icon={<FaEdit />} colorScheme="blue" variant="ghost" borderRadius="full" mr={1} />
+                        <IconButton aria-label="ban" icon={<FaBan />} colorScheme="orange" variant="ghost" borderRadius="full" mr={1} />
+                        <IconButton aria-label="delete" icon={<FaTrash />} colorScheme="red" variant="ghost" borderRadius="full" />
+                      </Td>
+                    </Tr>
+                  ))
+                )}
+              </Tbody>
+            </Table>
+          </Box>
         </Box>
-      </Flex>
+      </Box>
       
       {/* Add User Modal */}
       <Modal isOpen={isAddOpen} onClose={() => setIsAddOpen(false)} isCentered size="md">
@@ -294,7 +298,7 @@ export default function AdminUsers() {
               <Box>
                 <AlertTitle>สร้างผู้ใช้สำเร็จ!</AlertTitle>
                 <AlertDescription>
-                  ผู้ใช้ใหม่ถูกสร้างเรียบร้อยแล้ว กรุณาส่งลิงก์ด้านล่างไปให้ผู้ใช้เพื่อตั้งรหัสผ่าน
+                  ผู้ใช้ใหม่ถูกสร้างเรียบร้อยแล้ว กรุณาส่งลิงก์ด้านล่างไปให้ผู้ใช้เพื่อตั้งรหัสผ่านใหม่
                 </AlertDescription>
               </Box>
             </Alert>
@@ -324,6 +328,6 @@ export default function AdminUsers() {
           </ModalFooter>
         </ModalContent>
       </Modal>
-    </Box>
+    </MainLayout>
   );
 } 
