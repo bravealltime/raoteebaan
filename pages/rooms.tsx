@@ -1,7 +1,7 @@
 import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db, auth } from "../lib/firebase";
-import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, addDoc, updateDoc } from "firebase/firestore";
 import RoomCard from "../components/RoomCard";
 import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
@@ -15,6 +15,7 @@ import Link from "next/link";
 import { onAuthStateChanged } from "firebase/auth";
 import Sidebar from "../components/Sidebar";
 import MainLayout from "../components/MainLayout";
+import MeterReadingModal from "../components/MeterReadingModal";
 
 interface Room {
   id: string;
@@ -93,6 +94,7 @@ export default function Rooms() {
   const [lastWaterMeter, setLastWaterMeter] = useState<number | undefined>(undefined);
   const [lastElecMeter, setLastElecMeter] = useState<number | undefined>(undefined);
   const [roomBills, setRoomBills] = useState<Record<string, any>>({});
+  const [previousReadings, setPreviousReadings] = useState<Record<string, { electricity: number; water: number }>>({});
   
   const [searchRoom, setSearchRoom] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
@@ -109,6 +111,7 @@ export default function Rooms() {
     { name: "ผ้าม่าน", selected: true },
     { name: "เครื่องทำน้ำอุ่น", selected: true },
   ]);
+  const [isMeterReadingModalOpen, setIsMeterReadingModalOpen] = useState(false);
   const [role, setRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -280,6 +283,127 @@ export default function Rooms() {
       toast({ title: "บันทึกข้อมูลห้องไม่สำเร็จ", status: "error" });
     }
     setEditRoom(null);
+  };
+
+  const handleOpenMeterModal = async () => {
+    toast({ title: "กำลังโหลดข้อมูลล่าสุด...", status: "info", duration: 1500 });
+    const readings: Record<string, { electricity: number; water: number }> = {};
+    const promises = rooms.map(async (room) => {
+      const q = query(
+        collection(db, "bills"),
+        where("roomId", "==", room.id),
+        orderBy("createdAt", "desc"),
+        limit(1)
+      );
+      const billSnap = await getDocs(q);
+      if (!billSnap.empty) {
+        const lastBill = billSnap.docs[0].data();
+        console.log('Last Bill Data for room', room.id, ':', lastBill);
+        readings[room.id] = {
+          electricity: lastBill.electricityMeterCurrent || 0,
+          water: lastBill.waterMeterCurrent || 0,
+        };
+      } else {
+        readings[room.id] = { electricity: 0, water: 0 };
+      }
+    });
+
+    await Promise.all(promises);
+    setPreviousReadings(readings);
+    setIsMeterReadingModalOpen(true);
+  };
+    const handleSaveMeterReadings = async (data: any) => {
+    const { rates, recordDate, dueDate, readings } = data;
+    toast({ 
+      title: "กำลังบันทึกข้อมูล...",
+      status: "info",
+      duration: 99999,
+      isClosable: true
+    });
+
+    try {
+      const billPromises = readings.map(async (reading: any) => {
+        if (!reading.electricity && !reading.water) return; // Skip if no new readings
+
+        const roomDocRef = doc(db, "rooms", reading.roomId);
+        const roomSnap = await getDoc(roomDocRef);
+        if (!roomSnap.exists()) return;
+
+        const roomData = roomSnap.data();
+        const prevElec = previousReadings[reading.roomId]?.electricity || 0;
+        const prevWater = previousReadings[reading.roomId]?.water || 0;
+
+        const newElec = Number(reading.electricity);
+        const newWater = Number(reading.water);
+
+        if (newElec < prevElec || newWater < prevWater) {
+          // Maybe show a warning to the user in the future
+          console.warn(`Skipping room ${reading.roomId} due to meter reading being less than previous.`);
+          return;
+        }
+
+        const elecUnits = newElec - prevElec;
+        const waterUnits = newWater - prevWater;
+
+        const elecTotal = elecUnits * rates.electricity;
+        const waterTotal = waterUnits * rates.water;
+        const rent = roomData.rent || 0;
+        const service = roomData.service || 0;
+        const total = elecTotal + waterTotal + rent + service;
+
+        const newBill = {
+          roomId: reading.roomId,
+          tenantId: roomData.tenantId || null,
+          createdAt: new Date(),
+          date: recordDate,
+          dueDate: new Date(dueDate),
+          status: "unpaid",
+          electricityMeter: { old: prevElec, new: newElec, units: elecUnits, rate: rates.electricity, total: elecTotal },
+          waterMeter: { old: prevWater, new: newWater, units: waterUnits, rate: rates.water, total: waterTotal },
+          waterUnit: waterUnits,
+          waterRate: rates.water,
+          waterTotal: waterTotal,
+          rent,
+          service,
+          total,
+        };
+
+        // Create new bill
+        const billCollRef = collection(db, "bills");
+        await addDoc(billCollRef, newBill);
+
+        // Update room summary
+        await updateDoc(roomDocRef, {
+          latestTotal: total,
+          billStatus: "unpaid",
+          overdueDays: 0, // Reset overdue days on new bill
+        });
+      });
+
+      await Promise.all(billPromises);
+
+      toast.closeAll();
+      toast({ 
+        title: "บันทึกข้อมูลสำเร็จ!",
+        description: `บันทึกข้อมูลบิลของ ${readings.length} ห้องเรียบร้อยแล้ว`,
+        status: "success",
+        duration: 5000,
+        isClosable: true
+      });
+      setIsMeterReadingModalOpen(false);
+      // Optionally, refresh data on the page
+      // fetchData(); 
+    } catch (error) {
+      console.error("Error saving meter readings:", error);
+      toast.closeAll();
+      toast({ 
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถบันทึกข้อมูลได้",
+        status: "error",
+        duration: 5000,
+        isClosable: true
+      });
+    }
   };
 
   function handleImportCSV(e: React.ChangeEvent<HTMLInputElement>) {
@@ -556,6 +680,15 @@ export default function Rooms() {
               >
                 ใบประเมินอุปกรณ์
               </Button>
+              <Button
+                leftIcon={<FaPlus />}
+                colorScheme="green"
+                variant="solid"
+                borderRadius="xl"
+                onClick={handleOpenMeterModal}
+              >
+                เพิ่มข้อมูลทุกห้อง
+              </Button>
             </>
           )}
           <Input
@@ -709,6 +842,15 @@ export default function Rooms() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <MeterReadingModal 
+        isOpen={isMeterReadingModalOpen}
+        onClose={() => setIsMeterReadingModalOpen(false)}
+        onSave={handleSaveMeterReadings}
+        rooms={rooms}
+        previousReadings={previousReadings}
+      />
+
     </MainLayout>
   );
 } 

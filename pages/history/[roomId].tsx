@@ -142,6 +142,7 @@ export default function HistoryRoom() {
         extraServices: latestRoomData?.extraServices || [],
         tenantName: latestRoomData?.tenantName || '-',
       };
+      console.log("[DEBUG] Saving billData:", billData);
       await addDoc(collection(db, "bills"), billData);
       // อัปเดต latestBill ใน rooms
       await setDoc(doc(db, "rooms", String(roomId)), { latestBill: billData }, { merge: true });
