@@ -7,6 +7,7 @@ import { FaInbox } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import Sidebar from "../components/Sidebar";
 import { onAuthStateChanged } from "firebase/auth";
+import MainLayout from "../components/MainLayout";
 
 export default function Inbox() {
   const router = useRouter();
@@ -29,18 +30,14 @@ export default function Inbox() {
   if (role === null) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
   if (role !== "admin" && role !== "owner") return null;
   return (
-    <Box minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)">
-      <AppHeader />
-      <Flex minH="100vh" p={0}>
-        <Sidebar role={role} />
-        <Flex flex={1} align="center" justify="center" p={4}>
-          <Box bg="white" borderRadius="2xl" boxShadow="xl" p={[8, 12]} textAlign="center" maxW="sm" w="full">
-            <Box as={FaInbox} color="blue.400" fontSize="5xl" mb={4} />
-            <Heading fontSize="2xl" color="blue.600" mb={2}>Inbox</Heading>
-            <Text color="gray.600" fontSize="lg">Coming soon...</Text>
-          </Box>
-        </Flex>
+    <MainLayout role={role}>
+      <Flex flex={1} align="center" justify="center" p={4}>
+        <Box bg="white" borderRadius="2xl" boxShadow="xl" p={[8, 12]} textAlign="center" maxW="sm" w="full">
+          <Box as={FaInbox} color="blue.400" fontSize="5xl" mb={4} />
+          <Heading fontSize="2xl" color="blue.600" mb={2}>Inbox</Heading>
+          <Text color="gray.600" fontSize="lg">Coming soon...</Text>
+        </Box>
       </Flex>
-    </Box>
+    </MainLayout>
   );
 } 

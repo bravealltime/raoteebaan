@@ -4,7 +4,6 @@ import Head from "next/head";
 import ErrorBoundary from "../components/ErrorBoundary";
 import "../styles/fonts.css";
 import "../styles/globals.css";
-import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/router";
 
 const theme = extendTheme({
@@ -43,7 +42,6 @@ const theme = extendTheme({
 });
 
 function MyApp({ Component, pageProps }: AppProps) {
-  const router = useRouter();
   return (
     <ErrorBoundary>
       <Head>
@@ -55,18 +53,7 @@ function MyApp({ Component, pageProps }: AppProps) {
         />
       </Head>
       <ChakraProvider theme={theme}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={router.route}
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -24 }}
-            transition={{ duration: 0.35, ease: "easeInOut" }}
-            style={{ minHeight: "100vh" }}
-          >
-            <Component {...pageProps} />
-          </motion.div>
-        </AnimatePresence>
+        <Component {...pageProps} />
       </ChakraProvider>
     </ErrorBoundary>
   );

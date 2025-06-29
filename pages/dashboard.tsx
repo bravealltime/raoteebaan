@@ -14,6 +14,7 @@ import jsPDF from "jspdf";
 import Link from "next/link";
 import Sidebar from "../components/Sidebar";
 import { onAuthStateChanged } from "firebase/auth";
+import MainLayout from "../components/MainLayout";
 
 interface Room {
   id: string;
@@ -477,19 +478,13 @@ export default function Dashboard() {
   if (role !== "admin") return null;
 
   return (
-    <Box minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)">
-      <AppHeader user={{ name: "xxx", avatar: "/avatar.png", greeting: "อาทิตย์ 21 มิ.ย. 2568" }} />
-      <Flex minH="100vh" p={0}>
-        {/* Sidebar */}
-        <Sidebar role={role} />
-        {/* Main content */}
-        <Flex align="center" justify="center" flex={1} minH="80vh">
-          <Box bg="white" borderRadius="2xl" boxShadow="xl" p={12} textAlign="center">
-            <Heading fontSize="3xl" color="blue.600" mb={4}>Dashboard</Heading>
-            <Text color="gray.600">สรุปข้อมูลภาพรวมระบบ (Coming soon...)</Text>
-          </Box>
-        </Flex>
+    <MainLayout role={role}>
+      <Flex align="center" justify="center" flex={1} minH="80vh">
+        <Box bg="white" borderRadius="2xl" boxShadow="xl" p={12} textAlign="center">
+          <Heading fontSize="3xl" color="blue.600" mb={4}>Dashboard</Heading>
+          <Text color="gray.600">สรุปข้อมูลภาพรวมระบบ (Coming soon...)</Text>
+        </Box>
       </Flex>
-    </Box>
+    </MainLayout>
   );
 } 

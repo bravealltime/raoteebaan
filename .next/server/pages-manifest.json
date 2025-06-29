@@ -3,7 +3,8 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/rooms": "pages/rooms.js",
-  "/inbox": "pages/inbox.js",
-  "/parcel": "pages/parcel.js",
-  "/login": "pages/login.js"
+  "/login": "pages/login.js",
+  "/admin-users": "pages/admin-users.js",
+  "/dashboard": "pages/dashboard.js",
+  "/inbox": "pages/inbox.js"
 }

@@ -14,6 +14,7 @@ import jsPDF from "jspdf";
 import Link from "next/link";
 import { onAuthStateChanged } from "firebase/auth";
 import Sidebar from "../components/Sidebar";
+import MainLayout from "../components/MainLayout";
 
 interface Room {
   id: string;
@@ -404,133 +405,127 @@ export default function Rooms() {
   if (role !== "admin" && role !== "owner") return null;
 
   return (
-    <>
-      <AppHeader user={user} />
-      <Flex minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)" p={0}>
-        {/* Sidebar */}
-        <Sidebar role={role} />
-        {/* Main content */}
-        <Box flex={1} p={[2, 4, 8]}>
-          <Flex align="center" mb={6} gap={3} flexWrap="wrap">
-            <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4}>Rooms</Text>
-            <Input
-              placeholder="Enter room NO."
-              maxW="220px"
-              bg="white"
-              borderRadius="xl"
-              mr={2}
-              value={searchRoom}
-              onChange={e => setSearchRoom(e.target.value)}
-            />
-            <Menu>
-              <MenuButton as={IconButton} aria-label="Filter" icon={<FaFilter />} variant="outline" borderRadius="xl" />
-              <MenuList>
-                <MenuItem onClick={() => setFilterType('all')}>แสดงทั้งหมด</MenuItem>
-                <MenuItem onClick={() => setFilterType('unpaid')}>ห้องที่ยังไม่จ่าย</MenuItem>
-                <MenuItem onClick={() => setFilterType('vacant')}>ห้องว่าง</MenuItem>
-              </MenuList>
-            </Menu>
-          </Flex>
-          <SimpleGrid minChildWidth="260px" spacing={0}>
-            {filteredRooms.map(room => {
-              const electricity = roomBills[room.id]?.electricityTotal || room.electricity || 0;
-              const water = roomBills[room.id]?.waterTotal || room.water || 0;
-              const rent = roomBills[room.id]?.rent || room.rent || 0;
-              const extraServicesTotal = Array.isArray(roomBills[room.id]?.extraServices)
-                ? roomBills[room.id].extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0)
-                : 0;
-              const service = extraServicesTotal;
-              const latestTotal = electricity + water + rent + service;
-              return (
-                <RoomCard
-                  key={room.id}
-                  {...room}
-                  latestTotal={latestTotal}
-                  electricity={electricity}
-                  water={water}
-                  rent={rent}
-                  service={service}
-                  onDelete={() => handleDelete(room.id)}
-                  onViewBill={() => handleViewBill(room.id)}
-                  onAddData={() => handleAddData(room.id)}
-                  onSettings={() => handleSettings(room.id)}
-                />
-              );
-            })}
-          </SimpleGrid>
-        </Box>
-        {/* AddRoomModal */}
-        <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} />
-        {/* AddAll Modal (mockup) */}
-        <Modal isOpen={isAddAllOpen} onClose={() => setIsAddAllOpen(false)}>
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>เพิ่มข้อมูลห้องทั้งหมด</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
-            <ModalFooter>
-              <Button colorScheme="blue" mr={3} onClick={() => setIsAddAllOpen(false)}>ปิด</Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-        {/* Import CSV Modal (mockup) */}
-        <Modal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)}>
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>นำเข้า CSV</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
-            <ModalFooter>
-              <Button colorScheme="blue" mr={3} onClick={() => setIsImportOpen(false)}>ปิด</Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-        {/* Equipment Assessment Modal (mockup) */}
-        <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)}>
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>ดาวน์โหลดไฟล์ประเมินอุปกรณ์</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
-            <ModalFooter>
-              <Button colorScheme="blue" mr={3} onClick={() => setIsEquipmentModalOpen(false)}>ปิด</Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-        {/* EditRoomModal */}
-        {editRoom && (
-          <EditRoomModal
-            isOpen={!!editRoom}
-            initialRoom={editRoom}
-            onClose={() => setEditRoom(null)}
-            onSave={room => handleSaveEditRoom({ ...editRoom, ...room })}
+    <MainLayout role={role}>
+      <Box flex={1} p={[2, 4, 8]}>
+        <Flex align="center" mb={6} gap={3} flexWrap="wrap">
+          <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4}>Rooms</Text>
+          <Input
+            placeholder="Enter room NO."
+            maxW="220px"
+            bg="white"
+            borderRadius="xl"
+            mr={2}
+            value={searchRoom}
+            onChange={e => setSearchRoom(e.target.value)}
           />
-        )}
-        {/* Confirm Delete Dialog */}
-        <AlertDialog
-          isOpen={isDialogOpen}
-          leastDestructiveRef={cancelRef}
-          onClose={() => setIsDialogOpen(false)}
-        >
-          <AlertDialogOverlay />
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              ยืนยันการลบห้อง
-            </AlertDialogHeader>
-            <AlertDialogBody>
-              คุณแน่ใจหรือไม่ว่าต้องการลบห้องนี้? การลบจะไม่สามารถย้อนกลับได้
-            </AlertDialogBody>
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={() => setIsDialogOpen(false)}>
-                ยกเลิก
-              </Button>
-              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
-                ลบ
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </Flex>
-    </>
+          <Menu>
+            <MenuButton as={IconButton} aria-label="Filter" icon={<FaFilter />} variant="outline" borderRadius="xl" />
+            <MenuList>
+              <MenuItem onClick={() => setFilterType('all')}>แสดงทั้งหมด</MenuItem>
+              <MenuItem onClick={() => setFilterType('unpaid')}>ห้องที่ยังไม่จ่าย</MenuItem>
+              <MenuItem onClick={() => setFilterType('vacant')}>ห้องว่าง</MenuItem>
+            </MenuList>
+          </Menu>
+        </Flex>
+        <SimpleGrid minChildWidth="260px" spacing={0}>
+          {filteredRooms.map(room => {
+            const electricity = roomBills[room.id]?.electricityTotal || room.electricity || 0;
+            const water = roomBills[room.id]?.waterTotal || room.water || 0;
+            const rent = roomBills[room.id]?.rent || room.rent || 0;
+            const extraServicesTotal = Array.isArray(roomBills[room.id]?.extraServices)
+              ? roomBills[room.id].extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0)
+              : 0;
+            const service = extraServicesTotal;
+            const latestTotal = electricity + water + rent + service;
+            return (
+              <RoomCard
+                key={room.id}
+                {...room}
+                latestTotal={latestTotal}
+                electricity={electricity}
+                water={water}
+                rent={rent}
+                service={service}
+                onDelete={() => handleDelete(room.id)}
+                onViewBill={() => handleViewBill(room.id)}
+                onAddData={() => handleAddData(room.id)}
+                onSettings={() => handleSettings(room.id)}
+              />
+            );
+          })}
+        </SimpleGrid>
+      </Box>
+      {/* AddRoomModal */}
+      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} />
+      {/* AddAll Modal (mockup) */}
+      <Modal isOpen={isAddAllOpen} onClose={() => setIsAddAllOpen(false)}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>เพิ่มข้อมูลห้องทั้งหมด</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={() => setIsAddAllOpen(false)}>ปิด</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      {/* Import CSV Modal (mockup) */}
+      <Modal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>นำเข้า CSV</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={() => setIsImportOpen(false)}>ปิด</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      {/* Equipment Assessment Modal (mockup) */}
+      <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>ดาวน์โหลดไฟล์ประเมินอุปกรณ์</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>ฟีเจอร์นี้อยู่ระหว่างพัฒนา (mockup)</ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={() => setIsEquipmentModalOpen(false)}>ปิด</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      {/* EditRoomModal */}
+      {editRoom && (
+        <EditRoomModal
+          isOpen={!!editRoom}
+          initialRoom={editRoom}
+          onClose={() => setEditRoom(null)}
+          onSave={room => handleSaveEditRoom({ ...editRoom, ...room })}
+        />
+      )}
+      {/* Confirm Delete Dialog */}
+      <AlertDialog
+        isOpen={isDialogOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={() => setIsDialogOpen(false)}
+      >
+        <AlertDialogOverlay />
+        <AlertDialogContent>
+          <AlertDialogHeader fontSize="lg" fontWeight="bold">
+            ยืนยันการลบห้อง
+          </AlertDialogHeader>
+          <AlertDialogBody>
+            คุณแน่ใจหรือไม่ว่าต้องการลบห้องนี้? การลบจะไม่สามารถย้อนกลับได้
+          </AlertDialogBody>
+          <AlertDialogFooter>
+            <Button ref={cancelRef} onClick={() => setIsDialogOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button colorScheme="red" onClick={confirmDelete} ml={3}>
+              ลบ
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </MainLayout>
   );
 } 
