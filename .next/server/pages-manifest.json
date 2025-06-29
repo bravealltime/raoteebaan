@@ -4,5 +4,6 @@
   "/_document": "pages/_document.js",
   "/rooms": "pages/rooms.js",
   "/dashboard": "pages/dashboard.js",
+  "/history/[roomId]": "pages/history/[roomId].js",
   "/bill/[roomId]": "pages/bill/[roomId].js"
 }
