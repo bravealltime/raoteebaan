@@ -314,31 +314,41 @@ export default function Rooms() {
   };
     const handleSaveMeterReadings = async (data: any) => {
     const { rates, recordDate, dueDate, readings } = data;
-    toast({ 
+    const warnings: string[] = [];
+    let successCount = 0;
+
+    const toastId = toast({
       title: "กำลังบันทึกข้อมูล...",
       status: "info",
-      duration: 99999,
-      isClosable: true
+      duration: null, // Indefinite
+      isClosable: true,
     });
 
     try {
       const billPromises = readings.map(async (reading: any) => {
-        if (!reading.electricity && !reading.water) return; // Skip if no new readings
-
         const roomDocRef = doc(db, "rooms", reading.roomId);
         const roomSnap = await getDoc(roomDocRef);
-        if (!roomSnap.exists()) return;
+        if (!roomSnap.exists()) {
+          warnings.push(`ไม่พบห้อง ${reading.roomId}`);
+          return;
+        }
 
         const roomData = roomSnap.data();
         const prevElec = previousReadings[reading.roomId]?.electricity || 0;
         const prevWater = previousReadings[reading.roomId]?.water || 0;
 
-        const newElec = Number(reading.electricity);
-        const newWater = Number(reading.water);
+        const hasNewElec = reading.electricity && String(reading.electricity).trim() !== '';
+        const hasNewWater = reading.water && String(reading.water).trim() !== '';
 
-        if (newElec < prevElec || newWater < prevWater) {
-          // Maybe show a warning to the user in the future
-          console.warn(`Skipping room ${reading.roomId} due to meter reading being less than previous.`);
+        if (!hasNewElec && !hasNewWater) {
+          return; // Skip if no new readings for this room
+        }
+
+        const newElec = hasNewElec ? Number(reading.electricity) : prevElec;
+        const newWater = hasNewWater ? Number(reading.water) : prevWater;
+
+        if ((hasNewElec && newElec < prevElec) || (hasNewWater && newWater < prevWater)) {
+          warnings.push(`ห้อง ${reading.roomId}: เลขมิเตอร์ใหม่น้อยกว่าของเก่า`);
           return;
         }
 
@@ -347,61 +357,83 @@ export default function Rooms() {
 
         const elecTotal = elecUnits * rates.electricity;
         const waterTotal = waterUnits * rates.water;
+        
         const rent = roomData.rent || 0;
         const service = roomData.service || 0;
-        const total = elecTotal + waterTotal + rent + service;
+        const extraServicesTotal = (roomData.extraServices || []).reduce((sum: number, s: { value: number }) => sum + s.value, 0);
+        const total = elecTotal + waterTotal + rent + service + extraServicesTotal;
 
         const newBill = {
           roomId: reading.roomId,
           tenantId: roomData.tenantId || null,
           createdAt: new Date(),
-          date: recordDate,
+          date: new Date(recordDate),
           dueDate: new Date(dueDate),
           status: "unpaid",
-          electricityMeter: { old: prevElec, new: newElec, units: elecUnits, rate: rates.electricity, total: elecTotal },
-          waterMeter: { old: prevWater, new: newWater, units: waterUnits, rate: rates.water, total: waterTotal },
-          waterUnit: waterUnits,
+          
+          // Align with history page structure
+          electricityMeterCurrent: newElec,
+          electricityMeterPrev: prevElec,
+          electricityRate: rates.electricity,
+          electricityUnit: elecUnits,
+          electricityTotal: elecTotal,
+
+          waterMeterCurrent: newWater,
+          waterMeterPrev: prevWater,
           waterRate: rates.water,
+          waterUnit: waterUnits,
           waterTotal: waterTotal,
+
           rent,
           service,
+          extraServices: roomData.extraServices || [],
           total,
         };
 
-        // Create new bill
-        const billCollRef = collection(db, "bills");
-        await addDoc(billCollRef, newBill);
+        await addDoc(collection(db, "bills"), newBill);
 
-        // Update room summary
         await updateDoc(roomDocRef, {
           latestTotal: total,
           billStatus: "unpaid",
-          overdueDays: 0, // Reset overdue days on new bill
+          overdueDays: 0,
+          electricity: elecTotal,
+          water: waterTotal,
         });
+        
+        successCount++;
       });
 
       await Promise.all(billPromises);
 
-      toast.closeAll();
-      toast({ 
+      toast.update(toastId, {
         title: "บันทึกข้อมูลสำเร็จ!",
-        description: `บันทึกข้อมูลบิลของ ${readings.length} ห้องเรียบร้อยแล้ว`,
+        description: `บันทึกข้อมูลบิลของ ${successCount} ห้องเรียบร้อยแล้ว ${warnings.length > 0 ? `(มีคำเตือน ${warnings.length} รายการ)` : ''}`,
         status: "success",
         duration: 5000,
-        isClosable: true
       });
+      
+      if (warnings.length > 0) {
+          // Show warnings in a separate toast
+          toast({
+              title: "คำเตือน",
+              description: warnings.join(', '),
+              status: "warning",
+              duration: 10000,
+              isClosable: true
+          })
+      }
+
       setIsMeterReadingModalOpen(false);
-      // Optionally, refresh data on the page
-      // fetchData(); 
+      // Refresh data to reflect the changes
+      window.location.reload();
+
     } catch (error) {
       console.error("Error saving meter readings:", error);
-      toast.closeAll();
-      toast({ 
+      toast.update(toastId, {
         title: "เกิดข้อผิดพลาด",
         description: "ไม่สามารถบันทึกข้อมูลได้",
         status: "error",
         duration: 5000,
-        isClosable: true
       });
     }
   };

@@ -6,7 +6,7 @@ import {
 import { FaArrowLeft, FaCalculator, FaBolt, FaTint, FaTrash } from "react-icons/fa";
 import AppHeader from "../../components/AppHeader";
 import { db } from "../../lib/firebase";
-import { collection, addDoc, query, where, orderBy, limit, getDocs, deleteDoc, doc, getDoc, setDoc } from "firebase/firestore";
+import { collection, addDoc, query, where, orderBy, limit, getDocs, deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 
 export default function HistoryRoom() {
   const router = useRouter();
@@ -83,77 +83,116 @@ export default function HistoryRoom() {
     }
   }, [history]);
 
-  const handleCalcElectricity = () => {
-    toast({ title: "คำนวณค่าไฟ (mockup)", status: "info" });
-  };
-  const handleCalcWater = () => {
-    toast({ title: "คำนวณค่าน้ำ (mockup)", status: "info" });
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return "-";
+    // Firestore timestamp object has seconds and nanoseconds properties
+    if (timestamp.seconds) {
+      const date = new Date(timestamp.seconds * 1000);
+      return date.toLocaleDateString("th-TH", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+    }
+    // Handle ISO string date
+    if (typeof timestamp === 'string') {
+        const date = new Date(timestamp);
+        return date.toLocaleDateString("th-TH", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+        });
+    }
+    return "Invalid Date";
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleSaveData = async () => {
-    if (!roomId) return;
-    // Validation: ต้องกรอกทุกช่อง
-    if (
-      !electricity.date ||
-      !electricity.dueDate ||
-      !electricity.meter ||
-      !electricity.rate ||
-      !water.meter ||
-      !water.rate
-    ) {
+    if (!roomId || isSaving) return;
+
+    const { date, dueDate, meter: elecMeter, rate: elecRate } = electricity;
+    const { meter: waterMeter, rate: waterRate } = water;
+
+    if (!date || !dueDate || !elecMeter || !elecRate || !waterMeter || !waterRate) {
       toast({ title: "กรุณากรอกข้อมูลให้ครบทุกช่อง", status: "warning" });
       return;
     }
+
+    setIsSaving(true);
     try {
-      // ดึงข้อมูลห้องล่าสุดจาก Firestore ก่อนบันทึกบิล
-      const roomDoc = await getDoc(doc(db, "rooms", String(roomId)));
-      let latestRoomData = roomData;
-      if (roomDoc.exists()) {
-        latestRoomData = roomDoc.data();
-      }
-      // ใช้เลขมิเตอร์ล่าสุดจากประวัติ (history[0])
+      const roomDocRef = doc(db, "rooms", String(roomId));
+      const roomDoc = await getDoc(roomDocRef);
+      const latestRoomData = roomDoc.exists() ? roomDoc.data() : null;
+
       const prevElec = history[0]?.electricityMeterCurrent || 0;
       const prevWater = history[0]?.waterMeterCurrent || 0;
-      const electricityUnit = Number(electricity.meter) - Number(prevElec);
-      const electricityRate = Number(electricity.rate);
-      const electricityTotal = electricityUnit * electricityRate;
-      const waterUnit = Number(water.meter) - Number(prevWater);
-      const waterRate = Number(water.rate);
-      const waterTotal = waterUnit * waterRate;
-      // เตรียมข้อมูล
+
+      const newElecMeter = Number(elecMeter);
+      const newWaterMeter = Number(waterMeter);
+
+      if (newElecMeter < prevElec || newWaterMeter < prevWater) {
+        toast({ title: "ข้อผิดพลาด", description: "เลขมิเตอร์ใหม่ต้องไม่น้อยกว่าเลขมิเตอร์ครั้งก่อน", status: "error" });
+        setIsSaving(false);
+        return;
+      }
+
+      const electricityUnit = newElecMeter - prevElec;
+      const electricityTotal = electricityUnit * Number(elecRate);
+      const waterUnit = newWaterMeter - prevWater;
+      const waterTotal = waterUnit * Number(waterRate);
+
+      const rent = latestRoomData?.rent || 0;
+      const service = latestRoomData?.service || 0;
+      const extraServicesTotal = (latestRoomData?.extraServices || []).reduce((sum: number, s: { value: number }) => sum + s.value, 0);
+      const total = electricityTotal + waterTotal + rent + service + extraServicesTotal;
+
       const billData = {
         roomId: String(roomId),
-        date: electricity.date,
-        dueDate: electricity.dueDate,
-        electricityMeterCurrent: Number(electricity.meter),
+        date: new Date(date),
+        dueDate: new Date(dueDate),
+        createdAt: new Date(),
+        status: 'unpaid',
+        electricityMeterCurrent: newElecMeter,
         electricityMeterPrev: prevElec,
-        electricityRate,
+        electricityRate: Number(elecRate),
         electricityUnit,
         electricityTotal,
-        waterMeterCurrent: Number(water.meter),
+        waterMeterCurrent: newWaterMeter,
         waterMeterPrev: prevWater,
-        waterRate,
+        waterRate: Number(waterRate),
         waterUnit,
         waterTotal,
-        createdAt: new Date(),
-        // sync field สำคัญจากห้อง
-        rent: latestRoomData?.rent || 0,
-        service: latestRoomData?.service || 0,
+        rent,
+        service,
         extraServices: latestRoomData?.extraServices || [],
         tenantName: latestRoomData?.tenantName || '-',
+        total,
       };
-      console.log("[DEBUG] Saving billData:", billData);
+
       await addDoc(collection(db, "bills"), billData);
-      // อัปเดต latestBill ใน rooms
-      await setDoc(doc(db, "rooms", String(roomId)), { latestBill: billData }, { merge: true });
+
+      await updateDoc(roomDocRef, {
+        latestTotal: total,
+        billStatus: 'unpaid',
+        electricity: electricityTotal,
+        water: waterTotal,
+        overdueDays: 0,
+      });
+
       toast({ title: "บันทึกข้อมูลสำเร็จ", status: "success" });
-      // โหลดประวัติใหม่
-      const q = query(collection(db, "bills"), where("roomId", "==", String(roomId)), orderBy("createdAt", "desc"), limit(10));
+
+      // Refresh history
+      const q = query(collection(db, "bills"), where("roomId", "==", String(roomId)), orderBy("createdAt", "desc"));
       const snap = await getDocs(q);
       const newHistory = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setHistory(newHistory);
+
     } catch (e) {
+      console.error("Error saving data:", e);
       toast({ title: "บันทึกข้อมูลไม่สำเร็จ", status: "error" });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -162,18 +201,61 @@ export default function HistoryRoom() {
   };
 
   const confirmDeleteBill = async () => {
-    if (!deleteConfirmId) return;
+    if (!deleteConfirmId || !roomId) return;
+
     try {
+      // 1. Delete the specific bill document
       await deleteDoc(doc(db, "bills", deleteConfirmId));
-      toast({ title: "ลบข้อมูลสำเร็จ", status: "success" });
-      // โหลดประวัติใหม่
-      if (!roomId) return;
-      const q = query(collection(db, "bills"), where("roomId", "==", String(roomId)), orderBy("createdAt", "desc"), limit(10));
+      toast({ title: "ลบข้อมูลสำเร็จ", status: "success", duration: 2000 });
+
+      // 2. Fetch the new latest bill for the room
+      const q = query(
+        collection(db, "bills"),
+        where("roomId", "==", String(roomId)),
+        orderBy("createdAt", "desc"),
+        limit(1)
+      );
       const snap = await getDocs(q);
-      const newHistory = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      let newLatestBillData;
+      if (!snap.empty) {
+        // If there's a new latest bill, use its data
+        const latestBill = snap.docs[0].data();
+        newLatestBillData = {
+          latestTotal: latestBill.total || 0,
+          billStatus: latestBill.status || 'paid',
+          electricity: latestBill.electricityTotal || 0,
+          water: latestBill.waterTotal || 0,
+          overdueDays: 0, // Reset overdue days
+        };
+      } else {
+        // If no bills are left, reset to default values
+        newLatestBillData = {
+          latestTotal: 0,
+          billStatus: 'paid',
+          electricity: 0,
+          water: 0,
+          overdueDays: 0,
+        };
+      }
+
+      // 3. Update the room document with the new latest data
+      const roomDocRef = doc(db, "rooms", String(roomId));
+      await updateDoc(roomDocRef, newLatestBillData);
+
+      // 4. Refresh the history list on the current page
+      const updatedHistoryQuery = query(
+        collection(db, "bills"),
+        where("roomId", "==", String(roomId)),
+        orderBy("createdAt", "desc")
+      );
+      const updatedSnap = await getDocs(updatedHistoryQuery);
+      const newHistory = updatedSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setHistory(newHistory);
+
     } catch (e) {
-      toast({ title: "ลบข้อมูลไม่สำเร็จ", status: "error" });
+      console.error("Error deleting bill:", e);
+      toast({ title: "ลบข้อมูลไม่สำเร็จ", description: "เกิดข้อผิดพลาด โปรดลองอีกครั้ง", status: "error" });
     } finally {
       setDeleteConfirmId(null);
     }
@@ -313,7 +395,7 @@ export default function HistoryRoom() {
             <Tbody>
               {history.map((item, idx) => (
                 <Tr key={item.id || idx}>
-                  <Td>{item.date}</Td>
+                  <Td>{formatDate(item.date)}</Td>
                   <Td color="orange.400">{item.electricityUnit}</Td>
                   <Td>{item.electricityRate ? item.electricityRate : '-'}</Td>
                   <Td color="green.400">
