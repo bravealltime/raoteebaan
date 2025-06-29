@@ -390,15 +390,21 @@ export default function Rooms() {
               Rooms
             </Button>
           </Link>
-          <Button leftIcon={<FaInbox />} colorScheme="gray" variant={router.pathname === "/inbox" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
-            Inbox
-          </Button>
-          <Button leftIcon={<FaBox />} colorScheme="gray" variant={router.pathname === "/parcel" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
-            Parcel
-          </Button>
-          <Button leftIcon={<FaUserFriends />} colorScheme="gray" variant={router.pathname === "/employee" ? "solid" : "ghost"} borderRadius="xl" mb={8} w="full" justifyContent="flex-start">
-            Employee
-          </Button>
+          <Link href="/inbox" passHref legacyBehavior>
+            <Button as="a" leftIcon={<FaInbox />} colorScheme="gray" variant={router.pathname === "/inbox" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
+              Inbox
+            </Button>
+          </Link>
+          <Link href="/parcel" passHref legacyBehavior>
+            <Button as="a" leftIcon={<FaBox />} colorScheme="gray" variant={router.pathname === "/parcel" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
+              Parcel
+            </Button>
+          </Link>
+          <Link href="/employee" passHref legacyBehavior>
+            <Button as="a" leftIcon={<FaUserFriends />} colorScheme="gray" variant={router.pathname === "/employee" ? "solid" : "ghost"} borderRadius="xl" mb={8} w="full" justifyContent="flex-start">
+              Employee
+            </Button>
+          </Link>
           {/* Action buttons */}
           <Button leftIcon={<FaPlus />} colorScheme="blue" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'blue.500', color: 'white' }} onClick={() => setIsAddRoomOpen(true)}>
             เพิ่มห้องใหม่

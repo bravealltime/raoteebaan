@@ -2,8 +2,10 @@
   "/_app": "pages/_app.js",
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
-  "/rooms": "pages/rooms.js",
+  "/inbox": "pages/inbox.js",
+  "/employee": "pages/employee.js",
+  "/parcel": "pages/parcel.js",
   "/dashboard": "pages/dashboard.js",
-  "/profile": "pages/profile.js",
+  "/rooms": "pages/rooms.js",
   "/history/[roomId]": "pages/history/[roomId].js"
 }

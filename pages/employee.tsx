@@ -1,0 +1,22 @@
+import { Box, Flex, Heading, Text } from "@chakra-ui/react";
+import { FaUserFriends } from "react-icons/fa";
+import AppHeader from "../components/AppHeader";
+import Sidebar from "../components/Sidebar";
+
+export default function Employee() {
+  return (
+    <Box minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)">
+      <AppHeader />
+      <Flex minH="100vh" p={0}>
+        <Sidebar />
+        <Flex flex={1} align="center" justify="center" p={4}>
+          <Box bg="white" borderRadius="2xl" boxShadow="xl" p={[8, 12]} textAlign="center" maxW="sm" w="full">
+            <Box as={FaUserFriends} color="blue.400" fontSize="5xl" mb={4} />
+            <Heading fontSize="2xl" color="blue.600" mb={2}>Employee</Heading>
+            <Text color="gray.600" fontSize="lg">Coming soon...</Text>
+          </Box>
+        </Flex>
+      </Flex>
+    </Box>
+  );
+} 

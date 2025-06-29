@@ -12,6 +12,7 @@ import Papa from "papaparse";
 import EditRoomModal from "../components/EditRoomModal";
 import jsPDF from "jspdf";
 import Link from "next/link";
+import Sidebar from "../components/Sidebar";
 
 interface Room {
   id: string;
@@ -451,40 +452,7 @@ export default function Dashboard() {
       <AppHeader user={{ name: "xxx", avatar: "/avatar.png", greeting: "อาทิตย์ 21 มิ.ย. 2568" }} />
       <Flex minH="100vh" p={0}>
         {/* Sidebar */}
-        <Box
-          w={["70px", "220px"]}
-          minH="calc(100vh - 64px)"
-          bg="white"
-          borderRight="1.5px solid #e3f2fd"
-          boxShadow="0 2px 16px 0 rgba(33,150,243,0.06)"
-          px={[1, 4]}
-          py={6}
-          display="flex"
-          flexDirection="column"
-          gap={4}
-          zIndex={2}
-        >
-          {/* Main menu */}
-          <Link href="/dashboard" passHref legacyBehavior>
-            <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant="solid" borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start" isActive={router.pathname === "/dashboard"}>
-              Dashboard
-            </Button>
-          </Link>
-          <Link href="/rooms" passHref legacyBehavior>
-            <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant="ghost" borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start" isActive={router.pathname === "/rooms"}>
-              Rooms
-            </Button>
-          </Link>
-          <Button leftIcon={<FaInbox />} colorScheme="gray" variant="ghost" borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
-            Inbox
-          </Button>
-          <Button leftIcon={<FaBox />} colorScheme="gray" variant="ghost" borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
-            Parcel
-          </Button>
-          <Button leftIcon={<FaUserFriends />} colorScheme="gray" variant="ghost" borderRadius="xl" mb={8} w="full" justifyContent="flex-start">
-            Employee
-          </Button>
-        </Box>
+        <Sidebar />
         {/* Main content */}
         <Flex align="center" justify="center" flex={1} minH="80vh">
           <Box bg="white" borderRadius="2xl" boxShadow="xl" p={12} textAlign="center">
