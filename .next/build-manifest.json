@@ -28,26 +28,6 @@
       "static/chunks/main.js",
       "static/chunks/pages/dashboard.js"
     ],
-    "/employee": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/employee.js"
-    ],
-    "/history/[roomId]": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/history/[roomId].js"
-    ],
-    "/inbox": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/inbox.js"
-    ],
-    "/parcel": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/parcel.js"
-    ],
     "/rooms": [
       "static/chunks/webpack.js",
       "static/chunks/main.js",

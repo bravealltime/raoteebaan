@@ -3,7 +3,7 @@ import { FaCog, FaBell } from "react-icons/fa";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { auth } from "../lib/firebase";
-import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
+import { collection, query, orderBy, limit, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 interface AppHeaderProps {
@@ -17,6 +17,7 @@ interface AppHeaderProps {
 export default function AppHeader({ user }: AppHeaderProps) {
   const router = useRouter();
   const [profile, setProfile] = useState<{ name: string; avatar?: string; greeting?: string }>({ name: user?.name || "xxx", avatar: user?.avatar, greeting: user?.greeting });
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
     const u = auth.currentUser;
@@ -26,12 +27,17 @@ export default function AppHeader({ user }: AppHeaderProps) {
         avatar: u.photoURL || user?.avatar,
         greeting: new Date().toLocaleString("th-TH", { dateStyle: "full", timeStyle: "short" }),
       });
+      // Fetch role from Firestore
+      getDoc(doc(db, "users", u.uid)).then(snap => {
+        setRole(snap.exists() ? snap.data().role : "user");
+      });
     } else {
       setProfile({
         name: user?.name || "xxx",
         avatar: user?.avatar,
         greeting: new Date().toLocaleString("th-TH", { dateStyle: "full", timeStyle: "short" }),
       });
+      setRole(null);
     }
   }, [user]);
 
@@ -78,15 +84,18 @@ export default function AppHeader({ user }: AppHeaderProps) {
             {profile.greeting || "อาทิตย์ 21 มิ.ย. 2568"}
           </Text>
         </Box>
-        <IconButton
-          aria-label="Settings"
-          icon={<FaCog />}
-          variant="ghost"
-          fontSize="xl"
-          color="blue.500"
-          _hover={{ bg: "blue.50", color: "blue.600" }}
-          borderRadius="full"
-        />
+        {role === "admin" && (
+          <IconButton
+            aria-label="Settings"
+            icon={<FaCog />}
+            variant="ghost"
+            fontSize="xl"
+            color="blue.500"
+            _hover={{ bg: "blue.50", color: "blue.600" }}
+            borderRadius="full"
+            onClick={() => router.push("/admin-users")}
+          />
+        )}
         <IconButton
           aria-label="Notifications"
           icon={<FaBell />}

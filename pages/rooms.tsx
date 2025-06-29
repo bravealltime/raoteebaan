@@ -1,7 +1,7 @@
-import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem } from "@chakra-ui/react";
+import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
-import { db } from "../lib/firebase";
-import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit } from "firebase/firestore";
+import { db, auth } from "../lib/firebase";
+import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc } from "firebase/firestore";
 import RoomCard from "../components/RoomCard";
 import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
@@ -12,6 +12,7 @@ import Papa from "papaparse";
 import EditRoomModal from "../components/EditRoomModal";
 import jsPDF from "jspdf";
 import Link from "next/link";
+import { onAuthStateChanged } from "firebase/auth";
 
 interface Room {
   id: string;
@@ -90,12 +91,30 @@ export default function Rooms() {
   const [searchRoom, setSearchRoom] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
+  const [role, setRole] = useState<string | null>(null);
 
   const user = {
     name: "xxx",
     avatar: "/avatar.png", // เปลี่ยน path ตามจริงถ้ามี
     greeting: "อาทิตย์ 21 มิ.ย. 2568"
   };
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) {
+        router.replace("/login");
+        return;
+      }
+      const snap = await getDoc(doc(db, "users", u.uid));
+      const userRole = snap.exists() ? snap.data().role : "user";
+      setRole(userRole);
+      if (userRole !== "admin") {
+        if (userRole === "employee") router.replace("/employee-dashboard");
+        else router.replace("/user-dashboard");
+      }
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -360,6 +379,9 @@ export default function Rooms() {
 
   const openDelete = (id: string) => router.push(`/rooms?modal=delete&id=${id}`, undefined, { shallow: true });
   const closeDelete = () => router.push("/rooms", undefined, { shallow: true });
+
+  if (role === null) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
+  if (role !== "admin") return null;
 
   return (
     <>

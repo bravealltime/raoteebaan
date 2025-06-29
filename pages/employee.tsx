@@ -1,9 +1,34 @@
-import { Box, Flex, Heading, Text } from "@chakra-ui/react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
+import { auth, db } from "../lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { Box, Flex, Heading, Text, Center, Spinner } from "@chakra-ui/react";
 import { FaUserFriends } from "react-icons/fa";
 import AppHeader from "../components/AppHeader";
 import Sidebar from "../components/Sidebar";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function Employee() {
+  const router = useRouter();
+  const [role, setRole] = useState<string | null>(null);
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) {
+        router.replace("/login");
+        return;
+      }
+      const snap = await getDoc(doc(db, "users", u.uid));
+      const userRole = snap.exists() ? snap.data().role : "user";
+      setRole(userRole);
+      if (userRole !== "admin") {
+        if (userRole === "employee") router.replace("/employee-dashboard");
+        else router.replace("/user-dashboard");
+      }
+    });
+    return () => unsub();
+  }, []);
+  if (role === null) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
+  if (role !== "admin") return null;
   return (
     <Box minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)">
       <AppHeader />
