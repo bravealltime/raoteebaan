@@ -93,6 +93,7 @@ export default function Rooms() {
   const [lastWaterMeter, setLastWaterMeter] = useState<number | undefined>(undefined);
   const [lastElecMeter, setLastElecMeter] = useState<number | undefined>(undefined);
   const [roomBills, setRoomBills] = useState<Record<string, any>>({});
+  
   const [searchRoom, setSearchRoom] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
@@ -166,9 +167,10 @@ export default function Rooms() {
           };
         });
 
-        // 2. Fetch the latest bill for each room
-        const bills: Record<string, any> = {};
-        for (const room of roomsData) {
+        setRooms(roomsData);
+
+        // Fetch the latest bill for each room in parallel
+        const billPromises = roomsData.map(async (room) => {
           const q = query(
             collection(db, "bills"),
             where("roomId", "==", room.id),
@@ -177,13 +179,20 @@ export default function Rooms() {
           );
           const billSnap = await getDocs(q);
           if (!billSnap.empty) {
-            const bill = billSnap.docs[0].data();
-            bills[room.id] = bill;
+            return { roomId: room.id, bill: billSnap.docs[0].data() };
+          } else {
+            return { roomId: room.id, bill: null };
           }
-        }
-        
-        setRooms(roomsData);
-        setRoomBills(bills);
+        });
+
+        const fetchedBills = await Promise.all(billPromises);
+        const billsMap: Record<string, any> = {};
+        fetchedBills.forEach(({ roomId, bill }) => {
+          if (bill) {
+            billsMap[roomId] = bill;
+          }
+        });
+        setRoomBills(billsMap);
 
       } catch (e) {
         console.error(e);
