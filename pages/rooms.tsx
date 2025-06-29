@@ -13,6 +13,7 @@ import EditRoomModal from "../components/EditRoomModal";
 import jsPDF from "jspdf";
 import Link from "next/link";
 import { onAuthStateChanged } from "firebase/auth";
+import Sidebar from "../components/Sidebar";
 
 interface Room {
   id: string;
@@ -26,6 +27,8 @@ interface Room {
   service: number;
   overdueDays: number;
   billStatus: string;
+  tenantId?: string | null;
+  tenantEmail?: string | null;
 }
 
 function generateSampleRoomsCSV() {
@@ -92,6 +95,8 @@ export default function Rooms() {
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
   const [role, setRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const user = {
     name: "xxx",
@@ -105,12 +110,13 @@ export default function Rooms() {
         router.replace("/login");
         return;
       }
+      setUserId(u.uid);
+      setUserEmail(u.email);
       const snap = await getDoc(doc(db, "users", u.uid));
       const userRole = snap.exists() ? snap.data().role : "user";
       setRole(userRole);
-      if (userRole !== "admin") {
-        if (userRole === "employee") router.replace("/employee-dashboard");
-        else router.replace("/user-dashboard");
+      if (userRole !== "admin" && userRole !== "owner") {
+        router.replace("/dashboard");
       }
     });
     return () => unsub();
@@ -135,6 +141,8 @@ export default function Rooms() {
             service: d.service || 0,
             overdueDays: d.overdueDays || 0,
             billStatus: d.billStatus || "paid",
+            tenantId: d.tenantId || null,
+            tenantEmail: d.tenantEmail || null,
           };
         });
         setRooms(data);
@@ -211,6 +219,8 @@ export default function Rooms() {
         service: roomData.service || 0,
         overdueDays: 0,
         billStatus: "paid",
+        tenantId: roomData.tenantId || null,
+        tenantEmail: roomData.tenantEmail || null,
       };
       
       await setDoc(doc(db, "rooms", room.id), room);
@@ -303,6 +313,8 @@ export default function Rooms() {
           service: Number(r.Service || r.service || 0),
           overdueDays: Number(r.OverdueDays || r.overdueDays || 0),
           billStatus: r.BillStatus || "paid",
+          tenantId: r.TenantId || null,
+          tenantEmail: r.TenantEmail || null,
         };
         await setDoc(doc(db, "rooms", room.id), room);
       }));
@@ -350,6 +362,14 @@ export default function Rooms() {
   };
 
   const filteredRooms = rooms.filter(room => {
+    if (role === "admin") return true;
+    if (role === "owner") {
+      if (room.tenantId && userId && room.tenantId === userId) return true;
+      if (room.tenantEmail && userEmail && room.tenantEmail === userEmail) return true;
+      return false;
+    }
+    return false;
+  }).filter(room => {
     const matchSearch = room.id.toLowerCase().includes(searchRoom.trim().toLowerCase()) ||
       room.tenantName.toLowerCase().includes(searchRoom.trim().toLowerCase());
     let matchFilter = true;
@@ -381,69 +401,14 @@ export default function Rooms() {
   const closeDelete = () => router.push("/rooms", undefined, { shallow: true });
 
   if (role === null) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
-  if (role !== "admin") return null;
+  if (role !== "admin" && role !== "owner") return null;
 
   return (
     <>
       <AppHeader user={user} />
       <Flex minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)" p={0}>
         {/* Sidebar */}
-        <Box
-          w={["70px", "220px"]}
-          minH="calc(100vh - 64px)"
-          bg="white"
-          borderRight="1.5px solid #e3f2fd"
-          boxShadow="0 2px 16px 0 rgba(33,150,243,0.06)"
-          px={[1, 4]}
-          py={6}
-          display="flex"
-          flexDirection="column"
-          gap={4}
-          zIndex={2}
-        >
-          {/* Main menu */}
-          <Link href="/dashboard" passHref legacyBehavior>
-            <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/dashboard" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
-              Dashboard
-            </Button>
-          </Link>
-          <Link href="/rooms" passHref legacyBehavior>
-            <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/rooms" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
-              Rooms
-            </Button>
-          </Link>
-          <Link href="/inbox" passHref legacyBehavior>
-            <Button as="a" leftIcon={<FaInbox />} colorScheme="gray" variant={router.pathname === "/inbox" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
-              Inbox
-            </Button>
-          </Link>
-          <Link href="/parcel" passHref legacyBehavior>
-            <Button as="a" leftIcon={<FaBox />} colorScheme="gray" variant={router.pathname === "/parcel" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
-              Parcel
-            </Button>
-          </Link>
-          <Link href="/employee" passHref legacyBehavior>
-            <Button as="a" leftIcon={<FaUserFriends />} colorScheme="gray" variant={router.pathname === "/employee" ? "solid" : "ghost"} borderRadius="xl" mb={8} w="full" justifyContent="flex-start">
-              Employee
-            </Button>
-          </Link>
-          {/* Action buttons */}
-          <Button leftIcon={<FaPlus />} colorScheme="blue" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'blue.500', color: 'white' }} onClick={() => setIsAddRoomOpen(true)}>
-            เพิ่มห้องใหม่
-          </Button>
-          <Button leftIcon={<FaBolt />} colorScheme="orange" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'orange.400', color: 'white' }} onClick={() => setIsAddAllOpen(true)}>
-            เพิ่มข้อมูลห้องทั้งหมด
-          </Button>
-          <Button leftIcon={<FaUpload />} colorScheme="green" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'green.500', color: 'white' }} onClick={handleExportCSV}>
-            อัปโหลด CSV
-          </Button>
-          <Button leftIcon={<FaFileCsv />} colorScheme="gray" w="full" borderRadius="2xl" mb={2} size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'gray.200', color: 'gray.700' }} onClick={() => setIsImportOpen(true)}>
-            นำเข้า CSV
-          </Button>
-          <Button leftIcon={<FaFilePdf />} colorScheme="purple" w="full" borderRadius="2xl" size="lg" fontFamily="Kanit" fontWeight="bold" fontSize="md" px={3} whiteSpace="normal" textAlign="center" lineHeight="shorter" boxShadow="sm" _hover={{ boxShadow: 'md', transform: 'translateY(-2px)', bg: 'purple.400', color: 'white' }} onClick={() => setIsEquipmentModalOpen(true)}>
-            ดาวน์โหลดไฟล์ประเมินอุปกรณ์
-          </Button>
-        </Box>
+        <Sidebar role={role} />
         {/* Main content */}
         <Box flex={1} p={[2, 4, 8]}>
           <Flex align="center" mb={6} gap={3} flexWrap="wrap">

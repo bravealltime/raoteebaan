@@ -109,8 +109,15 @@ export default function Dashboard() {
       const userRole = snap.exists() ? snap.data().role : "user";
       setRole(userRole);
       if (userRole !== "admin") {
-        if (userRole === "employee") router.replace("/employee-dashboard");
-        else router.replace("/user-dashboard");
+        if (userRole === "owner") {
+          router.replace("/rooms");
+          return;
+        }
+        if (userRole === "employee") {
+          router.replace("/employee-dashboard");
+          return;
+        }
+        router.replace("/dashboard");
       }
     });
     return () => unsub();
@@ -474,7 +481,7 @@ export default function Dashboard() {
       <AppHeader user={{ name: "xxx", avatar: "/avatar.png", greeting: "อาทิตย์ 21 มิ.ย. 2568" }} />
       <Flex minH="100vh" p={0}>
         {/* Sidebar */}
-        <Sidebar />
+        <Sidebar role={role} />
         {/* Main content */}
         <Flex align="center" justify="center" flex={1} minH="80vh">
           <Box bg="white" borderRadius="2xl" boxShadow="xl" p={12} textAlign="center">

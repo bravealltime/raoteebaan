@@ -3,6 +3,7 @@
   "/_error": "pages/_error.js",
   "/_document": "pages/_document.js",
   "/rooms": "pages/rooms.js",
-  "/dashboard": "pages/dashboard.js",
-  "/bill/[roomId]": "pages/bill/[roomId].js"
+  "/inbox": "pages/inbox.js",
+  "/parcel": "pages/parcel.js",
+  "/login": "pages/login.js"
 }

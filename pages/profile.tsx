@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import { auth, storage } from "../lib/firebase";
 import { FaArrowLeft } from "react-icons/fa";
-import { updateProfile, updateEmail } from "firebase/auth";
+import { updateProfile, updateEmail, signOut } from "firebase/auth";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { doc, setDoc, onSnapshot, doc as firestoreDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -159,9 +159,13 @@ export default function Profile() {
     }
   };
 
-  const handleLogout = () => {
-    // TODO: logout จริง
-    alert("ฟีเจอร์ออกจากระบบอยู่ระหว่างพัฒนา");
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push("/login");
+    } catch (e) {
+      toast({ title: "ออกจากระบบไม่สำเร็จ", status: "error" });
+    }
   };
 
   if (!user) return null;

@@ -20,9 +20,9 @@ export default function Employee() {
       const snap = await getDoc(doc(db, "users", u.uid));
       const userRole = snap.exists() ? snap.data().role : "user";
       setRole(userRole);
-      if (userRole !== "admin") {
-        if (userRole === "employee") router.replace("/employee-dashboard");
-        else router.replace("/user-dashboard");
+      if (userRole !== "admin" && userRole !== "employee") {
+        if (userRole === "owner") return;
+        router.replace("/dashboard");
       }
     });
     return () => unsub();
@@ -33,7 +33,7 @@ export default function Employee() {
     <Box minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)">
       <AppHeader />
       <Flex minH="100vh" p={0}>
-        <Sidebar />
+        <Sidebar role={role} />
         <Flex flex={1} align="center" justify="center" p={4}>
           <Box bg="white" borderRadius="2xl" boxShadow="xl" p={[8, 12]} textAlign="center" maxW="sm" w="full">
             <Box as={FaUserFriends} color="blue.400" fontSize="5xl" mb={4} />

@@ -34,8 +34,15 @@ export default function AdminUsers() {
       const userRole = snap.exists() ? snap.data().role : "user";
       setRole(userRole);
       if (userRole !== "admin") {
-        if (userRole === "employee") router.replace("/employee-dashboard");
-        else router.replace("/user-dashboard");
+        if (userRole === "owner") {
+          router.replace("/rooms");
+          return;
+        }
+        if (userRole === "employee") {
+          router.replace("/employee-dashboard");
+          return;
+        }
+        router.replace("/dashboard");
       }
     });
     return () => unsub();
@@ -131,7 +138,7 @@ export default function AdminUsers() {
     <Box minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)">
       <AppHeader />
       <Flex minH="100vh" p={0}>
-        <Sidebar />
+        <Sidebar role={role} />
         <Box flex={1} p={[2, 4, 8]}>
           <Heading color="blue.600" fontSize="2xl" mb={6} display="flex" alignItems="center" gap={2}>
             <FaUserShield /> Admin Panel
