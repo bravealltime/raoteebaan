@@ -211,7 +211,7 @@ export default function BillDetail() {
             mb={4}
             variant="ghost"
             colorScheme="blue"
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.back()}
             fontSize={["md", "md", "lg"]}
             px={[2, 4]}
           >

@@ -189,7 +189,7 @@ export default function HistoryRoom() {
       <AppHeader user={user} />
       <Box minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)" p={[2, 8]} color="gray.800">
         <Flex align="center" mb={8}>
-          <Button leftIcon={<FaArrowLeft />} variant="ghost" colorScheme="blue" borderRadius="xl" fontFamily="Kanit" size="md" onClick={() => router.push("/dashboard")}>กลับหน้าหลัก</Button>
+          <Button leftIcon={<FaArrowLeft />} variant="ghost" colorScheme="blue" borderRadius="xl" fontFamily="Kanit" size="md" onClick={() => router.back()}>กลับหน้าหลัก</Button>
           <Heading fontWeight="bold" fontSize={["xl", "2xl"]} color="blue.700" ml={4}>ประวัติค่าไฟ - ห้อง {roomId}</Heading>
         </Flex>
         
