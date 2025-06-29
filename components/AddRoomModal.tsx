@@ -5,32 +5,21 @@ import { FaTint, FaBolt, FaCalendarAlt, FaPlus, FaHome } from "react-icons/fa";
 interface AddRoomModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (room: {
-    id: string;
-    status: "occupied" | "vacant";
-    tenantName: string;
-    area: number;
-    waterCurrent: number;
-    waterPrev: number | undefined;
-    waterRate: number;
-    waterTotal: number;
-    elecCurrent: number;
-    elecPrev: number | undefined;
-    elecRate: number;
-    elecTotal: number;
-    extraServices: { label: string; value: number }[];
-  }) => void;
+  onAdd: (room: any) => void; // Changed to any to accommodate tenantEmail
   lastWaterMeter?: number;
   lastElecMeter?: number;
+  userRole?: string | null; // Add userRole to props
 }
 
-export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, lastElecMeter }: AddRoomModalProps) {
+export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, lastElecMeter, userRole }: AddRoomModalProps) {
   const [roomId, setRoomId] = useState("");
   const [tenantName, setTenantName] = useState("");
+  const [tenantEmail, setTenantEmail] = useState(""); // Add state for tenant email
   const [rent, setRent] = useState(0);
   const [area, setArea] = useState(0);
   const [recordDate, setRecordDate] = useState<Date | null>(null);
   const [dueDate, setDueDate] = useState<Date | null>(null);
+  
   const [waterCurrent, setWaterCurrent] = useState(0);
   const [waterPrev, setWaterPrev] = useState<number | undefined>(undefined);
   const [waterRate, setWaterRate] = useState(0);
@@ -41,11 +30,13 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
   const [elecTotal, setElecTotal] = useState(0);
   const [extraServices, setExtraServices] = useState<{ label: string; value: number }[]>([]);
 
-  // Autofill prev meter when modal opens
+  // Autofill prev meter and initialize dates when modal opens
   useEffect(() => {
     if (isOpen) {
       setWaterPrev(lastWaterMeter !== undefined ? lastWaterMeter : 0);
       setElecPrev(lastElecMeter !== undefined ? lastElecMeter : 0);
+      setRecordDate(new Date()); // Initialize with current date
+      setDueDate(new Date());     // Initialize with current date
     }
   }, [isOpen, lastWaterMeter, lastElecMeter]);
 
@@ -60,27 +51,37 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
   };
 
   const handleAdd = () => {
+    const isVacant = !tenantName.trim(); // Check if tenantName is empty or just whitespace
     onAdd({
       id: roomId,
-      status: "occupied",
-      tenantName,
+      status: isVacant ? "vacant" : "occupied", // Set status based on tenantName
+      tenantName: isVacant ? "-" : tenantName, // Set tenantName to '-' if vacant
+      tenantEmail, // Add tenantEmail to the payload
       area,
-      waterCurrent,
-      waterPrev,
-      waterRate,
-      waterTotal,
-      elecCurrent,
-      elecPrev,
-      elecRate,
-      elecTotal,
+      // Only include meter readings if tenantName is provided
+      ...(isVacant ? {} : {
+        waterCurrent,
+        waterPrev,
+        waterRate,
+        waterTotal,
+        elecCurrent,
+        elecPrev,
+        elecRate,
+        elecTotal,
+      }),
       extraServices,
+      rent,
+      recordDate: recordDate ? recordDate.toISOString() : null,
+      dueDate: dueDate ? dueDate.toISOString() : null,
     });
+    // Reset form fields
     setRoomId("");
     setTenantName("");
+    setTenantEmail("");
     setRent(0);
     setArea(0);
-    setRecordDate(null);
-    setDueDate(null);
+    setRecordDate(new Date()); // Reset to current date
+    setDueDate(new Date());     // Reset to current date
     setWaterCurrent(0);
     setWaterPrev(undefined);
     setWaterRate(0);
@@ -114,6 +115,12 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
                 <Input mt={1} size="md" placeholder="ชื่อผู้เช่า *" value={tenantName} onChange={e => setTenantName(e.target.value)} bg="gray.50" color="gray.800" borderRadius="lg" borderColor="blue.100" _focus={{ borderColor: 'blue.400' }} />
                 <Box fontSize="xs" color="gray.400" mt={1}>กรอกชื่อผู้เช่า เช่น สมชาย ใจดี</Box>
               </Box>
+              {userRole === 'owner' && (
+                <Box mb={2}>
+                  <Input mt={1} size="md" placeholder="อีเมลผู้เช่า (สำหรับสร้างบัญชี)" value={tenantEmail} onChange={e => setTenantEmail(e.target.value)} bg="gray.50" color="gray.800" borderRadius="lg" borderColor="blue.100" _focus={{ borderColor: 'blue.400' }} />
+                  <Box fontSize="xs" color="gray.400" mt={1}>ระบบจะสร้างบัญชีและส่งรหัสผ่านให้ผู้เช่าทางอีเมลนี้</Box>
+                </Box>
+              )}
               <SimpleGrid columns={2} gap={2} mt={1}>
                 <Box>
                   <Input size="md" placeholder="ค่าเช่า *" value={rent} type="number" onChange={e => setRent(Number(e.target.value))} bg="gray.50" color="gray.800" borderRadius="lg" borderColor="blue.100" _focus={{ borderColor: 'blue.400' }} />
@@ -125,7 +132,7 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
                 </Box>
               </SimpleGrid>
               <Box mt={2}>
-                <Input size="md" placeholder="วันที่บันทึก (DD/MM/YYYY) *" value={recordDate ? recordDate.toISOString().split('T')[0] : ''} onChange={e => setRecordDate(e.target.value ? new Date(e.target.value) : null)} bg="gray.50" color="gray.800" borderRadius="lg" borderColor="blue.100" _focus={{ borderColor: 'blue.400' }} />
+                <Input size="md" mt={1} placeholder="วันที่บันทึก (DD/MM/YYYY) *" value={recordDate ? recordDate.toISOString().split('T')[0] : ''} onChange={e => setRecordDate(e.target.value ? new Date(e.target.value) : null)} bg="gray.50" color="gray.800" borderRadius="lg" borderColor="blue.100" _focus={{ borderColor: 'blue.400' }} type="date" />
                 <Box fontSize="xs" color="gray.400" mt={1}>วันที่เริ่มต้นสัญญา เช่น 25/12/2024</Box>
               </Box>
             </Box>
@@ -187,7 +194,7 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
                 <Box fontWeight={700} color="pink.600" fontSize="md">วันครบกำหนดชำระ</Box>
               </HStack>
               <Box mb={2}>
-                <Input size="md" mt={1} placeholder="วันที่ครบกำหนด (DD/MM/YYYY)" value={dueDate ? dueDate.toISOString().split('T')[0] : ''} onChange={e => setDueDate(e.target.value ? new Date(e.target.value) : null)} bg="gray.50" color="gray.800" borderRadius="lg" borderColor="pink.100" _focus={{ borderColor: 'pink.400' }} />
+                <Input size="md" mt={1} placeholder="วันที่ครบกำหนด (DD/MM/YYYY)" value={dueDate ? dueDate.toISOString().split('T')[0] : ''} onChange={e => setDueDate(e.target.value ? new Date(e.target.value) : null)} bg="gray.50" color="gray.800" borderRadius="lg" borderColor="pink.100" _focus={{ borderColor: 'pink.400' }} type="date" />
                 <Box fontSize="xs" color="gray.400" mt={1}>วันที่ต้องชำระเงิน เช่น 31/12/2024</Box>
               </Box>
               <HStack mt={2} mb={1} align="center">

@@ -159,6 +159,17 @@ export default function Profile() {
     }
   };
 
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'ผู้ดูแลระบบ';
+      case 'owner':
+        return 'เจ้าของห้อง';
+      default:
+        return 'ผู้ใช้งานทั่วไป';
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await signOut(auth);
@@ -189,7 +200,7 @@ export default function Profile() {
           <Heading fontSize="2xl" color="blue.700" mb={1}>โปรไฟล์ผู้ใช้งาน</Heading>
           <Text color="gray.500">ข้อมูลบัญชีของคุณ</Text>
           <Badge colorScheme={user.role === "admin" ? "purple" : "blue"} borderRadius="full" px={3} py={1} fontSize="sm" mt={2}>
-            {user.role === "admin" ? "ผู้ดูแลระบบ" : "ผู้ใช้งานทั่วไป"}
+            {getRoleDisplayName(user.role)}
           </Badge>
         </Flex>
         <VStack align="stretch" spacing={3} mb={6}>

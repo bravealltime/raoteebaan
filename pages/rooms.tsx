@@ -32,6 +32,7 @@ interface Room {
   billStatus: string;
   tenantId?: string | null;
   tenantEmail?: string | null;
+  ownerId?: string;
 }
 
 function generateSampleRoomsCSV() {
@@ -146,10 +147,22 @@ export default function Rooms() {
 
   useEffect(() => {
     const fetchData = async () => {
+      if (!userId || !role) return;
+
       setLoading(true);
       try {
-        // 1. Fetch all rooms
-        const roomsSnapshot = await getDocs(collection(db, "rooms"));
+        let roomsQuery;
+        if (role === 'admin') {
+          roomsQuery = collection(db, "rooms");
+        } else if (role === 'owner') {
+          roomsQuery = query(collection(db, "rooms"), where("ownerId", "==", userId));
+        } else {
+          setRooms([]);
+          setLoading(false);
+          return;
+        }
+
+        const roomsSnapshot = await getDocs(roomsQuery);
         const roomsData: Room[] = roomsSnapshot.docs.map(doc => {
           const d = doc.data();
           return {
@@ -167,12 +180,12 @@ export default function Rooms() {
             billStatus: d.billStatus || "paid",
             tenantId: d.tenantId || null,
             tenantEmail: d.tenantEmail || null,
+            ownerId: d.ownerId,
           };
         });
 
         setRooms(roomsData);
 
-        // Fetch the latest bill for each room in parallel
         const billPromises = roomsData.map(async (room) => {
           const q = query(
             collection(db, "bills"),
@@ -208,7 +221,7 @@ export default function Rooms() {
     };
 
     fetchData();
-  }, [toast]);
+  }, [userId, role, toast]);
 
   const handleDelete = (id: string) => {
     setDeleteId(id);
@@ -231,7 +244,23 @@ export default function Rooms() {
 
   const handleAddRoom = async (roomData: any) => {
     try {
-      // แปลงข้อมูลจาก AddRoomModal ให้ตรงกับ Room interface
+      let tenantId = null;
+      // If an email is provided, create a new user account
+      if (roomData.tenantEmail) {
+        const res = await fetch('/api/create-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: roomData.tenantEmail, name: roomData.tenantName }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || 'Failed to create user');
+        }
+        tenantId = data.user.uid; // Correctly access the UID
+        toast({ title: "สร้างบัญชีผู้เช่าสำเร็จ", description: `รหัสผ่านถูกส่งไปที่ ${roomData.tenantEmail}`, status: "success" });
+      }
+
       const room: Room = {
         id: roomData.id,
         status: roomData.status || "occupied",
@@ -244,17 +273,19 @@ export default function Rooms() {
         service: roomData.service || 0,
         overdueDays: 0,
         billStatus: "paid",
-        tenantId: roomData.tenantId || null,
+        tenantId: tenantId,
         tenantEmail: roomData.tenantEmail || null,
+        ownerId: userId || undefined,
       };
       
       await setDoc(doc(db, "rooms", room.id), room);
       setRooms(prev => [...prev, room]);
       toast({ title: "เพิ่มห้องใหม่สำเร็จ", status: "success" });
-    } catch (e) {
-      toast({ title: "เพิ่มห้องใหม่ไม่สำเร็จ", status: "error" });
+
+    } catch (e: any) {
+      toast({ title: "เพิ่มห้องใหม่ไม่สำเร็จ", description: e.message, status: "error" });
     }
-    onClose();
+    setIsAddRoomOpen(false); // Close modal after operation
   };
 
   // ปุ่ม action อื่น ๆ สามารถเพิ่มฟังก์ชันได้ที่นี่
@@ -271,16 +302,46 @@ export default function Rooms() {
     const room = rooms.find(r => r.id === id);
     if (room) setEditRoom(room);
   };
-  const handleSaveEditRoom = async (room: Partial<Room>) => {
+  const handleSaveEditRoom = async (editedRoom: Partial<Room>) => {
     try {
-      await setDoc(doc(db, "rooms", room.id!), {
-        ...room,
-        billStatus: room.billStatus || "paid"
-      });
-      setRooms(prev => prev.map(r => r.id === room.id ? { ...r, ...room } : r));
+      const originalRoom = rooms.find(r => r.id === editedRoom.id);
+
+      // Check if the tenant's email has been changed or added
+      if (editedRoom.tenantEmail && editedRoom.tenantEmail !== originalRoom?.tenantEmail) {
+        const res = await fetch('/api/create-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email: editedRoom.tenantEmail, 
+            name: editedRoom.tenantName, 
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          // If user already exists, try to find the user to link them
+          if (res.status === 400 && data.error.includes('อีเมลนี้มีผู้ใช้งานแล้ว')) {
+             toast({ title: "ผู้เช่ามีบัญชีอยู่แล้ว", description: "กำลังเชื่อมโยงบัญชี...", status: "info" });
+             // Potentially find the user by email and link them, for now, we just notify.
+          } else {
+            throw new Error(data.error || 'Failed to create or link user');
+          }
+        } else {
+            editedRoom.tenantId = data.user.uid; // Correctly access the UID
+            toast({ title: "สร้างบัญชีผู้เช่าสำเร็จ", description: `รหัสผ่านถูกส่งไปที่ ${editedRoom.tenantEmail}`, status: "success" });
+        }
+      }
+
+      await setDoc(doc(db, "rooms", editedRoom.id!), {
+        ...editedRoom,
+      }, { merge: true }); // Use merge to avoid overwriting fields
+
+      setRooms(prev => prev.map(r => r.id === editedRoom.id ? { ...r, ...editedRoom } : r));
       toast({ title: "บันทึกข้อมูลห้องสำเร็จ", status: "success" });
-    } catch (e) {
-      toast({ title: "บันทึกข้อมูลห้องไม่สำเร็จ", status: "error" });
+
+    } catch (e: any) {
+      toast({ title: "บันทึกข้อมูลห้องไม่สำเร็จ", description: e.message, status: "error" });
     }
     setEditRoom(null);
   };
@@ -635,16 +696,6 @@ export default function Rooms() {
   };
 
   const filteredRooms = rooms.filter(room => {
-    if (!role) return false; // Don't render if role is not set yet
-
-    if (role === "admin") return true;
-    if (role === "owner") {
-      if (room.tenantId && userId && room.tenantId === userId) return true;
-      if (room.tenantEmail && userEmail && room.tenantEmail === userEmail) return true;
-      return false;
-    }
-    return false;
-  }).filter(room => {
     const matchSearch = room.id.toLowerCase().includes(searchRoom.trim().toLowerCase()) ||
       room.tenantName.toLowerCase().includes(searchRoom.trim().toLowerCase());
     let matchFilter = true;
@@ -683,7 +734,7 @@ export default function Rooms() {
       <Box flex={1} p={[2, 4, 8]}>
         <Flex align="center" mb={6} gap={3} flexWrap="wrap">
           <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4}>Rooms</Text>
-          {role === 'admin' && (
+          {(role === 'admin' || role === 'owner') && (
             <>
               <Button
                 leftIcon={<FaPlus />}
@@ -771,7 +822,7 @@ export default function Rooms() {
         </SimpleGrid>
       </Box>
       {/* AddRoomModal */}
-      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} />
+      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} userRole={role} />
       {/* AddAll Modal (mockup) */}
       <Modal isOpen={isAddAllOpen} onClose={() => setIsAddAllOpen(false)}>
         <ModalOverlay />
@@ -879,7 +930,7 @@ export default function Rooms() {
         isOpen={isMeterReadingModalOpen}
         onClose={() => setIsMeterReadingModalOpen(false)}
         onSave={handleSaveMeterReadings}
-        rooms={rooms}
+        rooms={filteredRooms} // Use filtered rooms instead of all rooms
         previousReadings={previousReadings}
       />
 

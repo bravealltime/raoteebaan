@@ -21,8 +21,9 @@ import {
   Flex,
   Select,
   Text,
+  useToast, // Import useToast
 } from "@chakra-ui/react";
-import { FaCog } from "react-icons/fa";
+import { FaCog, FaPaperPlane } from "react-icons/fa";
 
 // Replicating the Room interface from pages/rooms.tsx to ensure all fields are handled.
 interface RoomData {
@@ -53,6 +54,7 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom }: 
   if (!initialRoom) return null;
 
   const [room, setRoom] = useState<RoomData>(initialRoom);
+  const toast = useToast(); // Initialize toast
 
   useEffect(() => {
     // Deep copy to avoid modifying the original object directly
@@ -92,6 +94,50 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom }: 
   const handleSave = () => {
     onSave(room);
     onClose(); // Close modal after saving
+  };
+
+  const handleSendResetPassword = async () => {
+    if (!room.tenantEmail) {
+      toast({
+        title: "ไม่พบอีเมล",
+        description: "กรุณาเพิ่มอีเมลของผู้เช่าก่อน",
+        status: "warning",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/send-reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: room.tenantEmail }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send reset email');
+      }
+
+      toast({
+        title: "ส่งอีเมลสำเร็จ",
+        description: `อีเมลรีเซ็ตรหัสผ่านถูกส่งไปที่ ${room.tenantEmail} แล้ว`,
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+
+    } catch (error: any) {
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: error.message,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
   };
 
   return (
@@ -138,6 +184,21 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom }: 
                 <FormLabel fontSize="sm">ชื่อผู้เช่า</FormLabel>
                 <Input placeholder="เช่น สมชาย ใจดี" value={room.tenantName} onChange={e => handleChange('tenantName', e.target.value)} />
               </FormControl>
+              <FormControl>
+                <FormLabel fontSize="sm">อีเมลผู้เช่า</FormLabel>
+                <Input placeholder="เช่น tenant@example.com" value={room.tenantEmail || ''} onChange={e => handleChange('tenantEmail', e.target.value)} />
+              </FormControl>
+               <Button 
+                leftIcon={<FaPaperPlane />}
+                colorScheme="purple"
+                variant="outline"
+                size="sm"
+                mt={2}
+                onClick={handleSendResetPassword}
+                isDisabled={!room.tenantEmail}
+              >
+                ส่งอีเมลรีเซ็ตรหัสผ่าน
+              </Button>
             </VStack>
             <VStack spacing={3} align="stretch">
               <Text fontWeight="bold" color="blue.500">ค่าใช้จ่าย (ข้อมูลจากบิลล่าสุด)</Text>

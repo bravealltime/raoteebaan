@@ -69,66 +69,75 @@ export default function BillDetail() {
           const d = snap.docs[0].data();
           console.log('[DEBUG] bill doc from Firestore:', d);
 
+          // Helper to convert Firestore Timestamp or ISO string to JS Date
+          const toDate = (firebaseDate: any): Date | null => {
+            if (!firebaseDate) return null;
+            if (firebaseDate.seconds) return new Date(firebaseDate.seconds * 1000);
+            if (typeof firebaseDate === 'string') return new Date(firebaseDate);
+            return null;
+          };
+
+          const billDate = toDate(d.date);
+          const dueDate = toDate(d.dueDate);
+
+          if (!billDate || !dueDate) {
+            console.error("Invalid date format in bill:", d);
+            setBill(null); // Or handle as an error
+            return;
+          }
+
           const latestRent = roomData?.rent || d.rent || 0;
+          const latestService = roomData?.service || d.service || 0;
           const latestExtraServices = roomData?.extraServices || d.extraServices || [];
 
+          const elecLabel = `ค่าไฟฟ้า (${d.electricityUnit} หน่วย x ${d.electricityRate} บ.)`;
+          const waterLabel = `ค่าน้ำ (${d.waterUnit} หน่วย x ${d.waterRate} บ.)`;
+
           const items = [
-            { label: "ค่าไฟฟ้า", value: d.electricityTotal || 0 },
-            { label: "ค่าน้ำ", value: d.waterTotal || 0 },
+            { label: elecLabel, value: d.electricityTotal || 0 },
+            { label: waterLabel, value: d.waterTotal || 0 },
             { label: "ค่าเช่า", value: latestRent },
-            // { label: "ค่าบริการ", value: d.service || 0 }, // This will be covered by extraServices
+            { label: "ค่าบริการ", value: latestService },
             ...(Array.isArray(latestExtraServices)
               ? latestExtraServices.map((svc: any) => ({ label: svc.label || "ค่าบริการเสริม", value: svc.value || 0 }))
               : [])
-          ];
+          ].filter(item => item.value > 0); // Filter out items with 0 value
+          
           const total = items.reduce((sum, i) => sum + Number(i.value), 0);
 
-          const calculateOverdueDays = (dueDateStr: string) => {
-            const [day, month, year] = dueDateStr.split('/').map(Number);
-            const dueDate = new Date(year, month - 1, day);
+          const calculateOverdueDays = (due: Date) => {
             const today = new Date();
-            today.setHours(0, 0, 0, 0); // Reset time for accurate day comparison
-            dueDate.setHours(0, 0, 0, 0); // Reset time for accurate day comparison
-
-            if (today > dueDate) {
-              const diffTime = Math.abs(today.getTime() - dueDate.getTime());
+            today.setHours(0, 0, 0, 0);
+            due.setHours(0, 0, 0, 0);
+            if (today > due) {
+              const diffTime = Math.abs(today.getTime() - due.getTime());
               return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             }
             return 0;
           };
 
-          const overdueDays = calculateOverdueDays(d.dueDate);
+          const overdueDays = calculateOverdueDays(dueDate);
+          
+          const formatDate = (dateObj: Date) => dateObj.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-          console.log('[DEBUG] mapped bill for setBill:', {
-            date: d.date,
-            dueDate: d.dueDate,
+          const finalBill = {
+            date: formatDate(billDate),
+            dueDate: formatDate(dueDate),
             room: d.roomId,
-            tenant: d.tenantName || "-",
+            tenant: d.tenantName || roomData?.tenantName || "-",
             total,
             items,
-            promptpay: d.promptpay || promptpay,
+            promptpay: promptpay, // Use the hardcoded one for now
             rent: latestRent,
             extraServices: latestExtraServices,
             area: roomData?.area || 0,
             status: roomData?.status || "vacant",
             overdueDays: overdueDays,
-            billStatus: d.billStatus || "unpaid", // Assuming billStatus comes from the bill document
-          });
-          setBill({
-            date: d.date,
-            dueDate: d.dueDate,
-            room: d.roomId,
-            tenant: d.tenantName || "-",
-            total,
-            items,
-            promptpay: d.promptpay || promptpay,
-            rent: latestRent,
-            extraServices: latestExtraServices,
-            area: roomData?.area || 0,
-            status: roomData?.status || "vacant",
-            overdueDays: overdueDays,
-            billStatus: d.billStatus || "unpaid",
-          });
+            billStatus: d.status || "unpaid",
+          };
+
+          console.log('[DEBUG] mapped bill for setBill:', finalBill);
+          setBill(finalBill);
         } else {
           setBill(null);
         }
@@ -152,10 +161,7 @@ export default function BillDetail() {
     
     if (typeof window !== "undefined" && (window as any).ThaiQRCode && bill?.promptpay && bill?.total) {
       try {
-        const ThaiQRCode = (window as any).ThaiQRCode;
-        console.log('Generating QR code for:', bill.promptpay, 'amount:', bill.total);
-        const qrData = ThaiQRCode.generate(bill.promptpay, { amount: bill.total });
-        console.log('QR code generated:', qrData ? 'success' : 'failed');
+        const qrData = (window as any).ThaiQRCode.generate(bill.promptpay, { amount: bill.total });
         setQr(qrData);
       } catch (error) {
         console.error('Error generating QR code:', error);
@@ -176,8 +182,7 @@ export default function BillDetail() {
       if (typeof window !== "undefined" && (window as any).ThaiQRCode && bill?.promptpay && bill?.total && !qr) {
         console.log('Retrying QR generation...');
         try {
-          const ThaiQRCode = (window as any).ThaiQRCode;
-          const qrData = ThaiQRCode.generate(bill.promptpay, { amount: bill.total });
+          const qrData = (window as any).ThaiQRCode.generate(bill.promptpay, { amount: bill.total });
           setQr(qrData);
         } catch (error) {
           console.error('Error in retry QR generation:', error);
