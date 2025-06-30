@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../lib/firebase";
+import { auth, db } from "../lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { useRouter } from "next/router";
 import {
   Box,
   Button,
@@ -26,14 +28,38 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const toast = useToast();
+  const router = useRouter();
 
   const handleLogin = async () => {
     setLoading(true);
     setError("");
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      toast({ title: "เข้าสู่ระบบสำเร็จ", status: "success", duration: 1500, isClosable: true });
-      window.location.href = "/dashboard";
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          const userRole = userData.role;
+
+          toast({ title: "เข้าสู่ระบบสำเร็จ", status: "success", duration: 1500, isClosable: true });
+
+          if (userRole === "admin") {
+            router.push("/dashboard");
+          } else {
+            router.push("/rooms");
+          }
+        } else {
+          // User document not found in Firestore, redirect to rooms as a fallback
+          toast({ title: "เข้าสู่ระบบสำเร็จ", status: "success", duration: 1500, isClosable: true });
+          router.push("/rooms");
+        }
+      } else {
+        throw new Error("User not found after login.");
+      }
     } catch (err: any) {
       setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
     } finally {
