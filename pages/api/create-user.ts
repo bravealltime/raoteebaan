@@ -46,9 +46,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const requestingUserDoc = await admin.firestore().collection('users').doc(requestingUserUid).get();
     const requestingUserRole = requestingUserDoc.data()?.role;
 
-    // Only allow 'admin' to create new users
-    if (requestingUserRole !== 'admin') {
-      return res.status(403).json({ error: 'Forbidden: Only admin users can create new accounts' });
+    // Only allow 'admin' or 'owner' to create new users
+    if (requestingUserRole !== 'admin' && requestingUserRole !== 'owner') {
+      return res.status(403).json({ error: 'Forbidden: Only admin or owner users can create new accounts' });
     }
 
     const { name, email, role, status } = req.body;

@@ -205,15 +205,22 @@ export default function Rooms() {
     try {
       let tenantId = null;
       if (roomData.tenantEmail) {
+        const idToken = await auth.currentUser?.getIdToken();
+        if (!idToken) {
+          throw new Error("Authentication token not found. Please log in again.");
+        }
+
         const res = await fetch('/api/create-user', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
           body: JSON.stringify({ email: roomData.tenantEmail, name: roomData.tenantName }),
         });
         const data = await res.json();
         if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || 'Failed to create user');
+          throw new Error(data.error || 'Failed to create user');
         }
         tenantId = data.user.uid;
         toast({ title: "สร้างบัญชีผู้เช่าสำเร็จ", description: `รหัสผ่านถูกส่งไปที่ ${roomData.tenantEmail}`, status: "success" });

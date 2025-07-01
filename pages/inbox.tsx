@@ -570,7 +570,7 @@ const Inbox = () => {
             <HStack>
               <Heading size="lg">Inbox</Heading>
               {unreadMessageCount > 0 && (
-                <Badge colorScheme="red" borderRadius="full" px={2} py={1}>
+                <Badge colorScheme="red" borderRadius="full" px={2} py={0.5} fontSize="sm">
                   {unreadMessageCount}
                 </Badge>
               )}
