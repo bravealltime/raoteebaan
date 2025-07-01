@@ -35,7 +35,7 @@ export default function Parcel() {
     <MainLayout role={role}>
       <Flex flex={1} align="center" justify="center" p={4}>
         <Box bg="white" borderRadius="2xl" boxShadow="xl" p={[8, 12]} textAlign="center" maxW="sm" w="full">
-          <Box as={FaBox} color="blue.400" fontSize="5xl" mb={4} />
+          <Box as={FaBox} color="blue.400" fontSize="5xl" mb={4} margin="auto" />
           <Heading fontSize="2xl" color="blue.600" mb={2}>Parcel</Heading>
           <Text color="gray.600" fontSize="lg">Coming soon...</Text>
         </Box>
