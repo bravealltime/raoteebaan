@@ -128,7 +128,19 @@ export default function Profile() {
         });
       }
       if (form.email !== user.email) {
-        await updateEmail(auth.currentUser, form.email);
+        if (user.role === "admin" || user.role === "owner") {
+          await updateEmail(auth.currentUser, form.email);
+        } else {
+          toast({
+            title: "ไม่สามารถเปลี่ยนอีเมลได้",
+            description: "คุณไม่มีสิทธิ์เปลี่ยนอีเมลของคุณ",
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+          setLoading(false);
+          return;
+        }
       }
       // บันทึกลง Firestore
       await setDoc(
@@ -215,7 +227,7 @@ export default function Profile() {
           <FormControl>
             <FormLabel>อีเมล</FormLabel>
             {editMode ? (
-              <Input name="email" value={form.email} onChange={handleChange} />
+              <Input name="email" value={form.email} onChange={handleChange} isDisabled={user.role !== "admin" && user.role !== "owner"} />
             ) : (
               <Text color="gray.800">{user.email}</Text>
             )}
