@@ -258,6 +258,47 @@ const Inbox = () => {
     return () => unsubscribe();
   }, []);
 
+  const handleDeleteConversation = async () => {
+    if (!selectedConversation) return;
+
+    try {
+      const batch = writeBatch(db);
+
+      // Delete all messages in the subcollection
+      const messagesRef = collection(db, "conversations", selectedConversation.id, "messages");
+      const messageSnapshots = await getDocs(messagesRef);
+      messageSnapshots.forEach((msgDoc) => {
+        batch.delete(msgDoc.ref);
+      });
+
+      // Delete the conversation document
+      const conversationRef = doc(db, "conversations", selectedConversation.id);
+      batch.delete(conversationRef);
+
+      await batch.commit();
+
+      setSelectedConversation(null); // Deselect the conversation
+      setConversations(prev => prev.filter(convo => convo.id !== selectedConversation.id)); // Remove from local state
+
+      toast({
+        title: "Conversation Deleted",
+        description: "The conversation and all its messages have been deleted.",
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      toast({
+        title: "Error",
+        description: "Could not delete conversation.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
   const handleSendMessage = async () => {
     if (newMessage.trim() === "" || !selectedConversation || !currentUser)
       return;
@@ -511,6 +552,14 @@ const Inbox = () => {
                 <Badge colorScheme={getRoleColorScheme(getOtherParticipant(selectedConversation)?.role || "")}>
                   {getOtherParticipant(selectedConversation)?.role}
                 </Badge>
+                <IconButton
+                  aria-label="Delete Conversation"
+                  icon={<FaTrash />}
+                  onClick={handleDeleteConversation}
+                  size="sm"
+                  colorScheme="red"
+                  variant="ghost"
+                />
               </HStack>
 
               <VStack
