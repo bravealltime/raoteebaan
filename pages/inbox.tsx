@@ -135,8 +135,23 @@ const Inbox = () => {
       if (user) {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
-          setCurrentUser({ uid: user.uid, ...userDoc.data() } as User);
-          console.log("Current User:", { uid: user.uid, ...userDoc.data() } as User);
+          const firestoreData = userDoc.data();
+          setCurrentUser({
+            uid: user.uid,
+            name: firestoreData.name || user.displayName || '',
+            email: firestoreData.email || user.email || '',
+            role: firestoreData.role || '',
+            photoURL: firestoreData.avatar || user.photoURL || undefined, // Ensure photoURL is taken from Firestore first, then Auth
+            roomNumber: firestoreData.roomNumber || undefined,
+          } as User);
+          console.log("Inbox Page - Current User Data:", {
+            uid: user.uid,
+            name: firestoreData.name || user.displayName || '',
+            email: firestoreData.email || user.email || '',
+            role: firestoreData.role || '',
+            photoURL: firestoreData.avatar || user.photoURL || undefined,
+            roomNumber: firestoreData.roomNumber || undefined,
+          } as User);
         } else {
           router.push("/login");
         }
@@ -201,7 +216,8 @@ const Inbox = () => {
             allParticipantUids.map(async (uid: string) => {
               const userDoc = await getDoc(doc(db, "users", uid));
               if (userDoc.exists()) {
-                return { uid: userDoc.id, ...userDoc.data() } as User;
+                const userData = userDoc.data();
+                return { uid: userDoc.id, ...userData, photoURL: userData.avatar || userData.photoURL } as User;
               }
               return { uid, name: "Unknown User", email: "", role: "" };
             })
@@ -546,7 +562,7 @@ const Inbox = () => {
 
   if (loading) {
     return (
-      <MainLayout role={currentUser?.role} currentUserUid={currentUser?.uid}>
+      <MainLayout role={currentUser?.role} currentUser={currentUser}>
         <Flex justify="center" align="center" h="100vh">
           <Spinner />
         </Flex>
@@ -555,7 +571,7 @@ const Inbox = () => {
   }
 
   return (
-    <MainLayout role={currentUser?.role} currentUserUid={currentUser?.uid}>
+    <MainLayout role={currentUser?.role} currentUser={currentUser}>
       <Flex h="calc(100vh - 80px)">
         <VStack
           w="350px"
@@ -594,15 +610,16 @@ const Inbox = () => {
                   : false;
                 const isSelected =
                   selectedConversation?.id === convo.id;
+                const isUnread = convo.lastMessage && convo.lastMessage.senderId !== currentUser?.uid && !convo.lastMessage.isRead;
                 return (
                   <HStack
                     key={convo.id}
                     p={3}
                     borderRadius="lg"
                     cursor="pointer"
-                    bg={isSelected ? "blue.500" : "transparent"}
+                    bg={isSelected ? "blue.500" : (isUnread ? "blue.50" : "transparent")}
                     color={isSelected ? "white" : "inherit"}
-                    _hover={{ bg: isSelected ? "blue.600" : "gray.200" }}
+                    _hover={{ bg: isSelected ? "blue.600" : (isUnread ? "blue.100" : "gray.200") }}
                     onClick={() => setSelectedConversationId(convo.id)}
                     transition="background 0.2s ease-in-out"
                   >
@@ -618,7 +635,7 @@ const Inbox = () => {
                       />
                     </Avatar>
                     <VStack align="start" spacing={0} flex={1}>
-                      <Text fontWeight="bold">{otherUser?.name}</Text>
+                      <Text fontWeight={isUnread ? "extrabold" : "bold"}>{otherUser?.name}</Text>
                       {otherUser?.roomNumber && (
                         <Text fontSize="xs" color={isSelected ? "gray.300" : "gray.500"}>
                           Room: {otherUser.roomNumber}
@@ -628,6 +645,7 @@ const Inbox = () => {
                         fontSize="sm"
                         color={isSelected ? "gray.200" : "gray.500"}
                         noOfLines={1}
+                        fontWeight={isUnread ? "bold" : "normal"}
                       >
                         {convo.lastMessage?.text}
                       </Text>
@@ -806,6 +824,18 @@ const Inbox = () => {
                 />
               </Box>
             </>
+          ) : selectedConversationId ? (
+            <Flex
+              flex={1}
+              justify="center"
+              align="center"
+              direction="column"
+              color="gray.400"
+              bg="gray.50"
+            >
+              <Spinner size="xl" color="blue.500" />
+              <Text mt={4}>Loading conversation...</Text>
+            </Flex>
           ) : (
             <Flex
               flex={1}

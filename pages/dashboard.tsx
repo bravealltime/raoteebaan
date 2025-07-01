@@ -93,6 +93,7 @@ export default function Dashboard() {
   const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
   const [role, setRole] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any | null>(null); // Add currentUser state
 
   const user = {
     name: "xxx",
@@ -108,7 +109,22 @@ export default function Dashboard() {
       }
       const snap = await getDoc(doc(db, "users", u.uid));
       const userRole = snap.exists() ? snap.data().role : "user";
+      const firestoreData = snap.exists() ? snap.data() : {};
       setRole(userRole);
+      setCurrentUser({
+        uid: u.uid,
+        name: firestoreData.name || u.displayName || '',
+        email: firestoreData.email || u.email || '',
+        role: userRole,
+        photoURL: firestoreData.avatar || u.photoURL || undefined, // Ensure photoURL is taken from Firestore first, then Auth
+      });
+      console.log("Dashboard Page - Current User Data:", {
+        uid: u.uid,
+        name: firestoreData.name || u.displayName || '',
+        email: firestoreData.email || u.email || '',
+        role: userRole,
+        photoURL: firestoreData.avatar || u.photoURL || undefined,
+      });
       if (userRole !== "admin") {
         if (userRole === "owner") {
           router.replace("/");
@@ -478,7 +494,7 @@ export default function Dashboard() {
   if (role !== "admin") return null;
 
   return (
-    <MainLayout role={role} currentUserUid={auth.currentUser?.uid}>
+    <MainLayout role={role} currentUser={currentUser}>
       <Flex align="center" justify="center" flex={1} minH="80vh">
         <Box bg="white" borderRadius="2xl" boxShadow="xl" p={12} textAlign="center">
           <Heading fontSize="3xl" color="blue.600" mb={4}>Dashboard</Heading>

@@ -81,6 +81,7 @@ export default function Rooms() {
   const [role, setRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any | null>(null); // Add currentUser state
   const [isUploadSlipModalOpen, setIsUploadSlipModalOpen] = useState(false);
   const [selectedRoomForSlip, setSelectedRoomForSlip] = useState<Room | null>(null);
   const [isSlipViewModalOpen, setIsSlipViewModalOpen] = useState(false);
@@ -94,9 +95,27 @@ export default function Rooms() {
       }
       const snap = await getDoc(doc(db, "users", user.uid));
       const userRole = snap.exists() ? snap.data().role : "user";
+      const firestoreData = snap.exists() ? snap.data() : {};
+
       setUserId(user.uid);
       setUserEmail(user.email);
       setRole(userRole);
+      setCurrentUser({
+        uid: user.uid,
+        name: firestoreData.name || user.displayName || '',
+        email: firestoreData.email || user.email || '',
+        role: userRole,
+        photoURL: firestoreData.avatar || user.photoURL || undefined, // Ensure photoURL is taken from Firestore first, then Auth
+        roomNumber: firestoreData.roomNumber || undefined,
+      });
+      console.log("Index Page - Current User Data:", {
+        uid: user.uid,
+        name: firestoreData.name || user.displayName || '',
+        email: firestoreData.email || user.email || '',
+        role: userRole,
+        photoURL: firestoreData.avatar || user.photoURL || undefined,
+        roomNumber: firestoreData.roomNumber || undefined,
+      });
       setLoading(false)
     });
     return () => unsub();
@@ -708,7 +727,14 @@ export default function Rooms() {
   if (loading) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
 
   return (
-    <MainLayout role={role} currentUserUid={userId}>
+    <MainLayout role={role} currentUser={{
+      uid: userId || '',
+      name: currentUser?.name || '',
+      email: currentUser?.email || '',
+      role: role || '',
+      photoURL: currentUser?.photoURL || undefined,
+      roomNumber: currentUser?.roomNumber || undefined,
+    }}>
       <Box flex={1} p={[2, 4, 8]}>
         <Flex align="center" mb={6} gap={3} flexWrap="wrap">
           <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4}>Rooms</Text>

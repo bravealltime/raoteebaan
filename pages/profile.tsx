@@ -118,7 +118,11 @@ export default function Profile() {
           setLoading(false);
           return;
         }
-        avatarURL = await uploadToDiscordWebhook(selectedFile);
+        
+        // Upload to Firebase Storage
+        const storageRef = ref(storage, `avatars/${auth.currentUser.uid}/${selectedFile.name}`);
+        await uploadBytes(storageRef, selectedFile);
+        avatarURL = await getDownloadURL(storageRef);
       }
       // อัปเดตโปรไฟล์ใน Auth
       if (form.name !== user.name || avatarURL !== user.avatar) {
@@ -155,6 +159,8 @@ export default function Profile() {
         },
         { merge: true }
       );
+      // Update user state with new avatarURL
+      setUser(prevUser => ({ ...prevUser, avatar: avatarURL }));
       toast({ title: "บันทึกโปรไฟล์สำเร็จ", status: "success" });
       setEditMode(false);
       setSelectedFile(null);

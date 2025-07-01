@@ -6,56 +6,56 @@ import { auth } from "../lib/firebase";
 import { collection, query, orderBy, limit, getDocs, doc, getDoc, onSnapshot, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
-interface AppHeaderProps {
-  user?: {
-    name: string;
-    avatar?: string;
-    greeting?: string;
-  };
-  currentUserUid?: string | null; // Add currentUserUid prop
+interface User {
+  uid: string;
+  name: string;
+  email: string;
+  role: string;
+  photoURL?: string;
+  roomNumber?: string;
 }
 
-export default function AppHeader({ user, currentUserUid }: AppHeaderProps) {
+interface AppHeaderProps {
+  currentUser?: User | null; // Accept currentUser object
+}
+
+export default function AppHeader({ currentUser }: AppHeaderProps) {
   const router = useRouter();
-  const [profile, setProfile] = useState<{ name: string; avatar?: string; greeting?: string }>({ name: user?.name || "xxx", avatar: user?.avatar, greeting: user?.greeting });
+  const [profile, setProfile] = useState<{ name: string; avatar?: string; greeting?: string }>({ name: currentUser?.name || "xxx", avatar: currentUser?.photoURL });
   const [role, setRole] = useState<string | null>(null);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
   useEffect(() => {
-    const u = auth.currentUser;
-    if (u) {
+    if (currentUser) {
       setProfile({
-        name: u.displayName || user?.name || "xxx",
-        avatar: u.photoURL || user?.avatar,
+        name: currentUser.name || "xxx",
+        avatar: currentUser.photoURL,
         greeting: new Date().toLocaleString("th-TH", { dateStyle: "full", timeStyle: "short" }),
       });
-      // Fetch role from Firestore
-      getDoc(doc(db, "users", u.uid)).then(snap => {
-        setRole(snap.exists() ? snap.data().role : "user");
-      });
+      setRole(currentUser.role);
     } else {
       setProfile({
-        name: user?.name || "xxx",
-        avatar: user?.avatar,
+        name: "xxx",
+        avatar: undefined,
         greeting: new Date().toLocaleString("th-TH", { dateStyle: "full", timeStyle: "short" }),
       });
       setRole(null);
     }
-  }, [user]);
+  }, [currentUser]);
 
   useEffect(() => {
-    if (!currentUserUid) return;
+    if (!currentUser?.uid) return;
 
     const q = query(
       collection(db, "conversations"),
-      where("participants", "array-contains", currentUserUid)
+      where("participants", "array-contains", currentUser.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       let unreadCount = 0;
       snapshot.docs.forEach((docData) => {
         const convo = docData.data();
-        if (convo.lastMessage && convo.lastMessage.senderId !== currentUserUid && !convo.lastMessage.isRead) {
+        if (convo.lastMessage && convo.lastMessage.senderId !== currentUser.uid && !convo.lastMessage.isRead) {
           unreadCount++;
         }
       });
@@ -63,7 +63,7 @@ export default function AppHeader({ user, currentUserUid }: AppHeaderProps) {
     });
 
     return () => unsubscribe();
-  }, [currentUserUid]);
+  }, [currentUser]);
 
   return (
     <Flex

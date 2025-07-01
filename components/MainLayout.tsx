@@ -6,13 +6,13 @@ import { AnimatePresence, motion } from "framer-motion";
 interface MainLayoutProps {
   children: React.ReactNode;
   role: string | null;
-  currentUserUid?: string | null; // Add currentUserUid prop
+  currentUser?: User | null; // Change to currentUser object
 }
 
-export default function MainLayout({ children, role, currentUserUid }: MainLayoutProps) {
+export default function MainLayout({ children, role, currentUser }: MainLayoutProps) {
   return (
     <Box minH="100vh">
-      <AppHeader currentUserUid={currentUserUid} />
+      <AppHeader currentUser={currentUser} />
       <Flex minH="100vh" p={0}>
         <Sidebar role={role} />
         <AnimatePresence mode="wait">
