@@ -239,10 +239,17 @@ export default function Rooms() {
         });
         const data = await res.json();
         if (!res.ok) {
-          throw new Error(data.error || 'Failed to create user');
+          if (res.status === 400 && data.error.includes('อีเมลนี้มีผู้ใช้งานแล้ว')) {
+            // If email already exists, link the existing user
+            tenantId = data.user?.uid; // Assuming data.user.uid is returned even on email exists error
+            toast({ title: "ผู้เช่ามีบัญชีอยู่แล้ว", description: "กำลังเชื่อมโยงบัญชี...", status: "info" });
+          } else {
+            throw new Error(data.error || 'Failed to create user');
+          }
+        } else {
+          tenantId = data.user.uid;
+          toast({ title: "สร้างบัญชีผู้เช่าสำเร็จ", description: `รหัสผ่านถูกส่งไปที่ ${roomData.tenantEmail}`, status: "success" });
         }
-        tenantId = data.user.uid;
-        toast({ title: "สร้างบัญชีผู้เช่าสำเร็จ", description: `รหัสผ่านถูกส่งไปที่ ${roomData.tenantEmail}`, status: "success" });
       }
 
       const room: Room = {

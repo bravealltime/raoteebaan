@@ -84,12 +84,13 @@ const NewConversationModal = ({
           const querySnapshot = await getDocs(collection(db, "users"));
           const userList = await Promise.all(
             querySnapshot.docs.map(async (doc) => {
-              const userData = { uid: doc.id, ...doc.data() } as User;
+              const userData = doc.data();
+              const user: User = { uid: doc.id, ...userData, photoURL: userData.avatar || userData.photoURL };
               const hasUnreadMessages = await checkUnreadMessages(
                 currentUser.uid,
-                userData.uid
+                user.uid
               );
-              return { ...userData, hasUnreadMessages };
+              return { ...user, hasUnreadMessages };
             })
           );
           console.log("All Users (userList):", userList);
