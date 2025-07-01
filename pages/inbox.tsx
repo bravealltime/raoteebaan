@@ -26,6 +26,11 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   AlertDialogCloseButton,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalCloseButton,
+  ModalBody,
 } from "@chakra-ui/react";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -102,6 +107,8 @@ const Inbox = () => {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isAlertDialogOpen, onOpen: onAlertDialogOpen, onClose: onAlertDialogClose } = useDisclosure();
+  const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
+  const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -660,7 +667,7 @@ const Inbox = () => {
                       boxShadow="sm"
                     >
                       {msg.text && <Text>{msg.text}</Text>}
-                      {msg.imageUrl && <Image src={msg.imageUrl} maxW="200px" borderRadius="md" mt={msg.text ? 2 : 0} />}
+                      {msg.imageUrl && <Image src={msg.imageUrl} maxW="200px" borderRadius="md" mt={msg.text ? 2 : 0} cursor="pointer" onClick={() => { setZoomImageUrl(msg.imageUrl || null); onImageModalOpen(); }} />}
                     </Box>
                   </Flex>
                 ))}
@@ -766,6 +773,16 @@ const Inbox = () => {
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
+
+      <Modal isOpen={isImageModalOpen} onClose={onImageModalClose} size="xl" isCentered>
+        <ModalOverlay />
+        <ModalContent bg="transparent" boxShadow="none">
+          <ModalCloseButton color="white" />
+          <ModalBody p={0}>
+            {zoomImageUrl && <Image src={zoomImageUrl} maxW="full" maxH="90vh" objectFit="contain" />}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </MainLayout>
   );
 };
