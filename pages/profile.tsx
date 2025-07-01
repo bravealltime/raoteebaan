@@ -182,7 +182,7 @@ export default function Profile() {
   if (!user) return null;
 
   return (
-    <Flex minH="100vh" align="center" justify="center" bgGradient="linear(to-br, #e3f2fd, #bbdefb)">
+    <Flex minH="100vh" align="center" justify="center" bgGradient="linear(to-br, brand.50, brand.100)">
       <Box bg="white" borderRadius="2xl" boxShadow="2xl" p={[4, 8]} maxW="400px" w="full" position="relative">
         <IconButton
           icon={<FaArrowLeft />}

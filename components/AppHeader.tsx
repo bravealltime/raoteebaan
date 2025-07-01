@@ -58,7 +58,7 @@ export default function AppHeader({ user }: AppHeaderProps) {
       position="relative"
       zIndex={10}
       style={{ backdropFilter: "blur(12px)" }}
-      border="1.5px solid #e3f2fd"
+      border="1.5px solid brand.50"
     >
       <Text fontWeight="extrabold" fontSize={["lg", "2xl"]} color="blue.500" mr={6} letterSpacing={1}>
         TeeRao

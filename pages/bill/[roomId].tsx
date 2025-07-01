@@ -259,7 +259,7 @@ export default function BillDetail() {
   return (
     <>
       <AppHeader user={user} />
-      <Flex minH="100vh" align="center" justify="center" bgGradient="linear(to-br, #e3f2fd, #bbdefb)" p={[1, 2, 4]}>
+      <Flex minH="100vh" align="center" justify="center" bgGradient="linear(to-br, brand.50, brand.100)" p={[1, 2, 4]}>
         <Box w="full" display="flex" flexDirection="column" alignItems="center">
           <Button
             leftIcon={<FaArrowLeft />}

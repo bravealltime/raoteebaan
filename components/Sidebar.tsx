@@ -14,7 +14,7 @@ export default function Sidebar({ role }: SidebarProps) {
       w={["70px", "220px"]}
       minH="calc(100vh - 64px)"
       bg="white"
-      borderRight="1.5px solid #e3f2fd"
+      borderRight="1.5px solid brand.50"
       boxShadow="0 2px 16px 0 rgba(33,150,243,0.06)"
       px={[1, 4]}
       py={6}

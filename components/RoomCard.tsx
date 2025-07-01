@@ -38,7 +38,7 @@ export default function RoomCard({ id, status, tenantName, area, latestTotal, el
     <Box
       bg="white"
       borderRadius="2xl"
-      border="1.5px solid #e3f2fd"
+      border="1.5px solid brand.50"
       boxShadow="0 4px 24px 0 rgba(33,150,243,0.12)"
       p={4}
       minW="220px"

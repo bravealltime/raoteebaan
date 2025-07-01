@@ -33,7 +33,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
           display="flex"
           alignItems="center"
           justifyContent="center"
-          bgGradient="linear(to-br, #e3f2fd, #bbdefb)"
+          bgGradient="linear(to-br, brand.50, brand.100)"
           p={4}
         >
           <VStack spacing={6} textAlign="center">

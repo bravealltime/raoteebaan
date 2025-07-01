@@ -382,7 +382,7 @@ export default function AdminUsers() {
             alignItems="center"
             gap={4}
             boxShadow="md"
-            border="1.5px solid #e3f2fd"
+            border="1.5px solid brand.50"
           >
             <FaUserFriends fontSize="2xl" />
             <Box>
@@ -458,7 +458,7 @@ export default function AdminUsers() {
           p={6}
           color="gray.800"
           boxShadow="xl"
-          border="1.5px solid #e3f2fd"
+          border="1.5px solid brand.50"
         >
           <Flex mb={4} gap={2} align="center" flexWrap="wrap">
             <Button

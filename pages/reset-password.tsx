@@ -94,7 +94,7 @@ export default function ResetPassword() {
 
   if (verifying) {
     return (
-      <Center minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)">
+      <Center minH="100vh" bgGradient="linear(to-br, brand.50, brand.100)">
         <VStack spacing={4}>
           <Spinner color="blue.400" size="xl" />
           <Text color="blue.600" fontSize="lg">กำลังตรวจสอบลิงก์...</Text>
@@ -105,7 +105,7 @@ export default function ResetPassword() {
 
   if (!validCode) {
     return (
-      <Center minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)">
+      <Center minH="100vh" bgGradient="linear(to-br, brand.50, brand.100)">
         <Container maxW="md">
           <Box bg="white" borderRadius="2xl" p={8} boxShadow="xl" border="1.5px solid #e3f2fd">
             <VStack spacing={6}>
@@ -135,7 +135,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <Center minH="100vh" bgGradient="linear(to-br, #e3f2fd, #bbdefb)">
+    <Center minH="100vh" bgGradient="linear(to-br, brand.50, brand.100)">
       <Container maxW="md">
         <Box bg="white" borderRadius="2xl" p={8} boxShadow="xl" border="1.5px solid #e3f2fd">
           <VStack spacing={6}>

@@ -44,7 +44,7 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { auth, db, rtdb } from "../lib/firebase";
 import MainLayout from "../components/MainLayout";
-import { FaPaperPlane, FaPlus } from "react-icons/fa";
+import { FaPaperPlane, FaPlus, FaTrash } from "react-icons/fa";
 import NewConversationModal from "../components/NewConversationModal";
 
 interface User {
@@ -53,6 +53,7 @@ interface User {
   email: string;
   role: string;
   photoURL?: string;
+  roomNumber?: string;
 }
 
 interface Conversation {
@@ -420,7 +421,7 @@ const Inbox = () => {
                     transition="background 0.2s ease-in-out"
                   >
                     <Avatar name={otherUser?.name} src={otherUser?.photoURL}>
-                      {console.log(`Inbox: Other User ${otherUser?.name}, photoURL: ${otherUser?.photoURL}`)}
+                      
                       <Circle
                         size="12px"
                         bg={isOnline ? "green.500" : "gray.400"}
@@ -442,7 +443,7 @@ const Inbox = () => {
                         color={isSelected ? "gray.200" : "gray.500"}
                         noOfLines={1}
                       >
-                        {convo.lastMessage}
+                        {convo.lastMessage?.text}
                       </Text>
                     </VStack>
                     <Badge colorScheme={getRoleColorScheme(otherUser?.role || "")}>
@@ -469,7 +470,7 @@ const Inbox = () => {
                 bg="gray.50"
               >
                 <Avatar name={getOtherParticipant(selectedConversation)?.name} src={getOtherParticipant(selectedConversation)?.photoURL} />
-                {console.log(`Inbox Header: Other User ${getOtherParticipant(selectedConversation)?.name}, photoURL: ${getOtherParticipant(selectedConversation)?.photoURL}`)}
+                
                 <VStack align="start" spacing={0}>
                   <Text fontWeight="bold">
                     {getOtherParticipant(selectedConversation)?.name}

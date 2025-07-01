@@ -104,7 +104,7 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
         <ModalCloseButton color="blue.400" />
         <ModalBody>
           <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-            <Box bg="white" borderRadius="2xl" p={4} boxShadow="md" border="1.5px solid #e3f2fd">
+            <Box bg="white" borderRadius="2xl" p={4} boxShadow="md" border="1.5px solid brand.50">
               <HStack mb={2} align="center">
                 <Box as={FaHome} color="blue.400" />
                 <Box fontWeight={700} color="blue.600" fontSize="md">ข้อมูลห้อง</Box>
@@ -138,7 +138,7 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
                 <Box fontSize="xs" color="gray.400" mt={1}>วันที่เริ่มต้นสัญญา เช่น 25/12/2024</Box>
               </Box>
             </Box>
-            <Box bg="white" borderRadius="2xl" p={4} boxShadow="md" border="1.5px solid #e3f2fd">
+            <Box bg="white" borderRadius="2xl" p={4} boxShadow="md" border="1.5px solid brand.50">
               <HStack mb={2} align="center">
                 <Box as={FaBolt} color="yellow.400" />
                 <Box fontWeight={700} color="yellow.600" fontSize="md">ข้อมูลค่าไฟ</Box>
@@ -164,7 +164,7 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
                 </Box>
               </SimpleGrid>
             </Box>
-            <Box bg="white" borderRadius="2xl" p={4} boxShadow="md" border="1.5px solid #e3f2fd">
+            <Box bg="white" borderRadius="2xl" p={4} boxShadow="md" border="1.5px solid brand.50">
               <HStack mb={2} align="center">
                 <Box as={FaTint} color="cyan.400" />
                 <Box fontWeight={700} color="cyan.600" fontSize="md">ข้อมูลค่าน้ำ</Box>
@@ -190,7 +190,7 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
                 </Box>
               </SimpleGrid>
             </Box>
-            <Box bg="white" borderRadius="2xl" p={4} boxShadow="md" border="1.5px solid #e3f2fd" gridColumn={{ md: '1 / span 3' }}>
+            <Box bg="white" borderRadius="2xl" p={4} boxShadow="md" border="1.5px solid brand.50" gridColumn={{ md: '1 / span 3' }}>
               <HStack mb={2} align="center">
                 <Box as={FaCalendarAlt} color="pink.400" />
                 <Box fontWeight={700} color="pink.600" fontSize="md">วันครบกำหนดชำระ</Box>
