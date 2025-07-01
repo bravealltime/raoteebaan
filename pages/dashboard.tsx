@@ -478,7 +478,7 @@ export default function Dashboard() {
   if (role !== "admin") return null;
 
   return (
-    <MainLayout role={role}>
+    <MainLayout role={role} currentUserUid={auth.currentUser?.uid}>
       <Flex align="center" justify="center" flex={1} minH="80vh">
         <Box bg="white" borderRadius="2xl" boxShadow="xl" p={12} textAlign="center">
           <Heading fontSize="3xl" color="blue.600" mb={4}>Dashboard</Heading>

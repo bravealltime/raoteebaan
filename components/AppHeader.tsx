@@ -1,9 +1,9 @@
-import { Flex, Box, Text, Avatar, IconButton, Spacer } from "@chakra-ui/react";
+import { Flex, Box, Text, Avatar, IconButton, Spacer, Badge } from "@chakra-ui/react";
 import { FaCog, FaBell, FaEnvelope } from "react-icons/fa";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { auth } from "../lib/firebase";
-import { collection, query, orderBy, limit, getDocs, doc, getDoc } from "firebase/firestore";
+import { collection, query, orderBy, limit, getDocs, doc, getDoc, onSnapshot, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 interface AppHeaderProps {
@@ -12,12 +12,14 @@ interface AppHeaderProps {
     avatar?: string;
     greeting?: string;
   };
+  currentUserUid?: string | null; // Add currentUserUid prop
 }
 
-export default function AppHeader({ user }: AppHeaderProps) {
+export default function AppHeader({ user, currentUserUid }: AppHeaderProps) {
   const router = useRouter();
   const [profile, setProfile] = useState<{ name: string; avatar?: string; greeting?: string }>({ name: user?.name || "xxx", avatar: user?.avatar, greeting: user?.greeting });
   const [role, setRole] = useState<string | null>(null);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
 
   useEffect(() => {
     const u = auth.currentUser;
@@ -40,6 +42,28 @@ export default function AppHeader({ user }: AppHeaderProps) {
       setRole(null);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!currentUserUid) return;
+
+    const q = query(
+      collection(db, "conversations"),
+      where("participants", "array-contains", currentUserUid)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let unreadCount = 0;
+      snapshot.docs.forEach((docData) => {
+        const convo = docData.data();
+        if (convo.lastMessage && convo.lastMessage.senderId !== currentUserUid && !convo.lastMessage.isRead) {
+          unreadCount++;
+        }
+      });
+      setUnreadMessageCount(unreadCount);
+    });
+
+    return () => unsubscribe();
+  }, [currentUserUid]);
 
   return (
     <Flex
@@ -96,16 +120,31 @@ export default function AppHeader({ user }: AppHeaderProps) {
             onClick={() => router.push("/admin-users")}
           />
         )}
-        <IconButton
-          aria-label="Inbox"
-          icon={<FaEnvelope />}
-          variant="ghost"
-          fontSize="xl"
-          color="blue.500"
-          _hover={{ bg: "blue.50", color: "blue.600" }}
-          borderRadius="full"
-          onClick={() => router.push("/inbox")}
-        />
+        <Box position="relative">
+          <IconButton
+            aria-label="Inbox"
+            icon={<FaEnvelope />}
+            variant="ghost"
+            fontSize="xl"
+            color="blue.500"
+            _hover={{ bg: "blue.50", color: "blue.600" }}
+            borderRadius="full"
+            onClick={() => router.push("/inbox")}
+          />
+          {unreadMessageCount > 0 && (
+            <Badge
+              position="absolute"
+              top="-1px"
+              right="-1px"
+              colorScheme="red"
+              borderRadius="full"
+              px="2"
+              fontSize="0.7em"
+            >
+              {unreadMessageCount}
+            </Badge>
+          )}
+        </Box>
         <IconButton
           aria-label="Notifications"
           icon={<FaBell />}

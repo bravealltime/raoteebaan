@@ -546,7 +546,7 @@ const Inbox = () => {
 
   if (loading) {
     return (
-      <MainLayout role={currentUser?.role}>
+      <MainLayout role={currentUser?.role} currentUserUid={currentUser?.uid}>
         <Flex justify="center" align="center" h="100vh">
           <Spinner />
         </Flex>
@@ -555,7 +555,7 @@ const Inbox = () => {
   }
 
   return (
-    <MainLayout role={currentUser?.role}>
+    <MainLayout role={currentUser?.role} currentUserUid={currentUser?.uid}>
       <Flex h="calc(100vh - 80px)">
         <VStack
           w="350px"

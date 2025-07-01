@@ -708,7 +708,7 @@ export default function Rooms() {
   if (loading) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
 
   return (
-    <MainLayout role={role}>
+    <MainLayout role={role} currentUserUid={userId}>
       <Box flex={1} p={[2, 4, 8]}>
         <Flex align="center" mb={6} gap={3} flexWrap="wrap">
           <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4}>Rooms</Text>
