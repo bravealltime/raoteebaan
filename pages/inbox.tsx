@@ -584,6 +584,11 @@ const Inbox = () => {
                       </Text>
                     )}
                   </HStack>
+                  {otherUserTyping && (
+                    <Text fontSize="sm" color="blue.500" fontStyle="italic">
+                      {getOtherParticipant(selectedConversation)?.name} is typing...
+                    </Text>
+                  )}
                 </VStack>
                 <Spacer />
                 <Badge colorScheme={getRoleColorScheme(getOtherParticipant(selectedConversation)?.role || "")}>
@@ -632,6 +637,7 @@ const Inbox = () => {
               </VStack>
 
               <Box p={4} bg="gray.50">
+<<<<<<< HEAD
                 {otherUserTyping && (
                   <Text fontSize="sm" color="blue.500" fontStyle="italic" mb={2}>
                     {getOtherParticipant(selectedConversation)?.name} is typing...
@@ -646,6 +652,29 @@ const Inbox = () => {
                       onChange={handleTyping}
                       onClick={() => handleSendMessage()}
                       borderRadius="full"
+=======
+                <InputGroup size="md">
+                  <Input
+                    variant="filled"
+                    placeholder="Type a message..."
+                    value={newMessage}
+                    onChange={handleTyping}
+                    onKeyPress={(e) =>
+                      e.key === "Enter" && handleSendMessage()
+                    }
+                    borderRadius="full"
+                  />
+                  <InputRightElement>
+                    <IconButton
+                      aria-label="Send"
+                      icon={<FaPaperPlane />}
+                      onClick={handleSendMessage}
+                      size="sm"
+                      isRound
+                      colorScheme="blue"
+                      variant="solid"
+                      isDisabled={newMessage.trim() === ""}
+>>>>>>> parent of ba318de (Update inbox.tsx)
                     />
                     <InputRightElement>
                       <IconButton
