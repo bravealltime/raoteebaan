@@ -102,6 +102,7 @@ const Inbox = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isImageUploading, setIsImageUploading] = useState(false);
   const [onlineStatus, setOnlineStatus] = useState<Record<string, any>>({});
   const [isTyping, setIsTyping] = useState(false);
   const [otherUserTyping, setOtherUserTyping] = useState(false);
@@ -370,7 +371,7 @@ const Inbox = () => {
 
     console.log("Current User before upload:", currentUser); // Add this line
 
-    setLoading(true); // Indicate loading for image upload
+    setIsImageUploading(true); // Indicate loading for image upload
     try {
       const storage = getStorage();
       const imageRef = storageRef(storage, `chat_images/${selectedConversation.id}/${currentUser.uid}/${file.name}_${Date.now()}`);
@@ -389,7 +390,7 @@ const Inbox = () => {
         isClosable: true,
       });
     } finally {
-      setLoading(false);
+      setIsImageUploading(false);
     }
   };
 
@@ -726,6 +727,8 @@ const Inbox = () => {
                     isRound
                     colorScheme="gray"
                     variant="ghost"
+                    isLoading={isImageUploading}
+                    isDisabled={isImageUploading}
                   />
                   <InputGroup size="md">
                     <Input
