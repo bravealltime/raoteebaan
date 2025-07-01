@@ -114,7 +114,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
   } catch (error: any) {
-    console.error('Error creating user:', error); // Log the full error on the server
+    
 
     if (error.code === 'auth/email-already-exists') {
       return res.status(400).json({ error: 'อีเมลนี้มีผู้ใช้งานในระบบแล้ว' });

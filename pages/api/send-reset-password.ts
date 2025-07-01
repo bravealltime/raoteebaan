@@ -55,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(200).json({ success: true, message: 'Password reset email sent successfully.' });
 
   } catch (error: any) {
-    console.error('Error sending password reset email:', error);
+    
     if (error.code === 'auth/user-not-found') {
       return res.status(404).json({ error: 'ไม่พบผู้ใช้งานสำหรับอีเมลนี้' });
     }
