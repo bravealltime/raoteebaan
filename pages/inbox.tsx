@@ -668,39 +668,41 @@ const Inbox = () => {
               </VStack>
 
               <Box p={4} bg="gray.50">
-                <InputGroup size="md">
-                  <Input
-                    variant="filled"
-                    placeholder="Type a message..."
-                    value={newMessage}
-                    onChange={handleTyping}
-                    onKeyPress={(e) =>
-                      e.key === "Enter" && handleSendMessage()
-                    }
-                    borderRadius="full"
+                <HStack>
+                  <IconButton
+                    aria-label="Upload Image"
+                    icon={<FaImage />}
+                    onClick={() => imageInputRef.current?.click()}
+                    size="md"
+                    isRound
+                    colorScheme="gray"
+                    variant="ghost"
                   />
-                  <InputRightElement>
-                    <IconButton
-                      aria-label="Send"
-                      icon={<FaPaperPlane />}
-                      onClick={() => handleSendMessage()}
-                      size="sm"
-                      isRound
-                      colorScheme="blue"
-                      variant="solid"
-                      isDisabled={newMessage.trim() === ""}
+                  <InputGroup size="md">
+                    <Input
+                      variant="filled"
+                      placeholder="Type a message..."
+                      value={newMessage}
+                      onChange={handleTyping}
+                      onKeyPress={(e) =>
+                        e.key === "Enter" && handleSendMessage()
+                      }
+                      borderRadius="full"
                     />
-                  </InputRightElement>
-                </InputGroup>
-                <IconButton
-                  aria-label="Upload Image"
-                  icon={<FaImage />}
-                  onClick={() => imageInputRef.current?.click()}
-                  size="md"
-                  isRound
-                  colorScheme="gray"
-                  variant="ghost"
-                />
+                    <InputRightElement>
+                      <IconButton
+                        aria-label="Send"
+                        icon={<FaPaperPlane />}
+                        onClick={() => handleSendMessage()}
+                        size="sm"
+                        isRound
+                        colorScheme="blue"
+                        variant="solid"
+                        isDisabled={newMessage.trim() === ""}
+                      />
+                    </InputRightElement>
+                  </InputGroup>
+                </HStack>
                 <input
                   type="file"
                   accept="image/*"
