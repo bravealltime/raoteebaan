@@ -41,7 +41,7 @@ import {
   serverTimestamp as rtdbServerTimestamp,
 } from "firebase/database";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { auth, db, rtdb } from "../lib/firebase";
 import MainLayout from "../components/MainLayout";
 import { FaPaperPlane, FaPlus } from "react-icons/fa";
@@ -79,7 +79,11 @@ const Inbox = () => {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [onlineStatus, setOnlineStatus] = useState<Record<string, any>>({});
+  const [isTyping, setIsTyping] = useState(false);
+  const [otherUserTyping, setOtherUserTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const notificationSoundRef = useRef<HTMLAudioElement>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   useEffect(() => {
@@ -188,6 +192,15 @@ const Inbox = () => {
         id: docData.id,
         ...docData.data(),
       })) as Message[];
+
+      // Check for new incoming messages
+      if (messages.length > 0 && msgs.length > messages.length) {
+        const lastNewMessage = msgs[msgs.length - 1];
+        if (lastNewMessage.senderId !== currentUser?.uid) {
+          notificationSoundRef.current?.play();
+        }
+      }
+
       setMessages(msgs);
       console.log("Selected Conversation Messages:", msgs);
     });
@@ -198,6 +211,30 @@ const Inbox = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const setMyTypingStatus = useCallback((typing: boolean) => {
+    if (!currentUser || !selectedConversation) return;
+    const typingRef = dbRef(rtdb, `typingStatus/${selectedConversation.id}/${currentUser.uid}`);
+    set(typingRef, typing);
+  }, [currentUser, selectedConversation, rtdb]);
+
+  useEffect(() => {
+    if (!currentUser || !selectedConversation) return;
+
+    const otherParticipant = getOtherParticipant(selectedConversation);
+    if (!otherParticipant) return;
+
+    const otherUserTypingRef = dbRef(rtdb, `typingStatus/${selectedConversation.id}/${otherParticipant.uid}`);
+
+    const unsubscribeTyping = onValue(otherUserTypingRef, (snapshot) => {
+      setOtherUserTyping(snapshot.val() || false);
+    });
+
+    return () => {
+      unsubscribeTyping();
+      setMyTypingStatus(false); // Clear my typing status when conversation changes or unmounts
+    };
+  }, [currentUser, selectedConversation, rtdb, setMyTypingStatus]);
 
   useEffect(() => {
     const statusRef = dbRef(rtdb, "status");
@@ -210,6 +247,8 @@ const Inbox = () => {
   const handleSendMessage = async () => {
     if (newMessage.trim() === "" || !selectedConversation || !currentUser)
       return;
+
+    setMyTypingStatus(false); // Clear typing status on message send
 
     const messageData = {
       senderId: currentUser.uid,
@@ -238,6 +277,22 @@ const Inbox = () => {
 
     setNewMessage("");
   };
+
+  const handleTyping = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+    if (!isTyping) {
+      setIsTyping(true);
+      setMyTypingStatus(true);
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      setMyTypingStatus(false);
+    }, 1500); // 1.5 seconds debounce
+  }, [isTyping, setMyTypingStatus]);
 
   const handleSelectUser = async (user: User) => {
     if (!currentUser) return;
@@ -430,6 +485,11 @@ const Inbox = () => {
                       </Text>
                     )}
                   </HStack>
+                  {otherUserTyping && (
+                    <Text fontSize="sm" color="blue.500" fontStyle="italic">
+                      {getOtherParticipant(selectedConversation)?.name} is typing...
+                    </Text>
+                  )}
                 </VStack>
                 <Spacer />
                 <Badge colorScheme={getRoleColorScheme(getOtherParticipant(selectedConversation)?.role || "")}>
@@ -482,7 +542,7 @@ const Inbox = () => {
                     variant="filled"
                     placeholder="Type a message..."
                     value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
+                    onChange={handleTyping}
                     onKeyPress={(e) =>
                       e.key === "Enter" && handleSendMessage()
                     }
@@ -529,6 +589,7 @@ const Inbox = () => {
         currentUser={currentUser}
         onSelectUser={handleSelectUser}
       />
+      <audio ref={notificationSoundRef} src="/sounds/notification.mp3" preload="auto" />
     </MainLayout>
   );
 };
