@@ -1,5 +1,5 @@
 import { Flex, Box, Text, Avatar, IconButton, Spacer } from "@chakra-ui/react";
-import { FaCog, FaBell } from "react-icons/fa";
+import { FaCog, FaBell, FaEnvelope } from "react-icons/fa";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { auth } from "../lib/firebase";
@@ -96,6 +96,16 @@ export default function AppHeader({ user }: AppHeaderProps) {
             onClick={() => router.push("/admin-users")}
           />
         )}
+        <IconButton
+          aria-label="Inbox"
+          icon={<FaEnvelope />}
+          variant="ghost"
+          fontSize="xl"
+          color="blue.500"
+          _hover={{ bg: "blue.50", color: "blue.600" }}
+          borderRadius="full"
+          onClick={() => router.push("/inbox")}
+        />
         <IconButton
           aria-label="Notifications"
           icon={<FaBell />}

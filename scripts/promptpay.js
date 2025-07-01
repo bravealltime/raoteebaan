@@ -85,13 +85,13 @@ const ThaiQRCode = {
   },
 
   sanitizeTarget: function(id) {
-    return id.replace(/[^0-9]/g, '')
+    return id.replace(/[^0-9]/g, '');
   },
 
   formatTarget: function(id) {
     const numbers = this.sanitizeTarget(id)
     if (numbers.length >= 13) return numbers
-    return ('0000000000000' + numbers.replace(/^0/, '66')).slice(-13)
+    return ('0000000000000' + numbers.replace(/^0/, '66')).slice(-13);
   },
 
   formatAmount: function(amount) {
