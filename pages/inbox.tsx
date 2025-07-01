@@ -18,6 +18,7 @@ import {
   Heading,
   Badge,
   Spacer,
+  Image,
 } from "@chakra-ui/react";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -43,8 +44,9 @@ import {
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { auth, db, rtdb } from "../lib/firebase";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import MainLayout from "../components/MainLayout";
-import { FaPaperPlane, FaPlus } from "react-icons/fa";
+import { FaPaperPlane, FaPlus, FaImage } from "react-icons/fa";
 import NewConversationModal from "../components/NewConversationModal";
 
 interface User {
@@ -65,7 +67,8 @@ interface Conversation {
 interface Message {
   id: string;
   senderId: string;
-  text: string;
+  text?: string;
+  imageUrl?: string;
   timestamp: any;
 }
 
@@ -86,6 +89,7 @@ const Inbox = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const notificationSoundRef = useRef<HTMLAudioElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   useEffect(() => {
@@ -255,17 +259,23 @@ const Inbox = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleSendMessage = async () => {
-    if (newMessage.trim() === "" || !selectedConversation || !currentUser)
+  const handleSendMessage = async (imageUrl?: string) => {
+    if ((newMessage.trim() === "" && !imageUrl) || !selectedConversation || !currentUser)
       return;
 
     setMyTypingStatus(false); // Clear typing status on message send
 
-    const messageData = {
+    const messageData: Partial<Message> = {
       senderId: currentUser.uid,
-      text: newMessage,
       timestamp: serverTimestamp(),
     };
+
+    if (newMessage.trim() !== "") {
+      messageData.text = newMessage;
+    }
+    if (imageUrl) {
+      messageData.imageUrl = imageUrl;
+    }
 
     await addDoc(
       collection(
@@ -304,6 +314,82 @@ const Inbox = () => {
       setMyTypingStatus(false);
     }, 1500); // 1.5 seconds debounce
   }, [isTyping, setMyTypingStatus]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const file = e.target.files[0];
+    if (!currentUser || !selectedConversation) {
+      toast({
+        title: "Error",
+        description: "Please select a conversation and be logged in to send images.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    console.log("Current User before upload:", currentUser); // Add this line
+
+    setLoading(true); // Indicate loading for image upload
+    try {
+      const storage = getStorage();
+      const imageRef = storageRef(storage, `chat_images/${selectedConversation.id}/${currentUser.uid}/${file.name}_${Date.now()}`);
+      const snapshot = await uploadBytes(imageRef, file);
+      const imageUrl = await getDownloadURL(snapshot.ref);
+
+      await handleSendMessage(imageUrl);
+
+      // Send image to Discord via API route
+      try {
+        const discordResponse = await fetch('/api/send-to-discord', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            imageUrl: imageUrl,
+            senderName: currentUser.name,
+            conversationId: selectedConversation.id,
+          }),
+        });
+
+        if (!discordResponse.ok) {
+          const errorData = await discordResponse.json();
+          console.error('Failed to send image to Discord:', errorData);
+          toast({
+            title: "Discord Error",
+            description: "Could not send image to Discord.",
+            status: "warning",
+            duration: 5000,
+            isClosable: true,
+          });
+        }
+      } catch (discordError) {
+        console.error('Error calling Discord API route:', discordError);
+        toast({
+          title: "Discord Error",
+          description: "Error communicating with Discord service.",
+          status: "warning",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+      e.target.value = ""; // Clear the file input
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Error",
+        description: "Could not upload image.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSelectUser = async (user: User) => {
     if (!currentUser) return;
@@ -537,7 +623,8 @@ const Inbox = () => {
                       maxW="65%"
                       boxShadow="sm"
                     >
-                      {msg.text}
+                      {msg.text && <Text>{msg.text}</Text>}
+                      {msg.imageUrl && <Image src={msg.imageUrl} maxW="200px" borderRadius="md" mt={msg.text ? 2 : 0} />}
                     </Box>
                   </Flex>
                 ))}
@@ -550,30 +637,46 @@ const Inbox = () => {
                     {getOtherParticipant(selectedConversation)?.name} is typing...
                   </Text>
                 )}
-                <InputGroup size="md">
-                  <Input
-                    variant="filled"
-                    placeholder="Type a message..."
-                    value={newMessage}
-                    onChange={handleTyping}
-                    onKeyPress={(e) =>
-                      e.key === "Enter" && handleSendMessage()
-                    }
-                    borderRadius="full"
-                  />
-                  <InputRightElement>
-                    <IconButton
-                      aria-label="Send"
-                      icon={<FaPaperPlane />}
-                      onClick={handleSendMessage}
-                      size="sm"
-                      isRound
-                      colorScheme="blue"
-                      variant="solid"
-                      isDisabled={newMessage.trim() === ""}
+                <HStack>
+                  <InputGroup size="md">
+                    <Input
+                      variant="filled"
+                      placeholder="Type a message..."
+                      value={newMessage}
+                      onChange={handleTyping}
+                      onClick={() => handleSendMessage()}
+                      borderRadius="full"
                     />
-                  </InputRightElement>
-                </InputGroup>
+                    <InputRightElement>
+                      <IconButton
+                        aria-label="Send"
+                        icon={<FaPaperPlane />}
+                        onClick={() => handleSendMessage()}
+                        size="sm"
+                        isRound
+                        colorScheme="blue"
+                        variant="solid"
+                        isDisabled={newMessage.trim() === ""}
+                      />
+                    </InputRightElement>
+                  </InputGroup>
+                  <IconButton
+                    aria-label="Upload Image"
+                    icon={<FaImage />}
+                    onClick={() => imageInputRef.current?.click()}
+                    size="md"
+                    isRound
+                    colorScheme="gray"
+                    variant="ghost"
+                  />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={imageInputRef}
+                    onChange={handleImageUpload}
+                    style={{ display: "none" }}
+                  />
+                </HStack>
               </Box>
             </>
           ) : (
