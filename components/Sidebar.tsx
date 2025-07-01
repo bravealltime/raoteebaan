@@ -30,8 +30,8 @@ export default function Sidebar({ role }: SidebarProps) {
             Dashboard
           </Button>
         </Link>
-        <Link href="/rooms" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/rooms" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
+        <Link href="/" passHref legacyBehavior>
+          <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
             Rooms
           </Button>
         </Link>
@@ -53,8 +53,8 @@ export default function Sidebar({ role }: SidebarProps) {
       </>}
       {/* owner เห็นเฉพาะ 3 ปุ่ม */}
       {role === "owner" && <>
-        <Link href="/rooms" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/rooms" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
+        <Link href="/" passHref legacyBehavior>
+          <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
             Rooms
           </Button>
         </Link>
@@ -71,8 +71,8 @@ export default function Sidebar({ role }: SidebarProps) {
       </>}
       {/* user (tenant) sees Rooms, Inbox, and Parcel */}
       {role === "user" && <>
-        <Link href="/rooms" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/rooms" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
+        <Link href="/" passHref legacyBehavior>
+          <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
             My Room
           </Button>
         </Link>

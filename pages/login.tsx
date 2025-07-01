@@ -50,12 +50,12 @@ export default function Login() {
           if (userRole === "admin") {
             router.push("/dashboard");
           } else {
-            router.push("/rooms");
+            router.push("/");
           }
         } else {
           // User document not found in Firestore, redirect to rooms as a fallback
           toast({ title: "เข้าสู่ระบบสำเร็จ", status: "success", duration: 1500, isClosable: true });
-          router.push("/rooms");
+          router.push("/");
         }
       } else {
         throw new Error("User not found after login.");
