@@ -498,11 +498,6 @@ const Inbox = () => {
                       </Text>
                     )}
                   </HStack>
-                  {otherUserTyping && (
-                    <Text fontSize="sm" color="blue.500" fontStyle="italic">
-                      {getOtherParticipant(selectedConversation)?.name} is typing...
-                    </Text>
-                  )}
                 </VStack>
                 <Spacer />
                 <Badge colorScheme={getRoleColorScheme(getOtherParticipant(selectedConversation)?.role || "")}>
@@ -550,6 +545,11 @@ const Inbox = () => {
               </VStack>
 
               <Box p={4} bg="gray.50">
+                {otherUserTyping && (
+                  <Text fontSize="sm" color="blue.500" fontStyle="italic" mb={2}>
+                    {getOtherParticipant(selectedConversation)?.name} is typing...
+                  </Text>
+                )}
                 <InputGroup size="md">
                   <Input
                     variant="filled"
