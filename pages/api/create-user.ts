@@ -30,7 +30,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Verify Firebase ID token from Authorization header
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized: No token provided' });
+  }
+
+  const idToken = authHeader.split('Bearer ')[1];
+
   try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const requestingUserUid = decodedToken.uid;
+
+    // Fetch the role of the user making the request from Firestore
+    const requestingUserDoc = await admin.firestore().collection('users').doc(requestingUserUid).get();
+    const requestingUserRole = requestingUserDoc.data()?.role;
+
+    // Only allow 'admin' to create new users
+    if (requestingUserRole !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: Only admin users can create new accounts' });
+    }
+
     const { name, email, status } = req.body;
 
     // Validate required fields
