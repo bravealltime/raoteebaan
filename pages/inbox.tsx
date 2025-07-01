@@ -75,7 +75,7 @@ interface User {
 interface Conversation {
   id: string;
   participants: User[]; // Reverted to User[]
-  lastMessage?: { text: string; senderId: string; };
+  lastMessage?: { text: string; senderId: string; isRead?: boolean; receiverId?: string; };
   updatedAt: any;
 }
 
@@ -85,6 +85,8 @@ interface Message {
   text?: string;
   imageUrl?: string;
   timestamp: any;
+  isRead?: boolean; // Added to track read status
+  receiverId?: string; // Added to track receiver
 }
 
 const Inbox = () => {
@@ -107,6 +109,7 @@ const Inbox = () => {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const notificationSoundRef = useRef<HTMLAudioElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isAlertDialogOpen, onOpen: onAlertDialogOpen, onClose: onAlertDialogClose } = useDisclosure();
   const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
@@ -206,6 +209,16 @@ const Inbox = () => {
 
       prevConversationsRef.current = convos; // Update ref for next comparison
       setConversations(convos);
+
+      // Calculate unread message count
+      let unreadCount = 0;
+      for (const convo of convos) {
+        if (convo.lastMessage && convo.lastMessage.senderId !== currentUser?.uid && !convo.lastMessage.isRead) {
+          unreadCount++;
+        }
+      }
+      setUnreadMessageCount(unreadCount);
+
       console.log("Conversations:", convos);
       setLoading(false);
     });
@@ -228,7 +241,7 @@ const Inbox = () => {
       orderBy("timestamp", "asc")
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
       const msgs = snapshot.docs.map((docData) => ({
         id: docData.id,
         ...docData.data(),
@@ -236,6 +249,21 @@ const Inbox = () => {
 
       setMessages(msgs);
       console.log("Selected Conversation Messages:", msgs);
+
+      // Mark messages as read
+      const batch = writeBatch(db);
+      let messagesToMarkAsRead = 0;
+      msgs.forEach((msg) => {
+        if (msg.receiverId === currentUser?.uid && !msg.isRead) {
+          const messageRef = doc(db, "conversations", selectedConversationId, "messages", msg.id);
+          batch.update(messageRef, { isRead: true });
+          messagesToMarkAsRead++;
+        }
+      });
+      if (messagesToMarkAsRead > 0) {
+        await batch.commit();
+        console.log(`Marked ${messagesToMarkAsRead} messages as read.`);
+      }
     });
 
     return () => unsubscribe();
@@ -316,7 +344,7 @@ const Inbox = () => {
     await setDoc(
       doc(db, "conversations", selectedConversation.id),
       {
-        lastMessage: { text: newMessage, senderId: currentUser.uid },
+        lastMessage: { text: newMessage, senderId: currentUser.uid, isRead: false, receiverId: getOtherParticipant(selectedConversation)?.uid },
         updatedAt: serverTimestamp(),
       },
       { merge: true }
@@ -511,7 +539,14 @@ const Inbox = () => {
           align="stretch"
         >
           <Flex justify="space-between" align="center" mb={2}>
-            <Heading size="lg">Inbox</Heading>
+            <HStack>
+              <Heading size="lg">Inbox</Heading>
+              {unreadMessageCount > 0 && (
+                <Badge colorScheme="red" borderRadius="full" px={2} py={1}>
+                  {unreadMessageCount}
+                </Badge>
+              )}
+            </HStack>
             <IconButton
               aria-label="New Conversation"
               icon={<FaPlus />}
