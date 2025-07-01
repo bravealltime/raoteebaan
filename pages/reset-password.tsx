@@ -26,11 +26,7 @@ export default function ResetPassword() {
           setValidCode(true);
           setVerifying(false);
         })
-        .catch((error) => {
-          console.error('Error verifying reset code:', error);
-          setValidCode(false);
-          setVerifying(false);
-        });
+        
     } else {
       setVerifying(false);
     }
@@ -78,8 +74,7 @@ export default function ResetPassword() {
           router.push("/login");
         }, 2000);
       }
-    } catch (error: any) {
-      console.error('Error resetting password:', error);
+    
       toast({
         title: "เกิดข้อผิดพลาด",
         description: error.message || "ไม่สามารถตั้งรหัสผ่านได้",

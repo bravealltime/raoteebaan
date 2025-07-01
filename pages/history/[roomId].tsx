@@ -31,7 +31,7 @@ export default function HistoryRoom() {
           setRoomData(data);
         }
       } catch (error) {
-        console.error("Error fetching room data:", error);
+        
       }
     };
     fetchRoomData();
@@ -189,7 +189,7 @@ export default function HistoryRoom() {
       setHistory(newHistory);
 
     } catch (e) {
-      console.error("Error saving data:", e);
+      
       toast({ title: "บันทึกข้อมูลไม่สำเร็จ", status: "error" });
     } finally {
       setIsSaving(false);
@@ -254,7 +254,7 @@ export default function HistoryRoom() {
       setHistory(newHistory);
 
     } catch (e) {
-      console.error("Error deleting bill:", e);
+      
       toast({ title: "ลบข้อมูลไม่สำเร็จ", description: "เกิดข้อผิดพลาด โปรดลองอีกครั้ง", status: "error" });
     } finally {
       setDeleteConfirmId(null);

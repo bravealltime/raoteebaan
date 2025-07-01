@@ -44,7 +44,7 @@ export default function BillDetail() {
     const fetchBill = async () => {
       setLoading(true);
       try {
-        console.log('[DEBUG] roomId:', roomId);
+        
         const q = query(
           collection(db, "bills"),
           where("roomId", "==", String(roomId)),
@@ -52,22 +52,22 @@ export default function BillDetail() {
           limit(1)
         );
         const snap = await getDocs(q);
-        console.log(`[DEBUG] Query for roomId ${roomId} returned ${snap.docs.length} documents.`);
+        
         if (snap.empty) {
-          console.log(`[DEBUG] No bill found for roomId: ${roomId}`);
+          
         }
         let roomData: any = null;
         const roomSnap = await getDoc(doc(db, "rooms", String(roomId)));
         if (roomSnap.exists()) {
           roomData = roomSnap.data();
-          console.log(`[DEBUG] Room data for ${roomId}:`, roomData);
+          
         } else {
-          console.log(`[DEBUG] No room data found for roomId: ${roomId}`);
+          
         }
 
         if (!snap.empty) {
           const d = snap.docs[0].data();
-          console.log('[DEBUG] bill doc from Firestore:', d);
+          
 
           // Helper to convert Firestore Timestamp or ISO string to JS Date
           const toDate = (firebaseDate: any): Date | null => {
@@ -81,7 +81,7 @@ export default function BillDetail() {
           const dueDate = toDate(d.dueDate);
 
           if (!billDate || !dueDate) {
-            console.error("Invalid date format in bill:", d);
+            
             setBill(null); // Or handle as an error
             return;
           }
@@ -136,7 +136,7 @@ export default function BillDetail() {
             billStatus: d.status || "unpaid",
           };
 
-          console.log('[DEBUG] mapped bill for setBill:', finalBill);
+          
           setBill(finalBill);
         } else {
           setBill(null);
@@ -150,42 +150,28 @@ export default function BillDetail() {
     fetchBill();
   }, [roomId]);
 
-  useEffect(() => {
-    console.log('QR Generation useEffect triggered:', {
-      window: typeof window !== "undefined",
-      ThaiQRCode: typeof window !== "undefined" ? !!(window as any).ThaiQRCode : false,
-      promptpay: bill?.promptpay,
-      total: bill?.total,
-      qr: qr
-    });
+  
     
     if (typeof window !== "undefined" && (window as any).ThaiQRCode && bill?.promptpay && bill?.total) {
       try {
         const qrData = (window as any).ThaiQRCode.generate(bill.promptpay, { amount: bill.total });
         setQr(qrData);
       } catch (error) {
-        console.error('Error generating QR code:', error);
+        
       }
-    } else {
-      console.log('QR generation conditions not met:', {
-        hasWindow: typeof window !== "undefined",
-        hasThaiQRCode: typeof window !== "undefined" ? !!(window as any).ThaiQRCode : false,
-        hasPromptpay: !!bill?.promptpay,
-        hasTotal: !!bill?.total
-      });
-    }
+    
   }, [bill?.promptpay, bill?.total]);
 
   // Additional useEffect to retry QR generation after scripts are loaded
   useEffect(() => {
     const checkAndGenerateQR = () => {
       if (typeof window !== "undefined" && (window as any).ThaiQRCode && bill?.promptpay && bill?.total && !qr) {
-        console.log('Retrying QR generation...');
+        
         try {
           const qrData = (window as any).ThaiQRCode.generate(bill.promptpay, { amount: bill.total });
           setQr(qrData);
         } catch (error) {
-          console.error('Error in retry QR generation:', error);
+          
         }
       }
     };
@@ -199,9 +185,7 @@ export default function BillDetail() {
     return () => clearTimeout(timer);
   }, [bill?.promptpay, bill?.total, qr]);
 
-  useEffect(() => {
-    console.log('window.qrcode:', typeof window !== "undefined" ? (window as any).qrcode : undefined);
-  }, []);
+  
 
   useEffect(() => {
     const loadQrcodeGenerator = () => {
@@ -209,10 +193,7 @@ export default function BillDetail() {
         const script1 = document.createElement('script');
         script1.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.5.0/qrcode.min.js';
         script1.async = false;
-        script1.onload = () => {
-          console.log('qrcode-generator loaded');
-          loadPromptpayScript();
-        };
+        
         document.body.appendChild(script1);
       } else {
         // qrcode-generator is already loaded, proceed to load promptpay.js
@@ -225,9 +206,7 @@ export default function BillDetail() {
         const script2 = document.createElement('script');
         script2.src = '/scripts/promptpay.js';
         script2.async = false;
-        script2.onload = () => {
-          console.log('promptpay.js loaded');
-        };
+        
         document.body.appendChild(script2);
       }
     };

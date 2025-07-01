@@ -118,13 +118,7 @@ export default function Dashboard() {
         role: userRole,
         photoURL: firestoreData.avatar || u.photoURL || undefined, // Ensure photoURL is taken from Firestore first, then Auth
       });
-      console.log("Dashboard Page - Current User Data:", {
-        uid: u.uid,
-        name: firestoreData.name || u.displayName || '',
-        email: firestoreData.email || u.email || '',
-        role: userRole,
-        photoURL: firestoreData.avatar || u.photoURL || undefined,
-      });
+      
       if (userRole !== "admin") {
         if (userRole === "owner") {
           router.replace("/");
