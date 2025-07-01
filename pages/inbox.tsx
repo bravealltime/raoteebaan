@@ -52,6 +52,7 @@ interface User {
   name: string;
   email: string;
   role: string;
+  photoURL?: string;
 }
 
 interface Conversation {
@@ -408,7 +409,7 @@ const Inbox = () => {
                     onClick={() => setSelectedConversation(convo)}
                     transition="background 0.2s ease-in-out"
                   >
-                    <Avatar name={otherUser?.name}>
+                    <Avatar name={otherUser?.name} src={otherUser?.photoURL}>
                       <Circle
                         size="12px"
                         bg={isOnline ? "green.500" : "gray.400"}
@@ -456,7 +457,7 @@ const Inbox = () => {
                 borderColor="gray.200"
                 bg="gray.50"
               >
-                <Avatar name={getOtherParticipant(selectedConversation)?.name} />
+                <Avatar name={getOtherParticipant(selectedConversation)?.name} src={getOtherParticipant(selectedConversation)?.photoURL} />
                 <VStack align="start" spacing={0}>
                   <Text fontWeight="bold">
                     {getOtherParticipant(selectedConversation)?.name}
