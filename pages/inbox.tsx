@@ -199,6 +199,7 @@ const Inbox = () => {
         const lastNewMessage = msgs[msgs.length - 1];
         if (lastNewMessage.senderId !== currentUser?.uid) {
           notificationSoundRef.current?.play();
+          console.log("Playing notification sound.");
         }
       }
 
@@ -217,6 +218,7 @@ const Inbox = () => {
     if (!currentUser || !selectedConversation) return;
     const typingRef = dbRef(rtdb, `typingStatus/${selectedConversation.id}/${currentUser.uid}`);
     set(typingRef, typing);
+    console.log(`Setting typing status for ${currentUser.uid} to ${typing} in conversation ${selectedConversation.id}`);
   }, [currentUser, selectedConversation, rtdb]);
 
   useEffect(() => {
@@ -229,6 +231,7 @@ const Inbox = () => {
 
     const unsubscribeTyping = onValue(otherUserTypingRef, (snapshot) => {
       setOtherUserTyping(snapshot.val() || false);
+      console.log(`Other user ${otherParticipant.name} typing status: ${snapshot.val() || false}`);
     });
 
     return () => {
@@ -410,6 +413,7 @@ const Inbox = () => {
                     transition="background 0.2s ease-in-out"
                   >
                     <Avatar name={otherUser?.name} src={otherUser?.photoURL}>
+                      {console.log(`Inbox: Other User ${otherUser?.name}, photoURL: ${otherUser?.photoURL}`)}
                       <Circle
                         size="12px"
                         bg={isOnline ? "green.500" : "gray.400"}
@@ -458,6 +462,7 @@ const Inbox = () => {
                 bg="gray.50"
               >
                 <Avatar name={getOtherParticipant(selectedConversation)?.name} src={getOtherParticipant(selectedConversation)?.photoURL} />
+                {console.log(`Inbox Header: Other User ${getOtherParticipant(selectedConversation)?.name}, photoURL: ${getOtherParticipant(selectedConversation)?.photoURL}`)}
                 <VStack align="start" spacing={0}>
                   <Text fontWeight="bold">
                     {getOtherParticipant(selectedConversation)?.name}
