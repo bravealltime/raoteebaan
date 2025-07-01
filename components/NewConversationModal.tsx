@@ -30,6 +30,7 @@ interface User {
   roomNumber?: string;
   tenantId?: string;
   ownerId?: string;
+  photoURL?: string;
 }
 
 interface NewConversationModalProps {
@@ -168,7 +169,8 @@ const NewConversationModal = ({
                     cursor="pointer"
                     onClick={() => handleUserSelect(user)}
                   >
-                    <Avatar name={user.name} size="sm" />
+                    <Avatar name={user.name} size="sm" src={user.photoURL} />
+                    {console.log(`NewConversationModal: User ${user.name}, photoURL: ${user.photoURL}`)}
                     <VStack align="start" spacing={0} flex={1}>
                       <Text fontWeight="medium">{user.name}</Text>
                       {user.roomNumber && (
