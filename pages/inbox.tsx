@@ -18,6 +18,13 @@ import {
   Heading,
   Badge,
   Spacer,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  AlertDialogCloseButton,
 } from "@chakra-ui/react";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -90,6 +97,8 @@ const Inbox = () => {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const notificationSoundRef = useRef<HTMLAudioElement>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isAlertDialogOpen, onOpen: onAlertDialogOpen, onClose: onAlertDialogClose } = useDisclosure();
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -258,8 +267,44 @@ const Inbox = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleDeleteConversation = async () => {
+  const handleSendMessage = async () => {
+    if (newMessage.trim() === "" || !selectedConversation || !currentUser)
+      return;
+
+    setMyTypingStatus(false); // Clear typing status on message send
+
+    const messageData = {
+      senderId: currentUser.uid,
+      text: newMessage,
+      timestamp: serverTimestamp(),
+    };
+
+    await addDoc(
+      collection(
+        db,
+        "conversations",
+        selectedConversation.id,
+        "messages"
+      ),
+      messageData
+    );
+
+    await setDoc(
+      doc(db, "conversations", selectedConversation.id),
+      {
+        lastMessage: { text: newMessage, senderId: currentUser.uid },
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    setNewMessage("");
+  };
+
+  const onConfirmDelete = async () => {
     if (!selectedConversation) return;
+
+    onAlertDialogClose(); // Close the alert dialog
 
     try {
       const batch = writeBatch(db);
@@ -299,38 +344,8 @@ const Inbox = () => {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (newMessage.trim() === "" || !selectedConversation || !currentUser)
-      return;
-
-    setMyTypingStatus(false); // Clear typing status on message send
-
-    const messageData = {
-      senderId: currentUser.uid,
-      text: newMessage,
-      timestamp: serverTimestamp(),
-    };
-
-    await addDoc(
-      collection(
-        db,
-        "conversations",
-        selectedConversation.id,
-        "messages"
-      ),
-      messageData
-    );
-
-    await setDoc(
-      doc(db, "conversations", selectedConversation.id),
-      {
-        lastMessage: { text: newMessage, senderId: currentUser.uid },
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
-
-    setNewMessage("");
+  const handleDeleteClick = () => {
+    onAlertDialogOpen();
   };
 
   const handleTyping = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -555,7 +570,7 @@ const Inbox = () => {
                 <IconButton
                   aria-label="Delete Conversation"
                   icon={<FaTrash />}
-                  onClick={handleDeleteConversation}
+                  onClick={handleDeleteClick}
                   size="sm"
                   colorScheme="red"
                   variant="ghost"
@@ -655,6 +670,33 @@ const Inbox = () => {
         onSelectUser={handleSelectUser}
       />
       <audio ref={notificationSoundRef} src="/sounds/notification.mp3" preload="auto" />
+
+      <AlertDialog
+        isOpen={isAlertDialogOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onAlertDialogClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              ลบการสนทนา
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              คุณแน่ใจหรือไม่ว่าต้องการลบการสนทนานี้? ข้อความทั้งหมดจะถูกลบอย่างถาวร
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onAlertDialogClose}>
+                ยกเลิก
+              </Button>
+              <Button colorScheme="red" onClick={onConfirmDelete} ml={3}>
+                ลบ
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </MainLayout>
   );
 };
