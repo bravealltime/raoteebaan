@@ -14,6 +14,10 @@ import {
   VStack,
   useToast,
   IconButton,
+  useDisclosure,
+  Heading,
+  Badge,
+  Spacer,
 } from "@chakra-ui/react";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -26,6 +30,8 @@ import {
   query,
   serverTimestamp,
   where,
+  getDocs,
+  setDoc,
 } from "firebase/firestore";
 import {
   ref as dbRef,
@@ -38,7 +44,8 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { auth, db, rtdb } from "../lib/firebase";
 import MainLayout from "../components/MainLayout";
-import { FaPaperPlane } from "react-icons/fa";
+import { FaPaperPlane, FaPlus } from "react-icons/fa";
+import NewConversationModal from "../components/NewConversationModal";
 
 interface User {
   uid: string;
@@ -71,8 +78,9 @@ const Inbox = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const [onlineStatus, setOnlineStatus] = useState<Record<string, boolean>>({});
+  const [onlineStatus, setOnlineStatus] = useState<Record<string, any>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -80,6 +88,8 @@ const Inbox = () => {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
           setCurrentUser({ uid: user.uid, ...userDoc.data() } as User);
+        } else {
+          router.push("/login");
         }
       } else {
         router.push("/login");
@@ -92,15 +102,15 @@ const Inbox = () => {
     if (currentUser && rtdb) {
       const userStatusRef = dbRef(rtdb, `/status/${currentUser.uid}`);
       const isOfflineForDatabase = {
-        state: 'offline',
+        state: "offline",
         last_changed: rtdbServerTimestamp(),
       };
       const isOnlineForDatabase = {
-        state: 'online',
+        state: "online",
         last_changed: rtdbServerTimestamp(),
       };
 
-      onValue(dbRef(rtdb, '.info/connected'), (snapshot) => {
+      onValue(dbRef(rtdb, ".info/connected"), (snapshot) => {
         if (snapshot.val() === false) {
           return;
         }
@@ -123,22 +133,28 @@ const Inbox = () => {
     );
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
+      if (snapshot.empty) {
+        setLoading(false);
+      }
       const convos = await Promise.all(
         snapshot.docs.map(async (docData) => {
           const conversationData = docData.data();
-          const participantIds = conversationData.participants.filter(
-            (p: string) => p !== currentUser.uid
-          );
+          const allParticipantUids = conversationData.participants;
+
           const participants = await Promise.all(
-            participantIds.map(async (id: string) => {
-              const userDoc = await getDoc(doc(db, "users", id));
-              return { uid: id, ...userDoc.data() } as User;
+            allParticipantUids.map(async (uid: string) => {
+              const userDoc = await getDoc(doc(db, "users", uid));
+              if (userDoc.exists()) {
+                return { uid: userDoc.id, ...userDoc.data() } as User;
+              }
+              return { uid, name: "Unknown User", email: "", role: "" };
             })
           );
+
           return {
             id: docData.id,
-            participants,
             ...conversationData,
+            participants,
           } as Conversation;
         })
       );
@@ -178,7 +194,7 @@ const Inbox = () => {
   }, [messages]);
 
   useEffect(() => {
-        const statusRef = dbRef(rtdb, "status");
+    const statusRef = dbRef(rtdb, "status");
     const unsubscribe = onValue(statusRef, (snapshot) => {
       setOnlineStatus(snapshot.val() || {});
     });
@@ -205,16 +221,76 @@ const Inbox = () => {
       messageData
     );
 
-    await addDoc(doc(db, "conversations", selectedConversation.id), {
-      lastMessage: newMessage,
-      updatedAt: serverTimestamp(),
-    });
+    await setDoc(
+      doc(db, "conversations", selectedConversation.id),
+      {
+        lastMessage: newMessage,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
 
     setNewMessage("");
   };
 
+  const handleSelectUser = async (user: User) => {
+    if (!currentUser) return;
+
+    // Check if a conversation with this user already exists
+    const existingConversation = conversations.find((convo) =>
+      convo.participants.some((p) => p.uid === user.uid)
+    );
+
+    if (existingConversation) {
+      setSelectedConversation(existingConversation);
+      onClose(); // Close the modal
+      return;
+    }
+
+    // Create a new conversation
+    try {
+      const newConversationRef = doc(collection(db, "conversations"));
+      
+      // Store participant UIDs in Firestore, not the whole objects
+      const newConversationData = {
+        participants: [currentUser.uid, user.uid],
+        lastMessage: "",
+        updatedAt: serverTimestamp(),
+      };
+
+      await setDoc(newConversationRef, newConversationData);
+
+      // The real-time listener will automatically add the new conversation to the list.
+      // We just need to close the modal.
+      onClose();
+
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      toast({
+        title: "Error",
+        description: "Could not start a new conversation.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  };
+
   const getOtherParticipant = (conversation: Conversation) => {
     return conversation.participants.find((p) => p.uid !== currentUser?.uid);
+  };
+
+  const getRoleColorScheme = (role: string) => {
+    switch (role) {
+      case "admin":
+        return "red";
+      case "juristic":
+        return "blue";
+      case "tenant":
+        return "green";
+      default:
+        return "gray";
+    }
   };
 
   if (loading) {
@@ -232,88 +308,144 @@ const Inbox = () => {
       <Flex h="calc(100vh - 80px)">
         <VStack
           w="350px"
+          bg="gray.50"
           borderRight="1px solid"
           borderColor="gray.200"
           p={4}
           spacing={4}
           align="stretch"
         >
-          <Text fontSize="2xl" fontWeight="bold">
-            Inbox
-          </Text>
-          <Divider />
-          {conversations.map((convo) => {
-            const otherUser = getOtherParticipant(convo);
-            const isOnline = otherUser
-              ? onlineStatus[otherUser.uid]?.state === "online"
-              : false;
-            return (
-              <HStack
-                key={convo.id}
-                p={2}
-                borderRadius="md"
-                cursor="pointer"
-                bg={
-                  selectedConversation?.id === convo.id
-                    ? "blue.100"
-                    : "transparent"
-                }
-                _hover={{ bg: "gray.100" }}
-                onClick={() => setSelectedConversation(convo)}
-              >
-                <Avatar name={otherUser?.name}>
-                  <Circle
-                    size="12px"
-                    bg={isOnline ? "green.500" : "gray.400"}
-                    border="2px solid white"
-                    position="absolute"
-                    bottom="0"
-                    right="0"
-                  />
-                </Avatar>
-                <VStack align="start" spacing={0} flex={1}>
-                  <Text fontWeight="bold">{otherUser?.name}</Text>
-                  <Text fontSize="sm" color="gray.500" noOfLines={1}>
-                    {convo.lastMessage}
-                  </Text>
-                </VStack>
-              </HStack>
-            );
-          })}
+          <Flex justify="space-between" align="center" mb={2}>
+            <Heading size="lg">Inbox</Heading>
+            <IconButton
+              aria-label="New Conversation"
+              icon={<FaPlus />}
+              isRound
+              size="sm"
+              variant="ghost"
+              onClick={onOpen}
+            />
+          </Flex>
+          <VStack as="nav" spacing={1} align="stretch" overflowY="auto">
+            {conversations.length > 0 ? (
+              conversations.map((convo) => {
+                const otherUser = getOtherParticipant(convo);
+                const isOnline = otherUser
+                  ? onlineStatus[otherUser.uid]?.state === "online"
+                  : false;
+                const isSelected =
+                  selectedConversation?.id === convo.id;
+                return (
+                  <HStack
+                    key={convo.id}
+                    p={3}
+                    borderRadius="lg"
+                    cursor="pointer"
+                    bg={isSelected ? "blue.500" : "transparent"}
+                    color={isSelected ? "white" : "inherit"}
+                    _hover={{ bg: isSelected ? "blue.600" : "gray.200" }}
+                    onClick={() => setSelectedConversation(convo)}
+                    transition="background 0.2s ease-in-out"
+                  >
+                    <Avatar name={otherUser?.name}>
+                      <Circle
+                        size="12px"
+                        bg={isOnline ? "green.500" : "gray.400"}
+                        border="2px solid white"
+                        position="absolute"
+                        bottom="0"
+                        right="0"
+                      />
+                    </Avatar>
+                    <VStack align="start" spacing={0} flex={1}>
+                      <Text fontWeight="bold">{otherUser?.name}</Text>
+                      {otherUser?.roomNumber && (
+                        <Text fontSize="xs" color={isSelected ? "gray.300" : "gray.500"}>
+                          Room: {otherUser.roomNumber}
+                        </Text>
+                      )}
+                      <Text
+                        fontSize="sm"
+                        color={isSelected ? "gray.200" : "gray.500"}
+                        noOfLines={1}
+                      >
+                        {convo.lastMessage}
+                      </Text>
+                    </VStack>
+                    <Badge colorScheme={getRoleColorScheme(otherUser?.role || "")}>
+                      {otherUser?.role}
+                    </Badge>
+                  </HStack>
+                );
+              })
+            ) : (
+              <Text color="gray.500" textAlign="center" mt={10}>
+                No conversations yet. Start one by clicking the + button.
+              </Text>
+            )}
+          </VStack>
         </VStack>
 
-        <Flex flex={1} direction="column">
+        <Flex flex={1} direction="column" bg="white">
           {selectedConversation ? (
             <>
-              <HStack p={4} borderBottom="1px solid" borderColor="gray.200">
+              <HStack
+                p={4}
+                borderBottom="1px solid"
+                borderColor="gray.200"
+                bg="gray.50"
+              >
                 <Avatar name={getOtherParticipant(selectedConversation)?.name} />
                 <VStack align="start" spacing={0}>
                   <Text fontWeight="bold">
                     {getOtherParticipant(selectedConversation)?.name}
                   </Text>
-                  <Text fontSize="sm" color="gray.500">
-                    {onlineStatus[
-                      getOtherParticipant(selectedConversation)?.uid || ""
-                    ]?.state === "online"
-                      ? "Online"
-                      : "Offline"}
-                  </Text>
+                  <HStack>
+                    <Circle
+                      size="10px"
+                      bg={
+                        onlineStatus[
+                          getOtherParticipant(selectedConversation)?.uid || ""
+                        ]?.state === "online"
+                          ? "green.500"
+                          : "gray.400"
+                      }
+                    />
+                    <Text fontSize="sm" color="gray.500">
+                      {onlineStatus[
+                        getOtherParticipant(selectedConversation)?.uid || ""
+                      ]?.state === "online"
+                        ? "Online"
+                        : "Offline"}
+                    </Text>
+                    {getOtherParticipant(selectedConversation)?.roomNumber && (
+                      <Text fontSize="sm" color="gray.500">
+                        · Room: {getOtherParticipant(selectedConversation)?.roomNumber}
+                      </Text>
+                    )}
+                  </HStack>
                 </VStack>
+                <Spacer />
+                <Badge colorScheme={getRoleColorScheme(getOtherParticipant(selectedConversation)?.role || "")}>
+                  {getOtherParticipant(selectedConversation)?.role}
+                </Badge>
               </HStack>
 
               <VStack
                 flex={1}
-                p={4}
+                p={6}
                 spacing={4}
                 overflowY="auto"
-                bg="gray.50"
+                bg="gray.100"
               >
                 {messages.map((msg) => (
                   <Flex
                     key={msg.id}
                     w="full"
                     justify={
-                      msg.senderId === currentUser?.uid ? "flex-end" : "flex-start"
+                      msg.senderId === currentUser?.uid
+                        ? "flex-end"
+                        : "flex-start"
                     }
                   >
                     <Box
@@ -323,14 +455,13 @@ const Inbox = () => {
                           : "white"
                       }
                       color={
-                        msg.senderId === currentUser?.uid
-                          ? "white"
-                          : "black"
+                        msg.senderId === currentUser?.uid ? "white" : "black"
                       }
                       px={4}
                       py={2}
-                      borderRadius="lg"
-                      maxW="70%"
+                      borderRadius="xl"
+                      maxW="65%"
+                      boxShadow="sm"
                     >
                       {msg.text}
                     </Box>
@@ -339,15 +470,17 @@ const Inbox = () => {
                 <div ref={messagesEndRef} />
               </VStack>
 
-              <HStack p={4}>
-                <InputGroup>
+              <Box p={4} bg="gray.50">
+                <InputGroup size="md">
                   <Input
+                    variant="filled"
                     placeholder="Type a message..."
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={(e) =>
                       e.key === "Enter" && handleSendMessage()
                     }
+                    borderRadius="full"
                   />
                   <InputRightElement>
                     <IconButton
@@ -355,10 +488,14 @@ const Inbox = () => {
                       icon={<FaPaperPlane />}
                       onClick={handleSendMessage}
                       size="sm"
+                      isRound
+                      colorScheme="blue"
+                      variant="solid"
+                      isDisabled={newMessage.trim() === ""}
                     />
                   </InputRightElement>
                 </InputGroup>
-              </HStack>
+              </Box>
             </>
           ) : (
             <Flex
@@ -367,15 +504,25 @@ const Inbox = () => {
               align="center"
               direction="column"
               color="gray.400"
+              bg="gray.50"
             >
               <FaPaperPlane size="4em" />
-              <Text mt={4} fontSize="xl">
-                Select a conversation to start messaging
+              <Heading mt={4} size="lg">
+                Your Messages
+              </Heading>
+              <Text mt={2}>
+                Select a conversation to see messages or start a new one.
               </Text>
             </Flex>
           )}
         </Flex>
       </Flex>
+      <NewConversationModal
+        isOpen={isOpen}
+        onClose={onClose}
+        currentUser={currentUser}
+        onSelectUser={handleSelectUser}
+      />
     </MainLayout>
   );
 };

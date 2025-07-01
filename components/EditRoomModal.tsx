@@ -41,6 +41,7 @@ interface RoomData {
   billStatus: string;
   tenantId?: string | null;
   tenantEmail?: string | null;
+  ownerId?: string; // Add ownerId
 }
 
 interface EditRoomModalProps {

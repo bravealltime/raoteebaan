@@ -5,13 +5,14 @@ import { FaTint, FaBolt, FaCalendarAlt, FaPlus, FaHome } from "react-icons/fa";
 interface AddRoomModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (room: any) => void; // Changed to any to accommodate tenantEmail
+  onAdd: (room: any) => void;
   lastWaterMeter?: number;
   lastElecMeter?: number;
-  userRole?: string | null; // Add userRole to props
+  userRole?: string | null;
+  ownerId?: string; // Add ownerId to props
 }
 
-export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, lastElecMeter, userRole }: AddRoomModalProps) {
+export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, lastElecMeter, userRole, ownerId }: AddRoomModalProps) {
   const [roomId, setRoomId] = useState("");
   const [tenantName, setTenantName] = useState("");
   const [tenantEmail, setTenantEmail] = useState(""); // Add state for tenant email
@@ -54,9 +55,10 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
     const isVacant = !tenantName.trim(); // Check if tenantName is empty or just whitespace
     onAdd({
       id: roomId,
-      status: isVacant ? "vacant" : "occupied", // Set status based on tenantName
-      tenantName: isVacant ? "-" : tenantName, // Set tenantName to '-' if vacant
-      tenantEmail, // Add tenantEmail to the payload
+      status: isVacant ? "vacant" : "occupied",
+      tenantName: isVacant ? "-" : tenantName,
+      tenantEmail,
+      ownerId, // Add ownerId to the payload
       area,
       // Only include meter readings if tenantName is provided
       ...(isVacant ? {} : {

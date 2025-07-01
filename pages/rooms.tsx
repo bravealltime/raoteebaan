@@ -819,7 +819,7 @@ export default function Rooms() {
         </ModalContent>
       </Modal>
 
-      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} userRole={role} />
+      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} userRole={role} ownerId={userId || undefined} />
 
       <EditRoomModal
         isOpen={!!editRoom}
