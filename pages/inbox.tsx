@@ -442,7 +442,7 @@ const Inbox = () => {
                         color={isSelected ? "gray.200" : "gray.500"}
                         noOfLines={1}
                       >
-                        {convo.lastMessage}
+                        {convo.lastMessage?.text}
                       </Text>
                     </VStack>
                     <Badge colorScheme={getRoleColorScheme(otherUser?.role || "")}>
