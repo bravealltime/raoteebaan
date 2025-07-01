@@ -18,6 +18,7 @@ import {
   Heading,
   Badge,
   Spacer,
+  Image,
   AlertDialog,
   AlertDialogBody,
   AlertDialogFooter,
@@ -53,7 +54,8 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { auth, db, rtdb } from "../lib/firebase";
 import MainLayout from "../components/MainLayout";
-import { FaPaperPlane, FaPlus, FaTrash } from "react-icons/fa";
+import { FaPaperPlane, FaPlus, FaTrash, FaImage } from "react-icons/fa";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import NewConversationModal from "../components/NewConversationModal";
 
 interface User {
@@ -75,7 +77,8 @@ interface Conversation {
 interface Message {
   id: string;
   senderId: string;
-  text: string;
+  text?: string;
+  imageUrl?: string;
   timestamp: any;
 }
 
@@ -96,6 +99,7 @@ const Inbox = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const notificationSoundRef = useRef<HTMLAudioElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isAlertDialogOpen, onOpen: onAlertDialogOpen, onClose: onAlertDialogClose } = useDisclosure();
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -267,17 +271,23 @@ const Inbox = () => {
     return () => unsubscribe();
   }, []);
 
-  const handleSendMessage = async () => {
-    if (newMessage.trim() === "" || !selectedConversation || !currentUser)
+  const handleSendMessage = async (imageUrl?: string) => {
+    if ((newMessage.trim() === "" && !imageUrl) || !selectedConversation || !currentUser)
       return;
 
     setMyTypingStatus(false); // Clear typing status on message send
 
-    const messageData = {
+    const messageData: Partial<Message> = {
       senderId: currentUser.uid,
-      text: newMessage,
       timestamp: serverTimestamp(),
     };
+
+    if (newMessage.trim() !== "") {
+      messageData.text = newMessage;
+    }
+    if (imageUrl) {
+      messageData.imageUrl = imageUrl;
+    }
 
     await addDoc(
       collection(
@@ -299,6 +309,46 @@ const Inbox = () => {
     );
 
     setNewMessage("");
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const file = e.target.files[0];
+    if (!currentUser || !selectedConversation) {
+      toast({
+        title: "Error",
+        description: "Please select a conversation and be logged in to send images.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    console.log("Current User before upload:", currentUser); // Add this line
+
+    setLoading(true); // Indicate loading for image upload
+    try {
+      const storage = getStorage();
+      const imageRef = storageRef(storage, `chat_images/${selectedConversation.id}/${currentUser.uid}/${file.name}_${Date.now()}`);
+      const snapshot = await uploadBytes(imageRef, file);
+      const imageUrl = await getDownloadURL(snapshot.ref);
+
+      await handleSendMessage(imageUrl);
+      e.target.value = ""; // Clear the file input
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast({
+        title: "Error",
+        description: "Could not upload image.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onConfirmDelete = async () => {
@@ -609,7 +659,8 @@ const Inbox = () => {
                       maxW="65%"
                       boxShadow="sm"
                     >
-                      {msg.text}
+                      {msg.text && <Text>{msg.text}</Text>}
+                      {msg.imageUrl && <Image src={msg.imageUrl} maxW="200px" borderRadius="md" mt={msg.text ? 2 : 0} />}
                     </Box>
                   </Flex>
                 ))}
@@ -632,7 +683,7 @@ const Inbox = () => {
                     <IconButton
                       aria-label="Send"
                       icon={<FaPaperPlane />}
-                      onClick={handleSendMessage}
+                      onClick={() => handleSendMessage()}
                       size="sm"
                       isRound
                       colorScheme="blue"
@@ -641,6 +692,22 @@ const Inbox = () => {
                     />
                   </InputRightElement>
                 </InputGroup>
+                <IconButton
+                  aria-label="Upload Image"
+                  icon={<FaImage />}
+                  onClick={() => imageInputRef.current?.click()}
+                  size="md"
+                  isRound
+                  colorScheme="gray"
+                  variant="ghost"
+                />
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={imageInputRef}
+                  onChange={handleImageUpload}
+                  style={{ display: "none" }}
+                />
               </Box>
             </>
           ) : (
