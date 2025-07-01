@@ -112,7 +112,7 @@ export default function AdminUsers() {
       setCurrentUser({ uid: u.uid, ...snap.data() });
       if (userRole !== "admin") {
         if (userRole === "owner") {
-          router.replace("/rooms");
+          router.replace("/");
           return;
         }
         if (userRole === "employee") {

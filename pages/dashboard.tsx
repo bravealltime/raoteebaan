@@ -111,7 +111,7 @@ export default function Dashboard() {
       setRole(userRole);
       if (userRole !== "admin") {
         if (userRole === "owner") {
-          router.replace("/rooms");
+          router.replace("/");
           return;
         }
         if (userRole === "employee") {

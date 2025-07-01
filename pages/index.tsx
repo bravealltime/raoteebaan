@@ -38,15 +38,17 @@ interface Room {
 }
 
 export default function Rooms() {
+  const router = useRouter();
+  const cancelRef = useRef(null);
+  const toast = useToast();
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const cancelRef = useRef(null);
-  const toast = useToast();
-  const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAddRoomOpen, setIsAddRoomOpen] = useState(false);
   const [isAddAllOpen, setIsAddAllOpen] = useState(false);
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -85,16 +87,17 @@ export default function Rooms() {
   const [currentSlipUrl, setCurrentSlipUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) {
-        router.replace("/login");
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.replace('/login')
         return;
       }
-      setUserId(u.uid);
-      setUserEmail(u.email);
-      const snap = await getDoc(doc(db, "users", u.uid));
+      const snap = await getDoc(doc(db, "users", user.uid));
       const userRole = snap.exists() ? snap.data().role : "user";
+      setUserId(user.uid);
+      setUserEmail(user.email);
       setRole(userRole);
+      setLoading(false)
     });
     return () => unsub();
   }, []);

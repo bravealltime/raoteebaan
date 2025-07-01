@@ -58,7 +58,7 @@ interface User {
 interface Conversation {
   id: string;
   participants: User[];
-  lastMessage: string;
+  lastMessage?: { text: string; senderId: string; };
   updatedAt: any;
 }
 
@@ -74,6 +74,7 @@ const Inbox = () => {
   const toast = useToast();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const prevConversationsRef = useRef<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] =
     useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -164,6 +165,21 @@ const Inbox = () => {
           } as Conversation;
         })
       );
+
+      // Notification sound logic
+      convos.forEach(newConvo => {
+        const oldConvo = prevConversationsRef.current.find(c => c.id === newConvo.id);
+
+        if (newConvo.lastMessage && newConvo.lastMessage.text &&
+            (!oldConvo || !oldConvo.lastMessage || newConvo.lastMessage.text !== oldConvo.lastMessage.text || newConvo.lastMessage.senderId !== oldConvo.lastMessage.senderId) &&
+            newConvo.lastMessage.senderId !== currentUser?.uid &&
+            newConvo.id !== selectedConversation?.id) {
+          notificationSoundRef.current?.play();
+          console.log(`Playing notification sound for new message in conversation ${newConvo.id}`);
+        }
+      });
+
+      prevConversationsRef.current = convos; // Update ref for next comparison
       setConversations(convos);
       if (convos.length > 0 && !selectedConversation) {
         setSelectedConversation(convos[0]);
@@ -173,7 +189,7 @@ const Inbox = () => {
     });
 
     return () => unsubscribe();
-  }, [currentUser]);
+  }, [currentUser, selectedConversation]);
 
   useEffect(() => {
     if (!selectedConversation) return;
@@ -193,15 +209,6 @@ const Inbox = () => {
         id: docData.id,
         ...docData.data(),
       })) as Message[];
-
-      // Check for new incoming messages
-      if (messages.length > 0 && msgs.length > messages.length) {
-        const lastNewMessage = msgs[msgs.length - 1];
-        if (lastNewMessage.senderId !== currentUser?.uid) {
-          notificationSoundRef.current?.play();
-          console.log("Playing notification sound.");
-        }
-      }
 
       setMessages(msgs);
       console.log("Selected Conversation Messages:", msgs);
@@ -273,7 +280,7 @@ const Inbox = () => {
     await setDoc(
       doc(db, "conversations", selectedConversation.id),
       {
-        lastMessage: newMessage,
+        lastMessage: { text: newMessage, senderId: currentUser.uid },
         updatedAt: serverTimestamp(),
       },
       { merge: true }
