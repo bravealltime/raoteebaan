@@ -51,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Forbidden: Only admin users can create new accounts' });
     }
 
-    const { name, email, status } = req.body;
+    const { name, email, role, status } = req.body;
 
     // Validate required fields
     if (!name || !email) {
@@ -76,7 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await admin.firestore().collection('users').doc(userRecord.uid).set({
           name,
           email,
-          role: 'user', // Explicitly set role to 'user'
+          role: req.body.role || 'user', // Use role from request body, default to 'user'
           status: status || 'active',
           avatar: '',
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
