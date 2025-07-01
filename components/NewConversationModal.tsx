@@ -17,7 +17,7 @@ import {
   InputLeftElement,
   Badge,
 } from "@chakra-ui/react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db } from "../lib/firebase";
 import { FaSearch } from "react-icons/fa";
@@ -28,6 +28,8 @@ interface User {
   email: string;
   role: string;
   roomNumber?: string;
+  tenantId?: string;
+  ownerId?: string;
 }
 
 interface NewConversationModalProps {
@@ -55,17 +57,31 @@ const NewConversationModal = ({
         try {
           const querySnapshot = await getDocs(collection(db, "users"));
           const userList = querySnapshot.docs
-            .map((doc) => ({ uid: doc.id, ...doc.data() } as User))
-            .filter((user) => {
+            .map((doc) => ({ uid: doc.id, ...doc.data() } as User));
+
+          let ownedTenantIds: Set<string> = new Set();
+          if (currentUser.role === "owner") {
+            const roomsSnapshot = await getDocs(query(collection(db, "rooms"), where("ownerId", "==", currentUser.uid)));
+            roomsSnapshot.forEach(roomDoc => {
+              const roomData = roomDoc.data();
+              if (roomData.tenantId) {
+                ownedTenantIds.add(roomData.tenantId);
+              }
+            });
+          }
+
+          const filteredUserList = userList.filter((user) => {
               if (!currentUser || user.uid === currentUser.uid) return false;
 
               if (currentUser.role === "tenant") {
                 return user.role === "admin" || user.role === "juristic";
+              } else if (currentUser.role === "owner") {
+                return user.role === "admin" || user.role === "juristic" || ownedTenantIds.has(user.uid);
               }
               
               return true; // Admins and Juristic can see everyone
             });
-          setUsers(userList);
+          setUsers(filteredUserList);
         } catch (error) {
           console.error("Error fetching users:", error);
           toast({
@@ -81,7 +97,7 @@ const NewConversationModal = ({
       };
       fetchUsers();
     }
-  }, [isOpen, currentUser, toast]);
+  }, [isOpen, currentUser, toast, db]);
 
   const handleUserSelect = (user: User) => {
     onSelectUser(user);
