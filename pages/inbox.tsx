@@ -32,6 +32,8 @@ import {
   where,
   getDocs,
   setDoc,
+  deleteDoc,
+  writeBatch,
 } from "firebase/firestore";
 import {
   ref as dbRef,
