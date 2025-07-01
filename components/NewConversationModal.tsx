@@ -17,7 +17,13 @@ import {
   InputLeftElement,
   Badge,
 } from "@chakra-ui/react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  limit,
+} from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { db } from "../lib/firebase";
 import { FaSearch } from "react-icons/fa";
@@ -31,6 +37,7 @@ interface User {
   tenantId?: string;
   ownerId?: string;
   photoURL?: string;
+  hasUnreadMessages?: boolean; // Added to indicate unread messages
 }
 
 interface NewConversationModalProps {
@@ -51,6 +58,23 @@ const NewConversationModal = ({
   const [searchTerm, setSearchTerm] = useState("");
   const toast = useToast();
 
+  const checkUnreadMessages = async (currentUserId: string, otherUserId: string): Promise<boolean> => {
+    try {
+      const q = query(
+        collection(db, "messages"),
+        where("receiverId", "==", currentUserId),
+        where("senderId", "==", otherUserId),
+        where("isRead", "==", false),
+        limit(1)
+      );
+      const querySnapshot = await getDocs(q);
+      return !querySnapshot.empty;
+    } catch (error) {
+      console.error("Error checking unread messages:", error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (isOpen && currentUser) {
       const fetchUsers = async () => {
@@ -58,8 +82,16 @@ const NewConversationModal = ({
         try {
           console.log("Current User:", currentUser);
           const querySnapshot = await getDocs(collection(db, "users"));
-          const userList = querySnapshot.docs
-            .map((doc) => ({ uid: doc.id, ...doc.data() } as User));
+          const userList = await Promise.all(
+            querySnapshot.docs.map(async (doc) => {
+              const userData = { uid: doc.id, ...doc.data() } as User;
+              const hasUnreadMessages = await checkUnreadMessages(
+                currentUser.uid,
+                userData.uid
+              );
+              return { ...userData, hasUnreadMessages };
+            })
+          );
           console.log("All Users (userList):", userList);
 
           let ownedTenantIds: Set<string> = new Set();
@@ -172,7 +204,12 @@ const NewConversationModal = ({
                     <Avatar name={user.name} size="sm" src={user.photoURL} />
                     
                     <VStack align="start" spacing={0} flex={1}>
-                      <Text fontWeight="medium">{user.name}</Text>
+                      <Text
+                        fontWeight={user.hasUnreadMessages ? "bold" : "medium"}
+                        color={user.hasUnreadMessages ? "black" : undefined}
+                      >
+                        {user.name}
+                      </Text>
                       {user.roomNumber && (
                         <Text fontSize="xs" color="gray.500">
                           Room: {user.roomNumber}

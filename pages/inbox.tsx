@@ -56,7 +56,7 @@ import {
   serverTimestamp as rtdbServerTimestamp,
 } from "firebase/database";
 import { useRouter } from "next/router";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { auth, db, rtdb } from "../lib/firebase";
 import MainLayout from "../components/MainLayout";
 import { FaPaperPlane, FaPlus, FaTrash, FaImage } from "react-icons/fa";
@@ -74,7 +74,7 @@ interface User {
 
 interface Conversation {
   id: string;
-  participants: User[];
+  participants: User[]; // Reverted to User[]
   lastMessage?: { text: string; senderId: string; };
   updatedAt: any;
 }
@@ -93,8 +93,10 @@ const Inbox = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const prevConversationsRef = useRef<Conversation[]>([]);
-  const [selectedConversation, setSelectedConversation] =
-    useState<Conversation | null>(null);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
+  const selectedConversation = useMemo(() => {
+    return conversations.find(convo => convo.id === selectedConversationId);
+  }, [conversations, selectedConversationId]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
@@ -204,24 +206,23 @@ const Inbox = () => {
 
       prevConversationsRef.current = convos; // Update ref for next comparison
       setConversations(convos);
-      if (convos.length > 0 && !selectedConversation) {
-        setSelectedConversation(convos[0]);
-      }
       console.log("Conversations:", convos);
       setLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [currentUser, selectedConversation]);
+    return () => {
+      unsubscribe();
+    };
+  }, [currentUser, selectedConversationId]);
 
   useEffect(() => {
-    if (!selectedConversation) return;
+    if (!selectedConversationId) return;
 
     const q = query(
       collection(
         db,
         "conversations",
-        selectedConversation.id,
+        selectedConversationId,
         "messages"
       ),
       orderBy("timestamp", "asc")
@@ -238,26 +239,32 @@ const Inbox = () => {
     });
 
     return () => unsubscribe();
-  }, [selectedConversation]);
+  }, [selectedConversationId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  useEffect(() => {
+    if (conversations.length > 0 && !selectedConversationId) {
+      setSelectedConversationId(conversations[0].id);
+    }
+  }, [conversations, selectedConversationId]);
+
   const setMyTypingStatus = useCallback((typing: boolean) => {
-    if (!currentUser || !selectedConversation) return;
-    const typingRef = dbRef(rtdb, `typingStatus/${selectedConversation.id}/${currentUser.uid}`);
+    if (!currentUser || !selectedConversationId) return;
+    const typingRef = dbRef(rtdb, `typingStatus/${selectedConversationId}/${currentUser.uid}`);
     set(typingRef, typing);
-    console.log(`Setting typing status for ${currentUser.uid} to ${typing} in conversation ${selectedConversation.id}`);
-  }, [currentUser, selectedConversation, rtdb]);
+    console.log(`Setting typing status for ${currentUser.uid} to ${typing} in conversation ${selectedConversationId}`);
+  }, [currentUser, selectedConversationId, rtdb]);
 
   useEffect(() => {
-    if (!currentUser || !selectedConversation) return;
+    if (!currentUser || !selectedConversationId) return;
 
     const otherParticipant = getOtherParticipant(selectedConversation);
     if (!otherParticipant) return;
 
-    const otherUserTypingRef = dbRef(rtdb, `typingStatus/${selectedConversation.id}/${otherParticipant.uid}`);
+    const otherUserTypingRef = dbRef(rtdb, `typingStatus/${selectedConversationId}/${otherParticipant.uid}`);
 
     const unsubscribeTyping = onValue(otherUserTypingRef, (snapshot) => {
       setOtherUserTyping(snapshot.val() || false);
@@ -268,7 +275,7 @@ const Inbox = () => {
       unsubscribeTyping();
       setMyTypingStatus(false); // Clear my typing status when conversation changes or unmounts
     };
-  }, [currentUser, selectedConversation, rtdb, setMyTypingStatus]);
+  }, [currentUser, selectedConversationId, rtdb, setMyTypingStatus, selectedConversation]);
 
   useEffect(() => {
     const statusRef = dbRef(rtdb, "status");
@@ -430,7 +437,7 @@ const Inbox = () => {
     );
 
     if (existingConversation) {
-      setSelectedConversation(existingConversation);
+      setSelectedConversationId(existingConversation.id);
       onClose(); // Close the modal
       return;
     }
@@ -532,7 +539,7 @@ const Inbox = () => {
                     bg={isSelected ? "blue.500" : "transparent"}
                     color={isSelected ? "white" : "inherit"}
                     _hover={{ bg: isSelected ? "blue.600" : "gray.200" }}
-                    onClick={() => setSelectedConversation(convo)}
+                    onClick={() => setSelectedConversationId(convo.id)}
                     transition="background 0.2s ease-in-out"
                   >
                     <Avatar name={otherUser?.name} src={otherUser?.photoURL}>
