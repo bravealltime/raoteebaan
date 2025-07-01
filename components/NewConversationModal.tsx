@@ -55,32 +55,46 @@ const NewConversationModal = ({
       const fetchUsers = async () => {
         setLoading(true);
         try {
+          console.log("Current User:", currentUser);
           const querySnapshot = await getDocs(collection(db, "users"));
           const userList = querySnapshot.docs
             .map((doc) => ({ uid: doc.id, ...doc.data() } as User));
+          console.log("All Users (userList):", userList);
 
           let ownedTenantIds: Set<string> = new Set();
           if (currentUser.role === "owner") {
             const roomsSnapshot = await getDocs(query(collection(db, "rooms"), where("ownerId", "==", currentUser.uid)));
+            console.log("Rooms Snapshot for owner:", roomsSnapshot.docs.map(doc => doc.data()));
             roomsSnapshot.forEach(roomDoc => {
               const roomData = roomDoc.data();
               if (roomData.tenantId) {
                 ownedTenantIds.add(roomData.tenantId);
               }
             });
+            console.log("Owned Tenant IDs:", ownedTenantIds);
           }
 
           const filteredUserList = userList.filter((user) => {
-              if (!currentUser || user.uid === currentUser.uid) return false;
-
-              if (currentUser.role === "tenant") {
-                return user.role === "admin" || user.role === "juristic";
-              } else if (currentUser.role === "owner") {
-                return user.role === "admin" || user.role === "juristic" || ownedTenantIds.has(user.uid);
+              const isCurrentUser = !currentUser || user.uid === currentUser.uid;
+              if (isCurrentUser) {
+                console.log(`Filtering out current user: ${user.name}`);
+                return false;
               }
-              
-              return true; // Admins and Juristic can see everyone
+
+              let shouldInclude = false;
+              if (currentUser.role === "tenant") {
+                shouldInclude = user.role === "admin" || user.role === "juristic";
+                console.log(`Tenant filtering for ${user.name} (role: ${user.role}): ${shouldInclude}`);
+              } else if (currentUser.role === "owner") {
+                shouldInclude = user.role === "admin" || user.role === "juristic" || ownedTenantIds.has(user.uid);
+                console.log(`Owner filtering for ${user.name} (role: ${user.role}, uid: ${user.uid}, ownedTenantIds.has(user.uid): ${ownedTenantIds.has(user.uid)}): ${shouldInclude}`);
+              } else {
+                shouldInclude = true; // Admins and Juristic can see everyone
+                console.log(`Admin/Juristic filtering for ${user.name} (role: ${user.role}): ${shouldInclude}`);
+              }
+              return shouldInclude;
             });
+          console.log("Final Filtered User List:", filteredUserList);
           setUsers(filteredUserList);
         } catch (error) {
           console.error("Error fetching users:", error);

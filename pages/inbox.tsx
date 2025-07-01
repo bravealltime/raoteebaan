@@ -88,6 +88,7 @@ const Inbox = () => {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
           setCurrentUser({ uid: user.uid, ...userDoc.data() } as User);
+          console.log("Current User:", { uid: user.uid, ...userDoc.data() } as User);
         } else {
           router.push("/login");
         }
@@ -159,6 +160,10 @@ const Inbox = () => {
         })
       );
       setConversations(convos);
+      if (convos.length > 0 && !selectedConversation) {
+        setSelectedConversation(convos[0]);
+      }
+      console.log("Conversations:", convos);
       setLoading(false);
     });
 
@@ -184,6 +189,7 @@ const Inbox = () => {
         ...docData.data(),
       })) as Message[];
       setMessages(msgs);
+      console.log("Selected Conversation Messages:", msgs);
     });
 
     return () => unsubscribe();
