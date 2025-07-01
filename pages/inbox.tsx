@@ -33,6 +33,19 @@ import {
   ModalBody,
 } from "@chakra-ui/react";
 import { onAuthStateChanged } from "firebase/auth";
+
+// Utility function to escape HTML characters
+function escapeHtml(text: string): string {
+  const map: { [key: string]: string } = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  };
+  return text.replace(/[&<>'"]/g, function(m) { return map[m]; });
+}
+
 import {
   addDoc,
   collection,
@@ -74,7 +87,7 @@ interface User {
 
 interface Conversation {
   id: string;
-  participants: User[]; // Reverted to User[]
+  participants?: User[]; // Make participants optional
   lastMessage?: { text: string; senderId: string; isRead?: boolean; receiverId?: string; };
   updatedAt: any;
 }
@@ -135,6 +148,12 @@ const Inbox = () => {
   }, [router]);
 
   useEffect(() => {
+    if (router.query.conversationId && typeof router.query.conversationId === 'string') {
+      setSelectedConversationId(router.query.conversationId);
+    }
+  }, [router.query.conversationId]);
+
+  useEffect(() => {
     if (currentUser && rtdb) {
       const userStatusRef = dbRef(rtdb, `/status/${currentUser.uid}`);
       const isOfflineForDatabase = {
@@ -175,7 +194,8 @@ const Inbox = () => {
       const convos = await Promise.all(
         snapshot.docs.map(async (docData) => {
           const conversationData = docData.data();
-          const allParticipantUids = conversationData.participants;
+          console.log("Fetched conversationData:", conversationData); // Add this log
+          const allParticipantUids = Array.isArray(conversationData.participants) ? conversationData.participants : [];
 
           const participants = await Promise.all(
             allParticipantUids.map(async (uid: string) => {
@@ -288,7 +308,7 @@ const Inbox = () => {
   }, [currentUser, selectedConversationId, rtdb]);
 
   useEffect(() => {
-    if (!currentUser || !selectedConversationId) return;
+    if (!currentUser || !selectedConversationId || !selectedConversation) return; // Add check for selectedConversation
 
     const otherParticipant = getOtherParticipant(selectedConversation);
     if (!otherParticipant) return;
@@ -326,7 +346,7 @@ const Inbox = () => {
     };
 
     if (newMessage.trim() !== "") {
-      messageData.text = newMessage;
+      messageData.text = escapeHtml(newMessage);
     }
     if (imageUrl) {
       messageData.imageUrl = imageUrl;
@@ -345,7 +365,7 @@ const Inbox = () => {
     await setDoc(
       doc(db, "conversations", selectedConversation.id),
       {
-        lastMessage: { text: newMessage, senderId: currentUser.uid, isRead: false, receiverId: getOtherParticipant(selectedConversation)?.uid },
+        lastMessage: { text: escapeHtml(newMessage), senderId: currentUser.uid, isRead: false, receiverId: getOtherParticipant(selectedConversation)?.uid },
         updatedAt: serverTimestamp(),
       },
       { merge: true }
@@ -500,8 +520,15 @@ const Inbox = () => {
     }
   };
 
-  const getOtherParticipant = (conversation: Conversation) => {
-    return conversation.participants.find((p) => p.uid !== currentUser?.uid);
+  const getOtherParticipant = (conversation: Conversation | undefined) => {
+    if (!conversation || !currentUser) {
+      return undefined;
+    }
+
+    // Ensure participants is always an array. If conversation.participants is undefined or null, it will default to an empty array.
+    const participants: User[] = conversation.participants || [];
+
+    return participants.find((p) => p.uid !== currentUser.uid);
   };
 
   const getRoleColorScheme = (role: string) => {
@@ -560,6 +587,7 @@ const Inbox = () => {
           <VStack as="nav" spacing={1} align="stretch" overflowY="auto">
             {conversations.length > 0 ? (
               conversations.map((convo) => {
+                if (!convo) return null; // Add this check
                 const otherUser = getOtherParticipant(convo);
                 const isOnline = otherUser
                   ? onlineStatus[otherUser.uid]?.state === "online"
@@ -627,54 +655,68 @@ const Inbox = () => {
                 borderColor="gray.200"
                 bg="gray.50"
               >
-                <Avatar name={getOtherParticipant(selectedConversation)?.name} src={getOtherParticipant(selectedConversation)?.photoURL} />
-                
-                <VStack align="start" spacing={0}>
-                  <Text fontWeight="bold">
-                    {getOtherParticipant(selectedConversation)?.name}
-                  </Text>
-                  <HStack>
-                    <Circle
-                      size="10px"
-                      bg={
-                        onlineStatus[
-                          getOtherParticipant(selectedConversation)?.uid || ""
-                        ]?.state === "online"
-                          ? "green.500"
-                          : "gray.400"
-                      }
-                    />
-                    <Text fontSize="sm" color="gray.500">
-                      {onlineStatus[
-                        getOtherParticipant(selectedConversation)?.uid || ""
-                      ]?.state === "online"
-                        ? "Online"
-                        : "Offline"}
-                    </Text>
-                    {getOtherParticipant(selectedConversation)?.roomNumber && (
-                      <Text fontSize="sm" color="gray.500">
-                        · Room: {getOtherParticipant(selectedConversation)?.roomNumber}
-                      </Text>
-                    )}
-                  </HStack>
-                  {otherUserTyping && (
-                    <Text fontSize="sm" color="blue.500" fontStyle="italic">
-                      {getOtherParticipant(selectedConversation)?.name} is typing...
-                    </Text>
-                  )}
-                </VStack>
-                <Spacer />
-                <Badge colorScheme={getRoleColorScheme(getOtherParticipant(selectedConversation)?.role || "")}>
-                  {getOtherParticipant(selectedConversation)?.role}
-                </Badge>
-                <IconButton
-                  aria-label="Delete Conversation"
-                  icon={<FaTrash />}
-                  onClick={handleDeleteClick}
-                  size="sm"
-                  colorScheme="red"
-                  variant="ghost"
-                />
+                {selectedConversation ? (
+                  <>
+                    {/* Calculate otherParticipant once for the header */}
+                    {(() => {
+                      const otherParticipantInHeader = getOtherParticipant(selectedConversation);
+                      return (
+                        <>
+                          <Avatar name={otherParticipantInHeader?.name} src={otherParticipantInHeader?.photoURL} />
+                          
+                          <VStack align="start" spacing={0}>
+                            <Text fontWeight="bold">
+                              {otherParticipantInHeader?.name}
+                            </Text>
+                            <HStack>
+                              <Circle
+                                size="10px"
+                                bg={
+                                  onlineStatus[
+                                    otherParticipantInHeader?.uid || ""
+                                  ]?.state === "online"
+                                    ? "green.500"
+                                    : "gray.400"
+                                }
+                              />
+                              <Text fontSize="sm" color="gray.500">
+                                {onlineStatus[
+                                  otherParticipantInHeader?.uid || ""
+                                ]?.state === "online"
+                                  ? "Online"
+                                  : "Offline"}
+                              </Text>
+                              {otherParticipantInHeader?.roomNumber && (
+                                <Text fontSize="sm" color="gray.500">
+                                  · Room: {otherParticipantInHeader.roomNumber}
+                                </Text>
+                              )}
+                            </HStack>
+                            {otherUserTyping && (
+                              <Text fontSize="sm" color="blue.500" fontStyle="italic">
+                                {otherParticipantInHeader?.name} is typing...
+                              </Text>
+                            )}
+                          </VStack>
+                          <Spacer />
+                          <Badge colorScheme={getRoleColorScheme(otherParticipantInHeader?.role || "")}>
+                            {otherParticipantInHeader?.role}
+                          </Badge>
+                          <IconButton
+                            aria-label="Delete Conversation"
+                            icon={<FaTrash />}
+                            onClick={handleDeleteClick}
+                            size="sm"
+                            colorScheme="red"
+                            variant="ghost"
+                          />
+                        </>
+                      );
+                    })()}
+                  </>
+                ) : (
+                  <Text>Select a conversation</Text>
+                )}
               </HStack>
 
               <VStack
