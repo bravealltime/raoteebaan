@@ -183,10 +183,24 @@ export default function AdminUsers() {
   const handleAddUser = async () => {
     setAddLoading(true);
     try {
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) {
+        toast({
+          title: "Error",
+          description: "Authentication token not found.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        setAddLoading(false);
+        return;
+      }
+
       const response = await fetch("/api/create-user", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
         },
         body: JSON.stringify(addForm),
       });
