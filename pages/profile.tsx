@@ -89,7 +89,7 @@ export default function Profile() {
   async function uploadToDiscordWebhook(file: File): Promise<string> {
     const formData = new FormData();
     formData.append("file", file);
-    const res = await fetch(process.env.NEXT_PUBLIC_DISCORD_AVATAR_WEBHOOK_URL as string, {
+    const res = await fetch("https://discord.com/api/webhooks/1388606701053149347/tbJBU84BK2qXGBnuO1fVm7u1LsKrudEKOI_rS9HVwsy9JhlZpx7LwNXpA2TfJDh38pGI", {
       method: "POST",
       body: formData,
     });
@@ -166,7 +166,7 @@ export default function Profile() {
       setSelectedFile(null);
       router.replace(router.pathname);
     } catch (e: any) {
-      
+      console.error("Error saving profile:", e);
       toast({ 
         title: "เกิดข้อผิดพลาด", 
         description: e.message || "ไม่สามารถบันทึกโปรไฟล์ได้", 

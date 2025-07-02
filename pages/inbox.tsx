@@ -144,7 +144,14 @@ const Inbox = () => {
             photoURL: firestoreData.avatar || user.photoURL || undefined, // Ensure photoURL is taken from Firestore first, then Auth
             roomNumber: firestoreData.roomNumber || undefined,
           } as User);
-          
+          console.log("Inbox Page - Current User Data:", {
+            uid: user.uid,
+            name: firestoreData.name || user.displayName || '',
+            email: firestoreData.email || user.email || '',
+            role: firestoreData.role || '',
+            photoURL: firestoreData.avatar || user.photoURL || undefined,
+            roomNumber: firestoreData.roomNumber || undefined,
+          } as User);
         } else {
           router.push("/login");
         }
@@ -202,7 +209,7 @@ const Inbox = () => {
       const convos = await Promise.all(
         snapshot.docs.map(async (docData) => {
           const conversationData = docData.data();
-          
+          console.log("Fetched conversationData:", conversationData); // Add this log
           const allParticipantUids = Array.isArray(conversationData.participants) ? conversationData.participants : [];
 
           const participants = await Promise.all(
@@ -233,7 +240,7 @@ const Inbox = () => {
             newConvo.lastMessage.senderId !== currentUser?.uid &&
             newConvo.id !== selectedConversation?.id) {
           notificationSoundRef.current?.play();
-          
+          console.log(`Playing notification sound for new message in conversation ${newConvo.id}`);
         }
       });
 
@@ -249,7 +256,7 @@ const Inbox = () => {
       }
       setUnreadMessageCount(unreadCount);
 
-      
+      console.log("Conversations:", convos);
       setLoading(false);
     });
 
@@ -278,7 +285,7 @@ const Inbox = () => {
       })) as Message[];
 
       setMessages(msgs);
-      
+      console.log("Selected Conversation Messages:", msgs);
 
       // Mark messages as read
       const batch = writeBatch(db);
@@ -292,7 +299,7 @@ const Inbox = () => {
       });
       if (messagesToMarkAsRead > 0) {
         await batch.commit();
-        
+        console.log(`Marked ${messagesToMarkAsRead} messages as read.`);
       }
     });
 
@@ -313,7 +320,7 @@ const Inbox = () => {
     if (!currentUser || !selectedConversationId) return;
     const typingRef = dbRef(rtdb, `typingStatus/${selectedConversationId}/${currentUser.uid}`);
     set(typingRef, typing);
-    
+    console.log(`Setting typing status for ${currentUser.uid} to ${typing} in conversation ${selectedConversationId}`);
   }, [currentUser, selectedConversationId, rtdb]);
 
   useEffect(() => {
@@ -326,7 +333,7 @@ const Inbox = () => {
 
     const unsubscribeTyping = onValue(otherUserTypingRef, (snapshot) => {
       setOtherUserTyping(snapshot.val() || false);
-      
+      console.log(`Other user ${otherParticipant.name} typing status: ${snapshot.val() || false}`);
     });
 
     return () => {
@@ -398,7 +405,7 @@ const Inbox = () => {
       return;
     }
 
-    
+    console.log("Current User before upload:", currentUser); // Add this line
 
     setIsImageUploading(true); // Indicate loading for image upload
     try {
@@ -410,7 +417,7 @@ const Inbox = () => {
       await handleSendMessage(imageUrl);
       e.target.value = ""; // Clear the file input
     } catch (error) {
-      
+      console.error("Error uploading image:", error);
       toast({
         title: "Error",
         description: "Could not upload image.",
@@ -455,7 +462,7 @@ const Inbox = () => {
         isClosable: true,
       });
     } catch (error) {
-      
+      console.error("Error deleting conversation:", error);
       toast({
         title: "Error",
         description: "Could not delete conversation.",
@@ -518,7 +525,7 @@ const Inbox = () => {
       onClose();
 
     } catch (error) {
-      
+      console.error("Error creating conversation:", error);
       toast({
         title: "Error",
         description: "Could not start a new conversation.",

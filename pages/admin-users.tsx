@@ -144,7 +144,13 @@ export default function AdminUsers() {
       setRooms(roomSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
       setBills(billSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
     } catch (error) {
-      
+      toast({
+        title: "เกิดข้อผิดพลาดในการโหลดข้อมูล",
+        description: "ไม่สามารถดึงข้อมูลผู้ใช้ ห้อง หรือบิลได้",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -227,7 +233,16 @@ export default function AdminUsers() {
           status: "error",
         });
       }
-    
+    } catch (e) {
+      toast({
+        title: "เพิ่มผู้ใช้ไม่สำเร็จ",
+        description: "เกิดข้อผิดพลาดในการเชื่อมต่อ",
+        status: "error",
+      });
+    } finally {
+      setAddLoading(false);
+    }
+  };
 
   const handleEditClick = (user: any) => {
     setEditForm({ ...user });
@@ -256,7 +271,14 @@ export default function AdminUsers() {
       });
       setIsEditOpen(false);
       fetchData();
-    
+    } catch (error) {
+      toast({
+        title: "อัปเดตผู้ใช้ไม่สำเร็จ",
+        description: "เกิดข้อผิดพลาดในการอัปเดตข้อมูลผู้ใช้",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
     } finally {
       setEditLoading(false);
     }
@@ -283,7 +305,14 @@ export default function AdminUsers() {
       });
       setIsConfirmBanOpen(false);
       fetchData();
-    
+    } catch (error) {
+      toast({
+        title: "ระงับผู้ใช้ไม่สำเร็จ",
+        description: "เกิดข้อผิดพลาดในการระงับผู้ใช้",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
     }
   };
 
@@ -309,7 +338,14 @@ export default function AdminUsers() {
       });
       setIsConfirmDeleteOpen(false);
       fetchData();
-    
+    } catch (error) {
+      toast({
+        title: "ลบผู้ใช้ไม่สำเร็จ",
+        description: "เกิดข้อผิดพลาดในการลบผู้ใช้",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
     }
   };
 
@@ -1165,7 +1201,16 @@ export default function AdminUsers() {
                               isClosable: true,
                             });
                             fetchData();
-                          
+                          } catch (error) {
+                            toast({
+                              title: "อัปเดตสิทธิ์ไม่สำเร็จ",
+                              description:
+                                "เกิดข้อผิดพลาดในการอัปเดตสิทธิ์ผู้ใช้",
+                              status: "error",
+                              duration: 5000,
+                              isClosable: true,
+                            });
+                          }
                         }}
                         borderRadius="lg"
                         size="sm"

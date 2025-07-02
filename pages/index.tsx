@@ -108,7 +108,14 @@ export default function Rooms() {
         photoURL: firestoreData.avatar || user.photoURL || undefined, // Ensure photoURL is taken from Firestore first, then Auth
         roomNumber: firestoreData.roomNumber || undefined,
       });
-      
+      console.log("Index Page - Current User Data:", {
+        uid: user.uid,
+        name: firestoreData.name || user.displayName || '',
+        email: firestoreData.email || user.email || '',
+        role: userRole,
+        photoURL: firestoreData.avatar || user.photoURL || undefined,
+        roomNumber: firestoreData.roomNumber || undefined,
+      });
       setLoading(false)
     });
     return () => unsub();
@@ -182,7 +189,7 @@ export default function Rooms() {
         setRoomBills(billsMap);
 
       } catch (e) {
-        
+        console.error(e);
         toast({ title: "โหลดข้อมูลล้มเหลว", status: "error" });
         setRooms([]);
         setRoomBills({});
@@ -462,7 +469,7 @@ export default function Rooms() {
       window.location.reload();
 
     } catch (error) {
-      
+      console.error("Error saving meter readings:", error);
       toast.update(toastId, {
         title: "เกิดข้อผิดพลาด",
         description: "ไม่สามารถบันทึกข้อมูลได้",
@@ -511,14 +518,14 @@ export default function Rooms() {
     });
 
     try {
-      
+      console.log("Starting handleConfirmUploadSlip...");
       // 1. Send slip to Discord via webhook
       const webhookUrl = process.env.NEXT_PUBLIC_DISCORD_WEBHOOK_URL;
       if (!webhookUrl) {
-        
+        console.error("Discord webhook URL is not configured.");
         throw new Error("Discord webhook URL is not configured.");
       }
-      
+      console.log("Webhook URL found.");
 
       const formData = new FormData();
       formData.append("file", file);
@@ -539,7 +546,7 @@ export default function Rooms() {
         ],
       }));
 
-      
+      console.log("Sending to Discord...");
       const response = await fetch(webhookUrl, {
         method: "POST",
         body: formData,
@@ -547,23 +554,23 @@ export default function Rooms() {
 
       if (!response.ok) {
         const errorText = await response.text();
-        
+        console.error(`Discord API error: ${response.statusText}, Response: ${errorText}`);
         throw new Error(`Discord API error: ${response.statusText}`);
       }
-      
+      console.log("Discord response received.");
 
       const discordResponse = await response.json();
       const slipUrl = discordResponse.attachments?.[0]?.url;
-      
-      
+      console.log("Discord Response JSON:", discordResponse);
+      console.log("Extracted Slip URL:", slipUrl);
 
       if (!slipUrl) {
         throw new Error("Could not get slip URL from Discord response.");
       }
-      
+      console.log("Slip URL obtained.");
 
       // 2. Update Firestore bill status with the Discord URL
-      
+      console.log("Querying latest bill...");
       const latestBillQuery = query(
         collection(db, "bills"),
         where("roomId", "==", selectedRoomForSlip.id),
@@ -573,10 +580,10 @@ export default function Rooms() {
       const billSnap = await getDocs(latestBillQuery);
 
       if (billSnap.empty) {
-        
+        console.warn("No bill found for this room. Cannot update status.");
         throw new Error("No bill found for this room. Cannot update status.");
       }
-      
+      console.log("Bill found. Updating Firestore...");
       const billDocRef = billSnap.docs[0].ref;
       await updateDoc(billDocRef, {
         paidAmount: amount,
@@ -587,7 +594,7 @@ export default function Rooms() {
       await updateDoc(doc(db, "rooms", selectedRoomForSlip.id), {
         billStatus: "pending",
       });
-      
+      console.log("Firestore updated successfully.");
 
       toast.update(toastId, {
         title: "Upload Successful",
@@ -601,7 +608,7 @@ export default function Rooms() {
       window.location.reload();
 
     } catch (error) {
-      
+      console.error("Error submitting payment:", error);
       toast.update(toastId, {
         title: "Submission Failed",
         description: "There was an error submitting your payment. Please try again.",
@@ -650,7 +657,7 @@ export default function Rooms() {
       window.location.reload();
 
     } catch (error) {
-      
+      console.error("Error marking as paid:", error);
       toast.update(toastId, {
         title: "Error",
         description: "Could not mark bill as paid. Please try again.",
@@ -702,7 +709,7 @@ export default function Rooms() {
       window.location.reload();
 
     } catch (error) {
-      
+      console.error("Error deleting proof:", error);
       toast.update(toastId, {
         title: "Error",
         description: "Could not delete proof. Please try again.",
