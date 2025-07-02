@@ -51,7 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Forbidden: Only admin or owner users can create new accounts' });
     }
 
-    const { name, email, role, status } = req.body;
+    const { name, email, role, status, roomId } = req.body;
 
     // Validate required fields
     if (!name || !email) {
@@ -73,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         // Save user data to Firestore
-        await admin.firestore().collection('users').doc(userRecord.uid).set({
+        const userData: { [key: string]: any } = {
           name,
           email,
           role: req.body.role || 'user', // Use role from request body, default to 'user'
@@ -81,7 +81,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           avatar: '',
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           uid: userRecord.uid,
-        });
+        };
+
+        if (role === 'user' && roomId) {
+          userData.roomId = roomId;
+        }
+
+        await admin.firestore().collection('users').doc(userRecord.uid).set(userData);
 
         // Generate password reset link
         const resetLink = await admin.auth().generatePasswordResetLink(email);

@@ -128,7 +128,7 @@ export default function Dashboard() {
           router.replace("/employee-dashboard");
           return;
         }
-        router.replace("/dashboard");
+        router.replace("/tenant-dashboard");
       }
     });
     return () => unsub();

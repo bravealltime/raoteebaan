@@ -71,8 +71,8 @@ export default function Sidebar({ role }: SidebarProps) {
       </>}
       {/* user (tenant) sees Rooms, Inbox, and Parcel */}
       {role === "user" && <>
-        <Link href="/" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
+        <Link href="/tenant-dashboard" passHref legacyBehavior>
+          <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/tenant-dashboard" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
             My Room
           </Button>
         </Link>

@@ -87,6 +87,7 @@ export default function AdminUsers() {
     email: "",
     role: "user",
     status: "active",
+    roomId: "", // Add roomId to state
   });
   const [addLoading, setAddLoading] = useState(false);
   const [resetLink, setResetLink] = useState<string | null>(null);
@@ -215,7 +216,7 @@ export default function AdminUsers() {
         setShowResetLink(true);
 
         // Reset form
-        setAddForm({ name: "", email: "", role: "user", status: "active" });
+        setAddForm({ name: "", email: "", role: "user", status: "active", roomId: "" });
 
         // Refresh users
         fetchData();
@@ -736,6 +737,19 @@ export default function AdminUsers() {
                 <option value="inactive">ไม่ใช้งาน</option>
               </Select>
             </FormControl>
+            {addForm.role === "user" && (
+              <FormControl mt={4}>
+                <FormLabel>รหัสห้อง (สำหรับลูกบ้าน)</FormLabel>
+                <Input
+                  value={addForm.roomId}
+                  onChange={(e) =>
+                    setAddForm((f) => ({ ...f, roomId: e.target.value }))
+                  }
+                  placeholder="เช่น A101"
+                  borderRadius="lg"
+                />
+              </FormControl>
+            )}
           </ModalBody>
           <ModalFooter>
             <Button
