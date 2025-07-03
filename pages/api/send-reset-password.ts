@@ -1,28 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import admin from 'firebase-admin';
-import nodemailer from 'nodemailer';
-
-// Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  });
-}
-
-// Nodemailer transporter setup
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+import admin from '../../lib/firebase-admin';
+import transporter from '../../lib/nodemailer';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -43,23 +21,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await transporter.sendMail({
       from: `"Your App Name" <${process.env.SMTP_USER}>`,
       to: email,
-      subject: 'คำขอรีเซ็ตรหัสผ่านของคุณ',
+      subject: 'Your Password Reset Request',
       html: `
-        <p>เราได้รับคำขอรีเซ็ตรหัสผ่านสำหรับบัญชีของคุณ</p>
-        <p>กรุณาคลิกที่ลิงก์ด้านล่างเพื่อตั้งรหัสผ่านใหม่:</p>
-        <a href="${resetLink}">ตั้งรหัสผ่านใหม่</a>
-        <p>หากคุณไม่ได้ร้องขอการรีเซ็ตรหัสผ่านนี้ กรุณาไม่ต้องดำเนินการใดๆ</p>
+        <p>We received a request to reset your password.</p>
+        <p>Please click the link below to set a new password:</p>
+        <a href="${resetLink}">Set New Password</a>
+        <p>If you did not request this password reset, please ignore this email.</p>
       `,
     });
 
     res.status(200).json({ success: true, message: 'Password reset email sent successfully.' });
 
   } catch (error: any) {
-    
+    console.error('Error sending password reset email:', error);
     if (error.code === 'auth/user-not-found') {
-      return res.status(404).json({ error: 'ไม่พบผู้ใช้งานสำหรับอีเมลนี้' });
+      return res.status(404).json({ error: 'No user found for this email.' });
     }
-    const errorMessage = error.message || 'เกิดข้อผิดพลาดในการส่งอีเมลรีเซ็ตรหัสผ่าน';
+    const errorMessage = error.message || 'An error occurred while sending the password reset email.';
     res.status(500).json({ error: errorMessage });
   }
 }
