@@ -5,6 +5,7 @@
 
 html,
 body {
+  height: 100%; /* Ensure html and body take full viewport height */
   font-family: 'Kanit', 'Sarabun', 'Prompt', 'Noto Sans Thai', 'Inter', sans-serif;
   line-height: 1.6;
 }

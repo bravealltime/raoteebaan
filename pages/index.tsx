@@ -989,10 +989,10 @@ export default function Rooms() {
         previousReadings={previousReadings}
       />
 
-      <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)} isCentered size="lg">
+      <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)} isCentered size="xl" scrollBehavior="inside">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>ดาวน์โหลดใบประเมินอุปกรณ์</ModalHeader>
+          <ModalHeader>ใบประเมินอุปกรณ์</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <FormControl mb={4}>
@@ -1009,166 +1009,166 @@ export default function Rooms() {
                 ))}
               </Select>
             </FormControl>
-            <Flex flexDir={{ base: "column", md: "row" }} gap={6}>
-              <Box flex={1}>
-                <Heading size="md" mb={3} color="blue.700">รายการอุปกรณ์</Heading>
-                <Box maxH="400px" overflowY="auto" mb={4} borderWidth="1px" borderRadius="md" p={2}>
-                  <Table variant="simple" size="md" minW="600px">
-                    <Thead>
-                      <Tr>
-                        <Th>อุปกรณ์</Th>
-                        <Th>สถานะ</Th>
-                        <Th>สภาพ</Th>
-                        <Th>หมายเหตุ</Th>
-                        <Th></Th>
-                      </Tr>
-                    </Thead>
-                    <Tbody>
-                      {equipmentList.length === 0 ? (
-                        <Tr>
-                          <Td colSpan={5} textAlign="center" color="gray.500">ไม่มีอุปกรณ์ในรายการ</Td>
-                        </Tr>
-                      ) : (
-                        equipmentList.map((item, index) => (
-                          <Tr key={index}>
-                            <Td py={2}>{item.name}</Td>
-                            <Td py={2}>
-                              <Select
-                                value={item.status}
-                                onChange={(e) => {
-                                  const newEquipmentList = [...equipmentList];
-                                  newEquipmentList[index].status = e.target.value;
-                                  setEquipmentList(newEquipmentList);
-                                }}
-                                size="md"
-                              >
-                                <option value="ครบ">ครบ</option>
-                                <option value="ไม่ครบ">ไม่ครบ</option>
-                              </Select>
-                            </Td>
-                            <Td py={2}>
-                              <Select
-                                value={item.condition}
-                                onChange={(e) => {
-                                  const newEquipmentList = [...equipmentList];
-                                  newEquipmentList[index].condition = e.target.value;
-                                  setEquipmentList(newEquipmentList);
-                                }}
-                                size="md"
-                              >
-                                <option value="ดี">ดี</option>
-                                <option value="พอใช้">พอใช้</option>
-                                <option value="ชำรุด">ชำรุด</option>
-                              </Select>
-                            </Td>
-                            <Td py={2}>
-                              <Input
-                                value={item.notes}
-                                onChange={(e) => {
-                                  const newEquipmentList = [...equipmentList];
-                                  newEquipmentList[index].notes = e.target.value;
-                                  setEquipmentList(newEquipmentList);
-                                }}
-                                size="md"
-                              />
-                            </Td>
-                            <Td py={2}>
-                              <IconButton
-                                aria-label="ลบอุปกรณ์"
-                                icon={<FaTrash />}
-                                size="md"
-                                colorScheme="red"
-                                variant="ghost"
-                                onClick={() => {
-                                  const newEquipmentList = equipmentList.filter((_, i) => i !== index);
-                                  setEquipmentList(newEquipmentList);
-                                }}
-                              />
-                            </Td>
-                          </Tr>
-                        ))
-                      )}
-                    </Tbody>
-                  </Table>
-                </Box>
-              </Box>
-              <Box flex={1}>
-                <Heading size="md" mb={3} color="blue.700">เพิ่มอุปกรณ์ใหม่</Heading>
-                <VStack spacing={3} align="stretch" p={2} borderWidth="1px" borderRadius="md">
-                  <FormControl>
-                    <FormLabel>ชื่ออุปกรณ์</FormLabel>
-                    <InputGroup>
-                      <Input
-                        placeholder="เช่น โทรทัศน์, ตู้เย็น"
-                        value={newEquipmentName}
-                        onChange={(e) => setNewEquipmentName(e.target.value)}
-                      />
-                      {newEquipmentName && (
-                        <InputRightElement>
-                          <CloseButton onClick={() => setNewEquipmentName("")} size="sm" />
-                        </InputRightElement>
-                      )}
-                    </InputGroup>
-                  </FormControl>
-                  <HStack spacing={3}>
-                    <FormControl flex={1}>
-                      <FormLabel>สถานะ</FormLabel>
-                      <Select
-                        value={newEquipmentStatus}
-                        onChange={(e) => setNewEquipmentStatus(e.target.value)}
-                      >
-                        <option value="ครบ">ครบ</option>
-                        <option value="ไม่ครบ">ไม่ครบ</option>
-                      </Select>
-                    </FormControl>
-                    <FormControl flex={1}>
-                      <FormLabel>สภาพ</FormLabel>
-                      <Select
-                        value={newEquipmentCondition}
-                        onChange={(e) => setNewEquipmentCondition(e.target.value)}
-                      >
-                        <option value="ดี">ดี</option>
-                        <option value="พอใช้">พอใช้</option>
-                        <option value="ชำรุด">ชำรุด</option>
-                      </Select>
-                    </FormControl>
-                  </HStack>
-                  <FormControl>
-                    <FormLabel>หมายเหตุ (ถ้ามี)</FormLabel>
+
+            <Box mb={6}>
+              <Heading size="md" mb={3} color="blue.700">เพิ่มอุปกรณ์ใหม่</Heading>
+              <VStack spacing={3} align="stretch" p={4} borderWidth="1px" borderRadius="lg" bg="gray.50">
+                <FormControl>
+                  <FormLabel>ชื่ออุปกรณ์</FormLabel>
+                  <InputGroup>
                     <Input
-                      placeholder="เช่น มีรอยขีดข่วนเล็กน้อย"
-                      value={newEquipmentNotes}
-                      onChange={(e) => setNewEquipmentNotes(e.target.value)}
+                      placeholder="เช่น โทรทัศน์, ตู้เย็น"
+                      value={newEquipmentName}
+                      onChange={(e) => setNewEquipmentName(e.target.value)}
                     />
+                    {newEquipmentName && (
+                      <InputRightElement>
+                        <CloseButton onClick={() => setNewEquipmentName("")} size="sm" />
+                      </InputRightElement>
+                    )}
+                  </InputGroup>
+                </FormControl>
+                <HStack spacing={3}>
+                  <FormControl flex={1}>
+                    <FormLabel>สถานะ</FormLabel>
+                    <Select
+                      value={newEquipmentStatus}
+                      onChange={(e) => setNewEquipmentStatus(e.target.value)}
+                    >
+                      <option value="ครบ">ครบ</option>
+                      <option value="ไม่ครบ">ไม่ครบ</option>
+                    </Select>
                   </FormControl>
-                  <Button
-                    leftIcon={<FaPlus />}
-                    colorScheme="blue"
-                    onClick={() => {
-                      if (newEquipmentName.trim() === "") {
-                        toast({ title: "กรุณากรอกชื่ออุปกรณ์", status: "warning" });
-                        return;
-                      }
-                      setEquipmentList([
-                        ...equipmentList,
-                        {
-                          name: newEquipmentName,
-                          status: newEquipmentStatus,
-                          condition: newEquipmentCondition,
-                          notes: newEquipmentNotes,
-                        },
-                      ]);
-                      setNewEquipmentName("");
-                      setNewEquipmentStatus("ครบ");
-                      setNewEquipmentCondition("ดี");
-                      setNewEquipmentNotes("");
-                    }}
-                  >
-                    เพิ่มอุปกรณ์
-                  </Button>
-                </VStack>
+                  <FormControl flex={1}>
+                    <FormLabel>สภาพ</FormLabel>
+                    <Select
+                      value={newEquipmentCondition}
+                      onChange={(e) => setNewEquipmentCondition(e.target.value)}
+                    >
+                      <option value="ดี">ดี</option>
+                      <option value="พอใช้">พอใช้</option>
+                      <option value="ชำรุด">ชำรุด</option>
+                    </Select>
+                  </FormControl>
+                </HStack>
+                <FormControl>
+                  <FormLabel>หมายเหตุ (ถ้ามี)</FormLabel>
+                  <Input
+                    placeholder="เช่น มีรอยขีดข่วนเล็กน้อย"
+                    value={newEquipmentNotes}
+                    onChange={(e) => setNewEquipmentNotes(e.target.value)}
+                  />
+                </FormControl>
+                <Button
+                  leftIcon={<FaPlus />}
+                  colorScheme="blue"
+                  onClick={() => {
+                    if (newEquipmentName.trim() === "") {
+                      toast({ title: "กรุณากรอกชื่ออุปกรณ์", status: "warning" });
+                      return;
+                    }
+                    setEquipmentList([
+                      ...equipmentList,
+                      {
+                        name: newEquipmentName,
+                        status: newEquipmentStatus,
+                        condition: newEquipmentCondition,
+                        notes: newEquipmentNotes,
+                      },
+                    ]);
+                    setNewEquipmentName("");
+                    setNewEquipmentStatus("ครบ");
+                    setNewEquipmentCondition("ดี");
+                    setNewEquipmentNotes("");
+                  }}
+                >
+                  เพิ่มอุปกรณ์
+                </Button>
+              </VStack>
+            </Box>
+
+            <Box>
+              <Heading size="md" mb={3} color="blue.700">รายการอุปกรณ์</Heading>
+              <Box maxH="400px" overflowY="auto" mb={4} borderWidth="1px" borderRadius="lg" p={2} bg="white">
+                <Table variant="simple" size="sm" width="full">
+                  <Thead bg="gray.100">
+                    <Tr>
+                      <Th>อุปกรณ์</Th>
+                      <Th>สถานะ</Th>
+                      <Th>สภาพ</Th>
+                      <Th>หมายเหตุ</Th>
+                      <Th></Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {equipmentList.length === 0 ? (
+                      <Tr>
+                        <Td colSpan={5} textAlign="center" color="gray.500">ไม่มีอุปกรณ์ในรายการ</Td>
+                      </Tr>
+                    ) : (
+                      equipmentList.map((item, index) => (
+                        <Tr key={index}>
+                          <Td py={2}>{item.name}</Td>
+                          <Td py={2}>
+                            <Select
+                              value={item.status}
+                              onChange={(e) => {
+                                const newEquipmentList = [...equipmentList];
+                                newEquipmentList[index].status = e.target.value;
+                                setEquipmentList(newEquipmentList);
+                              }}
+                              size="sm"
+                            >
+                              <option value="ครบ">ครบ</option>
+                              <option value="ไม่ครบ">ไม่ครบ</option>
+                            </Select>
+                          </Td>
+                          <Td py={2}>
+                            <Select
+                              value={item.condition}
+                              onChange={(e) => {
+                                const newEquipmentList = [...equipmentList];
+                                newEquipmentList[index].condition = e.target.value;
+                                setEquipmentList(newEquipmentList);
+                              }}
+                              size="sm"
+                            >
+                              <option value="ดี">ดี</option>
+                              <option value="พอใช้">พอใช้</option>
+                              <option value="ชำรุด">ชำรุด</option>
+                            </Select>
+                          </Td>
+                          <Td py={2}>
+                            <Input
+                              value={item.notes}
+                              onChange={(e) => {
+                                const newEquipmentList = [...equipmentList];
+                                newEquipmentList[index].notes = e.target.value;
+                                setEquipmentList(newEquipmentList);
+                              }}
+                              size="sm"
+                            />
+                          </Td>
+                          <Td py={2}>
+                            <IconButton
+                              aria-label="ลบอุปกรณ์"
+                              icon={<FaTrash />}
+                              size="sm"
+                              colorScheme="red"
+                              variant="ghost"
+                              onClick={() => {
+                                const newEquipmentList = equipmentList.filter((_, i) => i !== index);
+                                setEquipmentList(newEquipmentList);
+                              }}
+                            />
+                          </Td>
+                        </Tr>
+                      ))
+                    )}
+                  </Tbody>
+                </Table>
               </Box>
-            </Flex>
+            </Box>
           </ModalBody>
           <ModalFooter>
             <Button colorScheme="gray" mr={3} onClick={() => setIsEquipmentModalOpen(false)}>
