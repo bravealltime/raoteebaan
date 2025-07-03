@@ -72,7 +72,7 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { auth, db, rtdb } from "../lib/firebase";
 import MainLayout from "../components/MainLayout";
-import { FaPaperPlane, FaPlus, FaTrash, FaImage } from "react-icons/fa";
+import { FaPaperPlane, FaPlus, FaTrash, FaImage, FaArrowLeft } from "react-icons/fa";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import NewConversationModal from "../components/NewConversationModal";
 
@@ -575,7 +575,7 @@ const Inbox = () => {
   }
 
   return (
-    <MainLayout role={currentUser?.role} currentUser={currentUser}>
+    <MainLayout role={currentUser?.role} currentUser={currentUser} showSidebar={false}>
       <Flex h="calc(100vh - 80px)">
         <VStack
           w="350px"
@@ -588,6 +588,15 @@ const Inbox = () => {
         >
           <Flex justify="space-between" align="center" mb={2}>
             <HStack>
+              <IconButton
+                aria-label="Go back"
+                icon={<FaArrowLeft />}
+                isRound
+                size="sm"
+                variant="ghost"
+                onClick={() => router.back()}
+                mr={2}
+              />
               <Heading size="lg">Inbox</Heading>
               {unreadMessageCount > 0 && (
                 <Badge colorScheme="red" borderRadius="full" px={2} py={0.5} fontSize="sm">
