@@ -1,11 +1,31 @@
-You are an AI assistant specializing in the Next.js (a React framework) and TypeScript codebase. This project uses Chakra UI for its component library and styling, and Firebase for its backend services. The project is structured with a `pages` directory for routing, a `components` directory for reusable UI components, and a `lib` directory for utility functions, including Firebase integration.
+This project, "TeeRao," is a comprehensive property management system built with Next.js, TypeScript, Chakra UI, and Firebase. It's designed for managing room rentals, billing, and user interactions in a dormitory or apartment setting.
 
-When interacting with this project, please adhere to the following guidelines:
-- **Frameworks and Libraries:** Utilize Next.js, React, TypeScript, and Chakra UI for all development. Ensure that any new code is type-safe and follows the conventions of these technologies.
-- **Styling:** Use Chakra UI components and styling props for all UI elements. Custom CSS should be avoided unless absolutely necessary.
-- **State Management:** For client-side state, use React hooks (`useState`, `useEffect`, etc.). For global state, consider React Context or a lightweight state management library if needed, but check for existing patterns first.
-- **Data Fetching:** Use Next.js data fetching methods (`getServerSideProps`, `getStaticProps`) for server-side rendering and static site generation. For client-side data fetching, use `fetch` or a library like `swr` or `react-query` if one is already in use.
-- **Firebase:** Interact with Firebase services (such as Firestore, Authentication, etc.) through the utility functions in the `lib` directory.
-- **Code Style:** Maintain a consistent code style, following the existing patterns in the codebase. Pay attention to formatting, naming conventions, and component structure.
-- **Error Handling:** Implement robust error handling, especially for asynchronous operations and API calls. Use error boundaries and other mechanisms to prevent application crashes.
-- **Dependencies:** Before adding any new dependencies, check the `package.json` file to see if a similar library is already in use. If you need to add a new dependency, use `npm install` or `yarn add` and update the `package.json` file.
+### Key Technologies & Features:
+
+- **Core Stack:** Next.js, React, TypeScript.
+- **UI:** Chakra UI is used for the component library, styling, and responsive design. The application features a custom Thai font ("Kanit").
+- **Backend & Database (Firebase):**
+    - **Firestore:** The primary database for storing all application data, including rooms, users, bills, meter readings, and chat messages.
+    - **Firebase Authentication:** Handles user login with email/password and manages role-based access control (admin, owner, tenant, etc.).
+    - **Firebase Storage:** Used for storing user-uploaded files like profile avatars and payment slips.
+    - **Firebase Admin SDK:** Utilized in server-side API routes for administrative tasks like creating new users.
+- **Main Functionalities:**
+    - **Role-Based Access Control:** The application has distinct views and permissions for different user roles:
+        - **Admin/Owner:** Full access to manage rooms, users, and billing.
+        - **Tenant (`user`):** Can view their room details, bills, and communicate with admins.
+        - **Employee:** A dedicated (currently placeholder) dashboard.
+    - **Room Management:** A dashboard for admins to view, add, edit, delete, search, and filter rooms.
+    - **Billing & Invoicing:**
+        - Calculates monthly bills based on rent, services, and metered utilities (water, electricity).
+        - Supports adding extra, one-time charges to an invoice.
+        - Generates PDF invoices for tenants.
+        - Integrates a PromptPay QR code generator for payments.
+        - Allows tenants to upload payment slips, which admins can then review and approve.
+    - **User Management:** An admin panel to create new users, assign roles, and send password-reset links. Users can also manage their own profiles.
+    - **Communication:** A built-in messaging system for users to communicate with each other.
+- **Code Structure:**
+    - `pages/`: Defines the application's routes and contains the primary logic for each page.
+    - `components/`: Holds reusable React components, including modals, cards, and the main layout structure (`MainLayout`, `Sidebar`, `AppHeader`).
+    - `lib/`: Contains utility functions, primarily the Firebase client configuration (`firebase.ts`).
+    - `styles/`: Global CSS and font definitions.
+    - `public/`: Static assets, including the font file and the PromptPay script.
