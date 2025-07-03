@@ -138,8 +138,11 @@ export default function Dashboard() {
           router.replace("/employee-dashboard");
           return;
         }
-        router.replace("/tenant-dashboard");
-      }
+        if (userRole === "tenant") {
+          router.replace("/tenant-dashboard");
+          return;
+        }
+      // Allow admin and other roles to access dashboard
     });
     return () => unsub();
   }, [router]);
@@ -679,9 +682,9 @@ export default function Dashboard() {
           </ModalContent>
         </Modal>
 
-        <AddRoomModal isOpen={isOpen} onClose={onClose} onAddRoom={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} />
+        <AddRoomModal isOpen={isOpen} onClose={onClose} onAdd={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} />
         {editRoom && (
-          <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} room={editRoom} onSave={handleSaveEditRoom} />
+          <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} />
         )}
 
         <AlertDialog
