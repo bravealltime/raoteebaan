@@ -251,6 +251,12 @@ export default function BillDetail() {
         status: "pending", // Change bill status to pending after proof upload
       });
 
+      // Update room billStatus to 'pending'
+      if (bill.room) {
+        const roomDocRef = doc(db, "rooms", bill.room);
+        await updateDoc(roomDocRef, { billStatus: "pending" });
+      }
+
       setProofUrl(downloadURL);
       setProofFile(null);
       toast({
@@ -259,7 +265,11 @@ export default function BillDetail() {
         duration: 3000,
         isClosable: true,
       });
-      router.push("/tenant-dashboard"); // Redirect to tenant dashboard after successful upload
+      if (userRole === 'user') {
+        router.push("/tenant-dashboard"); // Redirect to tenant dashboard
+      } else {
+        router.push("/dashboard"); // Redirect to admin/owner dashboard
+      }
     } catch (error) {
       console.error("Error uploading proof:", error);
       toast({
@@ -289,6 +299,12 @@ export default function BillDetail() {
         status: "unpaid", // Change bill status back to unpaid after proof delete
       });
 
+      // Update room billStatus to 'unpaid'
+      if (bill.room) {
+        const roomDocRef = doc(db, "rooms", bill.room);
+        await updateDoc(roomDocRef, { billStatus: "unpaid" });
+      }
+
       setProofUrl(null);
       toast({
         title: "ลบหลักฐานสำเร็จ",
@@ -296,7 +312,11 @@ export default function BillDetail() {
         duration: 3000,
         isClosable: true,
       });
-      router.push("/tenant-dashboard"); // Redirect to tenant dashboard after successful delete
+      if (userRole === 'user') {
+        router.push("/tenant-dashboard"); // Redirect to tenant dashboard
+      } else {
+        router.push("/dashboard"); // Redirect to admin/owner dashboard
+      }
     } catch (error) {
       console.error("Error deleting proof:", error);
       toast({
@@ -326,6 +346,12 @@ export default function BillDetail() {
         proofUrl: null,
         status: "paid", // Mark bill as paid
       });
+
+      // Update room billStatus to 'paid'
+      if (bill.room) {
+        const roomDocRef = doc(db, "rooms", bill.room);
+        await updateDoc(roomDocRef, { billStatus: "paid" });
+      }
 
       setProofUrl(null);
       toast({

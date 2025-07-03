@@ -173,12 +173,16 @@ export default function Dashboard() {
             limit(1)
           );
           const billSnap = await getDocs(q);
-          if (!billSnap.empty) {
-            const latestBill = billSnap.docs[0].data();
-            billStatus = latestBill.status || billStatus;
-            proofUrl = latestBill.proofUrl || null;
-            latestBillId = billSnap.docs[0].id; // Assign the bill ID here
-          }
+        if (!billSnap.empty) {
+          const latestBill = billSnap.docs[0].data();
+          // Use billStatus from room document (d.billStatus) as the source of truth
+          // Only fetch proofUrl and latestBillId from the bill
+          proofUrl = latestBill.proofUrl || null;
+          latestBillId = billSnap.docs[0].id;
+        }
+        
+        // Ensure the billStatus from the room document is used
+        billStatus = d.billStatus || "paid";
 
           return {
             id: doc.id,
