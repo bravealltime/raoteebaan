@@ -153,6 +153,7 @@ export default function Dashboard() {
           const d = doc.data();
           let billStatus = d.billStatus || "paid";
           let proofUrl = null;
+          let latestBillId = undefined; // Initialize latestBillId
 
           // Fetch latest bill for billStatus and proofUrl
           const q = query(
@@ -193,8 +194,21 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
-    fetchRooms();
-  }, [toast]);
+
+    fetchRooms(); // Initial fetch
+
+    const handleRouteChange = (url: string) => {
+      if (url === "/dashboard") {
+        fetchRooms(); // Re-fetch when navigating back to dashboard
+      }
+    };
+
+    router.events.on('routeChangeComplete', handleRouteChange);
+
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChange);
+    };
+  }, [toast, router.events]);
 
   useEffect(() => {
     async function fetchAllBills() {

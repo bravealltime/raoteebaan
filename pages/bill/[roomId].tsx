@@ -259,6 +259,7 @@ export default function BillDetail() {
         duration: 3000,
         isClosable: true,
       });
+      router.push("/dashboard"); // Redirect to dashboard after successful upload
     } catch (error) {
       console.error("Error uploading proof:", error);
       toast({
@@ -295,6 +296,7 @@ export default function BillDetail() {
         duration: 3000,
         isClosable: true,
       });
+      router.push("/dashboard"); // Redirect to dashboard after successful delete
     } catch (error) {
       console.error("Error deleting proof:", error);
       toast({
@@ -332,6 +334,7 @@ export default function BillDetail() {
         duration: 3000,
         isClosable: true,
       });
+      router.push("/dashboard"); // Redirect to dashboard after successful confirmation
     } catch (error) {
       console.error("Error confirming proof:", error);
       toast({
