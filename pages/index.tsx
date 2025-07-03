@@ -1,4 +1,4 @@
-import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox, Image } from "@chakra-ui/react";
+import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox, Image, Table, Thead, Tbody, Tr, Th, Td, FormControl, FormLabel, InputGroup, InputRightElement, CloseButton, VStack, HStack } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db, auth } from "../lib/firebase";
 import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, addDoc, updateDoc } from "firebase/firestore";
@@ -6,11 +6,12 @@ import RoomCard from "../components/RoomCard";
 import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
 import AppHeader from "../components/AppHeader";
-import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf } from "react-icons/fa";
+import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaTrash } from "react-icons/fa";
 import { saveAs } from "file-saver";
 import Papa from "papaparse";
 import EditRoomModal from "../components/EditRoomModal";
 import jsPDF from "jspdf";
+import "../Kanit-Regular-normal.js"; // Import the font file
 import Link from "next/link";
 import { onAuthStateChanged } from "firebase/auth";
 import Sidebar from "../components/Sidebar";
@@ -66,17 +67,21 @@ export default function Rooms() {
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
   const [equipmentList, setEquipmentList] = useState([
-    { name: "เตียง", selected: true },
-    { name: "ที่นอน", selected: true },
-    { name: "โต๊ะทำงาน", selected: true },
-    { name: "เก้าอี้", selected: true },
-    { name: "ตู้เสื้อผ้า", selected: true },
-    { name: "เครื่องปรับอากาศ", selected: true },
-    { name: "พัดลม", selected: false },
-    { name: "โคมไฟ", selected: true },
-    { name: "ผ้าม่าน", selected: true },
-    { name: "เครื่องทำน้ำอุ่น", selected: true },
+    { name: "เตียง", status: "ครบ", condition: "ดี", notes: "" },
+    { name: "ที่นอน", status: "ครบ", condition: "ดี", notes: "" },
+    { name: "โต๊ะทำงาน", status: "ครบ", condition: "ดี", notes: "" },
+    { name: "เก้าอี้", status: "ครบ", condition: "ดี", notes: "" },
+    { name: "ตู้เสื้อผ้า", status: "ครบ", condition: "ดี", notes: "" },
+    { name: "เครื่องปรับอากาศ", status: "ครบ", condition: "ดี", notes: "" },
+    { name: "พัดลม", status: "ครบ", condition: "ดี", notes: "" },
+    { name: "โคมไฟ", status: "ครบ", condition: "ดี", notes: "" },
+    { name: "ผ้าม่าน", status: "ครบ", condition: "ดี", notes: "" },
+    { name: "เครื่องทำน้ำอุ่น", status: "ครบ", condition: "ดี", notes: "" },
   ]);
+  const [newEquipmentName, setNewEquipmentName] = useState("");
+  const [newEquipmentStatus, setNewEquipmentStatus] = useState("ครบ");
+  const [newEquipmentCondition, setNewEquipmentCondition] = useState("ดี");
+  const [newEquipmentNotes, setNewEquipmentNotes] = useState("");
   const [isMeterReadingModalOpen, setIsMeterReadingModalOpen] = useState(false);
   const [role, setRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -732,51 +737,45 @@ export default function Rooms() {
       roomId: selectedRoomForEquipment,
       date: new Date().toLocaleDateString('th-TH'),
       tenantName: rooms.find(r => r.id === selectedRoomForEquipment)?.tenantName || "ว่าง",
-      items: [
-        { name: "เตียง", status: "ครบ", condition: "ดี", notes: "" },
-        { name: "ที่นอน", status: "ครบ", condition: "ดี", notes: "" },
-        { name: "โต๊ะทำงาน", status: "ครบ", condition: "ดี", notes: "" },
-        { name: "เก้าอี้", status: "ครบ", condition: "ดี", notes: "" },
-        { name: "ตู้เสื้อผ้า", status: "ครบ", condition: "ดี", notes: "" },
-        { name: "แอร์คอนดิชัน", status: "ครบ", condition: "ดี", notes: "" },
-        { name: "พัดลม", status: "ครบ", condition: "ดี", notes: "" },
-        { name: "โคมไฟ", status: "ครบ", condition: "ดี", notes: "" },
-        { name: "ผ้าม่าน", status: "ครบ", condition: "ดี", notes: "" },
-        { name: "พรม", status: "ครบ", condition: "ดี", notes: "" }
-      ]
+      items: equipmentList.map(item => ({
+        name: item.name,
+        status: item.status,
+        condition: item.condition,
+        notes: item.notes,
+      }))
     };
     const pdf = new jsPDF();
-    pdf.setFont("helvetica");
+    pdf.setFont("Kanit-Regular");
     pdf.setFontSize(20);
     pdf.setTextColor(75, 0, 130);
     pdf.text("ใบประเมินอุปกรณ์ในห้องพัก", 105, 20, { align: "center" });
-    pdf.setFontSize(12);
+    pdf.setFontSize(14);
     pdf.setTextColor(0, 0, 0);
-    pdf.text(`ห้อง: ${equipmentData.roomId}`, 20, 40);
-    pdf.text(`ผู้เช่า: ${equipmentData.tenantName}`, 20, 50);
-    pdf.text(`วันที่ประเมิน: ${equipmentData.date}`, 20, 60);
+    pdf.text(`ห้อง: ${equipmentData.roomId}`, 20, 45);
+    pdf.text(`ผู้เช่า: ${equipmentData.tenantName}`, 20, 55);
+    pdf.text(`วันที่ประเมิน: ${equipmentData.date}`, 20, 65);
     pdf.setFillColor(75, 0, 130);
-    pdf.rect(20, 75, 170, 10, "F");
+    pdf.rect(20, 80, 170, 10, "F");
     pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(10);
-    pdf.text("ลำดับ", 25, 82);
-    pdf.text("รายการอุปกรณ์", 45, 82);
-    pdf.text("สถานะ", 100, 82);
-    pdf.text("สภาพ", 130, 82);
-    pdf.text("หมายเหตุ", 160, 82);
+    pdf.setFontSize(11);
+    pdf.text("ลำดับ", 25, 87);
+    pdf.text("รายการอุปกรณ์", 45, 87);
+    pdf.text("สถานะ", 95, 87);
+    pdf.text("สภาพ", 120, 87);
+    pdf.text("หมายเหตุ", 150, 87);
     pdf.setTextColor(0, 0, 0);
-    pdf.setFontSize(9);
+    pdf.setFontSize(10);
     equipmentData.items.forEach((item, index) => {
-      const y = 90 + (index * 8);
+      const y = 95 + (index * 10);
       if (y > 250) {
         pdf.addPage();
         return;
       }
       pdf.text(`${index + 1}`, 25, y);
       pdf.text(item.name, 45, y);
-      pdf.text(item.status, 100, y);
-      pdf.text(item.condition, 130, y);
-      pdf.text(item.notes || "-", 160, y);
+      pdf.text(item.status, 95, y);
+      pdf.text(item.condition, 120, y);
+      pdf.text(item.notes || "-", 150, y);
     });
     const signatureY = 220;
     pdf.setFontSize(12);
@@ -795,9 +794,12 @@ export default function Rooms() {
     pdf.text("หมายเหตุ: ใบประเมินนี้เป็นเอกสารสำหรับตรวจสอบอุปกรณ์ในห้องพัก กรุณาตรวจสอบและเซ็นยืนยัน", 20, 270);
     const fileName = `equipment-assessment-room-${selectedRoomForEquipment}-${new Date().toISOString().split('T')[0]}.pdf`;
     pdf.save(fileName);
-    toast({ title: "ดาวน์โหลดใบประเมินอุปกรณ์สำเร็จ", status: "success" });
+    toast({ title: "ดาวน์โหลดใบประเมินอุปกรณ์สำเร็จ!", status: "success", duration: 3000 });
     setIsEquipmentModalOpen(false);
     setSelectedRoomForEquipment("");
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 300);
   };
 
   const filteredRooms = rooms.filter(room => {
@@ -847,10 +849,13 @@ export default function Rooms() {
                 นำเข้า CSV
               </Button>
               <Button
-                leftIcon={<FaFilePdf />}
+                leftIcon={<FaFilePdf size={22} />}
                 colorScheme="purple"
-                variant="outline"
+                size="lg"
                 borderRadius="xl"
+                fontWeight="bold"
+                variant="solid"
+                _hover={{ boxShadow: "md", transform: "scale(1.05)", bg: "purple.600", color: "white" }}
                 onClick={handleDownloadEquipmentAssessment}
               >
                 ใบประเมินอุปกรณ์
@@ -984,24 +989,186 @@ export default function Rooms() {
         previousReadings={previousReadings}
       />
 
-      <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)} isCentered>
+      <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)} isCentered size="lg">
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>ดาวน์โหลดใบประเมินอุปกรณ์</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Select
-              placeholder="เลือกห้องที่ต้องการดาวน์โหลด"
-              value={selectedRoomForEquipment}
-              onChange={e => setSelectedRoomForEquipment(e.target.value)}
-              mb={4}
-            >
-              {rooms.map(room => (
-                <option key={room.id} value={room.id}>
-                  ห้อง {room.id} ({room.tenantName})
-                </option>
-              ))}
-            </Select>
+            <FormControl mb={4}>
+              <FormLabel>เลือกห้องที่ต้องการดาวน์โหลด</FormLabel>
+              <Select
+                placeholder="เลือกห้อง"
+                value={selectedRoomForEquipment}
+                onChange={e => setSelectedRoomForEquipment(e.target.value)}
+              >
+                {rooms.map(room => (
+                  <option key={room.id} value={room.id}>
+                    ห้อง {room.id} ({room.tenantName})
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
+            <Flex flexDir={{ base: "column", md: "row" }} gap={6}>
+              <Box flex={1}>
+                <Heading size="md" mb={3} color="blue.700">รายการอุปกรณ์</Heading>
+                <Box maxH="400px" overflowY="auto" mb={4} borderWidth="1px" borderRadius="md" p={2}>
+                  <Table variant="simple" size="md" minW="600px">
+                    <Thead>
+                      <Tr>
+                        <Th>อุปกรณ์</Th>
+                        <Th>สถานะ</Th>
+                        <Th>สภาพ</Th>
+                        <Th>หมายเหตุ</Th>
+                        <Th></Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {equipmentList.length === 0 ? (
+                        <Tr>
+                          <Td colSpan={5} textAlign="center" color="gray.500">ไม่มีอุปกรณ์ในรายการ</Td>
+                        </Tr>
+                      ) : (
+                        equipmentList.map((item, index) => (
+                          <Tr key={index}>
+                            <Td py={2}>{item.name}</Td>
+                            <Td py={2}>
+                              <Select
+                                value={item.status}
+                                onChange={(e) => {
+                                  const newEquipmentList = [...equipmentList];
+                                  newEquipmentList[index].status = e.target.value;
+                                  setEquipmentList(newEquipmentList);
+                                }}
+                                size="md"
+                              >
+                                <option value="ครบ">ครบ</option>
+                                <option value="ไม่ครบ">ไม่ครบ</option>
+                              </Select>
+                            </Td>
+                            <Td py={2}>
+                              <Select
+                                value={item.condition}
+                                onChange={(e) => {
+                                  const newEquipmentList = [...equipmentList];
+                                  newEquipmentList[index].condition = e.target.value;
+                                  setEquipmentList(newEquipmentList);
+                                }}
+                                size="md"
+                              >
+                                <option value="ดี">ดี</option>
+                                <option value="พอใช้">พอใช้</option>
+                                <option value="ชำรุด">ชำรุด</option>
+                              </Select>
+                            </Td>
+                            <Td py={2}>
+                              <Input
+                                value={item.notes}
+                                onChange={(e) => {
+                                  const newEquipmentList = [...equipmentList];
+                                  newEquipmentList[index].notes = e.target.value;
+                                  setEquipmentList(newEquipmentList);
+                                }}
+                                size="md"
+                              />
+                            </Td>
+                            <Td py={2}>
+                              <IconButton
+                                aria-label="ลบอุปกรณ์"
+                                icon={<FaTrash />}
+                                size="md"
+                                colorScheme="red"
+                                variant="ghost"
+                                onClick={() => {
+                                  const newEquipmentList = equipmentList.filter((_, i) => i !== index);
+                                  setEquipmentList(newEquipmentList);
+                                }}
+                              />
+                            </Td>
+                          </Tr>
+                        ))
+                      )}
+                    </Tbody>
+                  </Table>
+                </Box>
+              </Box>
+              <Box flex={1}>
+                <Heading size="md" mb={3} color="blue.700">เพิ่มอุปกรณ์ใหม่</Heading>
+                <VStack spacing={3} align="stretch" p={2} borderWidth="1px" borderRadius="md">
+                  <FormControl>
+                    <FormLabel>ชื่ออุปกรณ์</FormLabel>
+                    <InputGroup>
+                      <Input
+                        placeholder="เช่น โทรทัศน์, ตู้เย็น"
+                        value={newEquipmentName}
+                        onChange={(e) => setNewEquipmentName(e.target.value)}
+                      />
+                      {newEquipmentName && (
+                        <InputRightElement>
+                          <CloseButton onClick={() => setNewEquipmentName("")} size="sm" />
+                        </InputRightElement>
+                      )}
+                    </InputGroup>
+                  </FormControl>
+                  <HStack spacing={3}>
+                    <FormControl flex={1}>
+                      <FormLabel>สถานะ</FormLabel>
+                      <Select
+                        value={newEquipmentStatus}
+                        onChange={(e) => setNewEquipmentStatus(e.target.value)}
+                      >
+                        <option value="ครบ">ครบ</option>
+                        <option value="ไม่ครบ">ไม่ครบ</option>
+                      </Select>
+                    </FormControl>
+                    <FormControl flex={1}>
+                      <FormLabel>สภาพ</FormLabel>
+                      <Select
+                        value={newEquipmentCondition}
+                        onChange={(e) => setNewEquipmentCondition(e.target.value)}
+                      >
+                        <option value="ดี">ดี</option>
+                        <option value="พอใช้">พอใช้</option>
+                        <option value="ชำรุด">ชำรุด</option>
+                      </Select>
+                    </FormControl>
+                  </HStack>
+                  <FormControl>
+                    <FormLabel>หมายเหตุ (ถ้ามี)</FormLabel>
+                    <Input
+                      placeholder="เช่น มีรอยขีดข่วนเล็กน้อย"
+                      value={newEquipmentNotes}
+                      onChange={(e) => setNewEquipmentNotes(e.target.value)}
+                    />
+                  </FormControl>
+                  <Button
+                    leftIcon={<FaPlus />}
+                    colorScheme="blue"
+                    onClick={() => {
+                      if (newEquipmentName.trim() === "") {
+                        toast({ title: "กรุณากรอกชื่ออุปกรณ์", status: "warning" });
+                        return;
+                      }
+                      setEquipmentList([
+                        ...equipmentList,
+                        {
+                          name: newEquipmentName,
+                          status: newEquipmentStatus,
+                          condition: newEquipmentCondition,
+                          notes: newEquipmentNotes,
+                        },
+                      ]);
+                      setNewEquipmentName("");
+                      setNewEquipmentStatus("ครบ");
+                      setNewEquipmentCondition("ดี");
+                      setNewEquipmentNotes("");
+                    }}
+                  >
+                    เพิ่มอุปกรณ์
+                  </Button>
+                </VStack>
+              </Box>
+            </Flex>
           </ModalBody>
           <ModalFooter>
             <Button colorScheme="gray" mr={3} onClick={() => setIsEquipmentModalOpen(false)}>
