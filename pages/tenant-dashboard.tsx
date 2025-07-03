@@ -229,49 +229,50 @@ export default function TenantDashboard() {
 
   return (
     <MainLayout role={role} currentUser={currentUser} showSidebar={false}>
-      <Box p={6} bg="gray.50" minH="100vh">
-        <Heading size="lg" mb={6} color="brand.700">
+      <Box p={[2, 6]} bgGradient="linear(to-b, gray.50, white)" minH="100vh">
+        <Heading size="lg" mb={8} color="brand.700" letterSpacing="wide">
           แดชบอร์ดผู้เช่า
         </Heading>
 
         {/* Personal Information Card */}
-        <Card mb={6} boxShadow="md">
-          <CardHeader>
-            <Heading size="md" color="brand.600">
-              <Icon as={FaUser} mr={2} />
-              ข้อมูลส่วนตัว
+        <Card mb={8} boxShadow="2xl" borderRadius="2xl" bg="white" px={[2, 8]} py={6}>
+          <CardHeader pb={2}>
+            <Heading size="md" color="brand.600" letterSpacing="wide">
+              <Icon as={FaUser} mr={2} /> ข้อมูลส่วนตัว
             </Heading>
           </CardHeader>
           <CardBody>
-            <Flex direction={["column", "row"]} align="center" gap={6}>
-              <Avatar size="xl" src={userData?.avatar} name={userData?.name} />
-              <VStack align="flex-start" spacing={2} flex={1}>
-                <HStack>
-                  <Text fontWeight="bold">ชื่อ:</Text>
-                  <Text>{userData?.name}</Text>
-                </HStack>
-                <HStack>
-                  <Text fontWeight="bold">อีเมล:</Text>
-                  <Text>{userData?.email}</Text>
-                </HStack>
-                {userData?.phoneNumber && (
-                  <HStack>
-                    <Text fontWeight="bold">เบอร์โทรศัพท์:</Text>
-                    <Text>{userData.phoneNumber}</Text>
-                  </HStack>
-                )}
-                <HStack>
-                  <Text fontWeight="bold">สถานะ:</Text>
-                  <Badge colorScheme={userData?.status === "active" ? "green" : "red"}>
-                    {userData?.status === "active" ? "เปิดใช้งาน" : "ปิดใช้งาน"}
-                  </Badge>
-                </HStack>
-                {userData?.joinedDate && (
-                  <HStack>
-                    <Text fontWeight="bold">วันที่เข้าร่วม:</Text>
-                    <Text>{new Date(userData.joinedDate).toLocaleDateString("th-TH")}</Text>
-                  </HStack>
-                )}
+            <Flex direction={['column', 'row']} align="center" gap={10}>
+              <Avatar size="2xl" src={userData?.avatar} name={userData?.name} boxShadow="lg" border="4px solid #fff" />
+              <VStack align="flex-start" spacing={0} flex={1} fontSize="lg" w="100%">
+                <SimpleGrid columns={[1, 2]} spacingY={1} spacingX={8} w="100%">
+                  <Box>
+                    <Text fontWeight="bold" color="gray.600" fontSize="md">ชื่อ</Text>
+                    <Text color="gray.800" fontSize="lg">{userData?.name}</Text>
+                  </Box>
+                  <Box>
+                    <Text fontWeight="bold" color="gray.600" fontSize="md">อีเมล</Text>
+                    <Text color="gray.800" fontSize="lg">{userData?.email}</Text>
+                  </Box>
+                  {userData?.phoneNumber && (
+                    <Box>
+                      <Text fontWeight="bold" color="gray.600" fontSize="md">เบอร์โทรศัพท์</Text>
+                      <Text color="gray.800" fontSize="lg">{userData.phoneNumber}</Text>
+                    </Box>
+                  )}
+                  <Box>
+                    <Text fontWeight="bold" color="gray.600" fontSize="md">สถานะ</Text>
+                    <Badge fontSize="md" px={3} py={1} borderRadius="md" colorScheme={userData?.status === "active" ? "green" : "red"}>
+                      {userData?.status === "active" ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                    </Badge>
+                  </Box>
+                  {userData?.joinedDate && (
+                    <Box>
+                      <Text fontWeight="bold" color="gray.600" fontSize="md">วันที่เข้าร่วม</Text>
+                      <Text color="gray.800" fontSize="lg">{!isNaN(Date.parse(userData.joinedDate)) ? new Date(userData.joinedDate).toLocaleDateString("th-TH") : "-"}</Text>
+                    </Box>
+                  )}
+                </SimpleGrid>
               </VStack>
             </Flex>
           </CardBody>
@@ -279,60 +280,58 @@ export default function TenantDashboard() {
 
         {/* Room Information Card */}
         {roomData && (
-          <Card mb={6} boxShadow="md">
-            <CardHeader>
-              <Heading size="md" color="brand.600">
-                <Icon as={FaHome} mr={2} />
-                ข้อมูลห้องพัก
+          <Card mb={8} boxShadow="2xl" borderRadius="2xl" bg="white" px={[2, 8]} py={6}>
+            <CardHeader pb={2}>
+              <Heading size="md" color="brand.600" letterSpacing="wide">
+                <Icon as={FaHome} mr={2} /> ข้อมูลห้องพัก
               </Heading>
             </CardHeader>
             <CardBody>
-              <SimpleGrid columns={[1, 2, 3]} spacing={4}>
-                <Stat>
-                  <StatLabel>หมายเลขห้อง</StatLabel>
-                  <StatNumber>{roomData.id}</StatNumber>
-                </Stat>
-                <Stat>
-                  <StatLabel>ขนาดห้อง</StatLabel>
-                  <StatNumber>{roomData.area} ตร.ม.</StatNumber>
-                </Stat>
-                <Stat>
-                  <StatLabel>ค่าเช่า</StatLabel>
-                  <StatNumber>{roomData.rent.toLocaleString()} บาท</StatNumber>
-                </Stat>
-                <Stat>
-                  <StatLabel>ค่าบริการ</StatLabel>
-                  <StatNumber>{roomData.service.toLocaleString()} บาท</StatNumber>
-                </Stat>
-                <Stat>
-                  <StatLabel>สถานะบิล</StatLabel>
-                  <StatNumber>
-                    <Badge colorScheme={getStatusColor(roomData.billStatus)}>
-                      {getStatusText(roomData.billStatus)}
-                    </Badge>
-                  </StatNumber>
-                </Stat>
-                <Stat>
-                  <StatLabel>ยอดรวมล่าสุด</StatLabel>
-                  <StatNumber>{roomData.latestTotal.toLocaleString()} บาท</StatNumber>
-                </Stat>
+              <SimpleGrid columns={[1, 2, 3]} spacing={6}>
+                <Box>
+                  <Text fontWeight="bold" color="gray.600" fontSize="md">หมายเลขห้อง</Text>
+                  <Text color="gray.800" fontSize="xl">{roomData.id}</Text>
+                </Box>
+                <Box>
+                  <Text fontWeight="bold" color="gray.600" fontSize="md">ขนาดห้อง</Text>
+                  <Text color="gray.800" fontSize="xl">{roomData.area} ตร.ม.</Text>
+                </Box>
+                <Box>
+                  <Text fontWeight="bold" color="gray.600" fontSize="md">ค่าเช่า</Text>
+                  <Text color="gray.800" fontSize="xl">{roomData.rent.toLocaleString()} บาท</Text>
+                </Box>
+                <Box>
+                  <Text fontWeight="bold" color="gray.600" fontSize="md">ค่าบริการ</Text>
+                  <Text color="gray.800" fontSize="xl">{roomData.service.toLocaleString()} บาท</Text>
+                </Box>
+                <Box>
+                  <Text fontWeight="bold" color="gray.600" fontSize="md">สถานะบิล</Text>
+                  <Badge fontSize="md" px={3} py={1} borderRadius="md" colorScheme={getStatusColor(roomData.billStatus)}>
+                    {getStatusText(roomData.billStatus)}
+                  </Badge>
+                </Box>
+                <Box>
+                  <Text fontWeight="bold" color="gray.600" fontSize="md">ยอดรวมล่าสุด</Text>
+                  <Text color="gray.800" fontSize="xl">{roomData.latestTotal.toLocaleString()} บาท</Text>
+                </Box>
               </SimpleGrid>
             </CardBody>
           </Card>
         )}
 
         {/* Bill History Card */}
-        <Card boxShadow="md">
-          <CardHeader>
+        <Card boxShadow="2xl" borderRadius="2xl" bg="white" px={[2, 8]} py={6}>
+          <CardHeader pb={2}>
             <Flex justify="space-between" align="center">
-              <Heading size="md" color="brand.600">
-                <Icon as={FaFileInvoice} mr={2} />
-                ประวัติการชำระเงิน
+              <Heading size="md" color="brand.600" letterSpacing="wide">
+                <Icon as={FaFileInvoice} mr={2} /> ประวัติการชำระเงิน
               </Heading>
               {userData?.roomId && (
                 <Button
                   size="sm"
                   colorScheme="brand"
+                  variant="outline"
+                  borderRadius="md"
                   onClick={() => router.push(`/bill/${userData.roomId}`)}
                 >
                   ดูบิลปัจจุบัน
@@ -344,23 +343,24 @@ export default function TenantDashboard() {
             {billHistory.length > 0 ? (
               <VStack spacing={4} align="stretch">
                 {billHistory.map((bill) => (
-                  <Box key={bill.id} p={4} border="1px" borderColor="gray.200" borderRadius="md">
+                  <Box key={bill.id} p={4} border="1px" borderColor="gray.200" borderRadius="lg" bg="gray.50">
                     <Flex justify="space-between" align="center" mb={2}>
-                      <Text fontWeight="bold">
+                      <Text fontWeight="bold" fontSize="lg" color="brand.700">
                         {bill.month} {bill.year}
                       </Text>
-                      <Badge colorScheme={getStatusColor(bill.status)}>
+                      <Badge fontSize="md" px={3} py={1} borderRadius="md" colorScheme={getStatusColor(bill.status)}>
                         {getStatusText(bill.status)}
                       </Badge>
                     </Flex>
-                    <HStack justify="space-between">
-                      <Text>ยอดรวม: {bill.totalAmount.toLocaleString()} บาท</Text>
+                    <Divider my={2} />
+                    <SimpleGrid columns={[1, 2]} spacingY={1} spacingX={8}>
+                      <Text color="gray.700">ยอดรวม: <b>{bill.totalAmount.toLocaleString()} บาท</b></Text>
                       <Text fontSize="sm" color="gray.500">
                         {bill.status === "paid" && bill.paidDate
-                          ? `ชำระเมื่อ: ${new Date(bill.paidDate).toLocaleDateString("th-TH")}`
-                          : `ครบกำหนด: ${new Date(bill.dueDate).toLocaleDateString("th-TH")}`}
+                          ? `ชำระเมื่อ: ${!isNaN(Date.parse(bill.paidDate)) ? new Date(bill.paidDate).toLocaleDateString("th-TH") : "-"}`
+                          : `ครบกำหนด: ${!isNaN(Date.parse(bill.dueDate)) ? new Date(bill.dueDate).toLocaleDateString("th-TH") : "-"}`}
                       </Text>
-                    </HStack>
+                    </SimpleGrid>
                   </Box>
                 ))}
               </VStack>
@@ -373,24 +373,56 @@ export default function TenantDashboard() {
         </Card>
 
         {/* Quick Actions */}
-        <Card mt={6} boxShadow="md">
-          <CardHeader>
-            <Heading size="md" color="brand.600">
+        <Card mt={10} boxShadow="2xl" borderRadius="2xl" bg="white" px={[2, 8]} py={6}>
+          <CardHeader pb={2}>
+            <Heading size="md" color="brand.600" letterSpacing="wide">
               เมนูด่วน
             </Heading>
           </CardHeader>
           <CardBody>
-            <SimpleGrid columns={[1, 2, 4]} spacing={4}>
-              <Button leftIcon={<FaFileInvoice />} colorScheme="brand" onClick={() => router.push("/inbox")}>
+            <SimpleGrid columns={[1, 2, 4]} spacing={6}>
+              <Button
+                leftIcon={<FaFileInvoice size={22} />}
+                colorScheme="blue"
+                size="lg"
+                borderRadius="xl"
+                variant="solid"
+                _hover={{ boxShadow: "md", transform: "scale(1.05)" }}
+                onClick={() => router.push("/inbox")}
+              >
                 ข้อความ
               </Button>
-              <Button leftIcon={<FaCreditCard />} colorScheme="green" onClick={() => roomData?.id && router.push(`/bill/${roomData.id}`)}>
+              <Button
+                leftIcon={<FaCreditCard size={22} />}
+                colorScheme="green"
+                size="lg"
+                borderRadius="xl"
+                variant="solid"
+                _hover={{ boxShadow: "md", transform: "scale(1.05)" }}
+                onClick={() => roomData?.id && router.push(`/bill/${roomData.id}`)}
+              >
                 ชำระเงิน
               </Button>
-              <Button leftIcon={<FaCalendarAlt />} colorScheme="purple" onClick={() => roomData?.id && router.push(`/history/${roomData.id}`)}>
+              <Button
+                leftIcon={<FaCalendarAlt size={22} />}
+                colorScheme="purple"
+                size="lg"
+                borderRadius="xl"
+                variant="solid"
+                _hover={{ boxShadow: "md", transform: "scale(1.05)" }}
+                onClick={() => roomData?.id && router.push(`/history/${roomData.id}`)}
+              >
                 ประวัติ
               </Button>
-              <Button leftIcon={<FaUser />} colorScheme="gray" onClick={() => router.push("/profile")}>
+              <Button
+                leftIcon={<FaUser size={22} />}
+                colorScheme="gray"
+                size="lg"
+                borderRadius="xl"
+                variant="outline"
+                _hover={{ boxShadow: "md", transform: "scale(1.05)", bg: "gray.100" }}
+                onClick={() => router.push("/profile")}
+              >
                 แก้ไขข้อมูล
               </Button>
             </SimpleGrid>
