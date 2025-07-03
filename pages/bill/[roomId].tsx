@@ -251,12 +251,6 @@ export default function BillDetail() {
         status: "pending", // Change bill status to pending after proof upload
       });
 
-      // Update room status to 'pending'
-      if (bill.room) {
-        const roomDocRef = doc(db, "rooms", bill.room);
-        await updateDoc(roomDocRef, { status: "pending" });
-      }
-
       setProofUrl(downloadURL);
       setProofFile(null);
       toast({
@@ -295,12 +289,6 @@ export default function BillDetail() {
         status: "unpaid", // Change bill status back to unpaid after proof delete
       });
 
-      // Update room status to 'unpaid'
-      if (bill.room) {
-        const roomDocRef = doc(db, "rooms", bill.room);
-        await updateDoc(roomDocRef, { status: "unpaid" });
-      }
-
       setProofUrl(null);
       toast({
         title: "ลบหลักฐานสำเร็จ",
@@ -338,12 +326,6 @@ export default function BillDetail() {
         proofUrl: null,
         status: "paid", // Mark bill as paid
       });
-
-      // Update room status to 'paid'
-      if (bill.room) {
-        const roomDocRef = doc(db, "rooms", bill.room);
-        await updateDoc(roomDocRef, { status: "paid" });
-      }
 
       setProofUrl(null);
       toast({
