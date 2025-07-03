@@ -1,7 +1,7 @@
 import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Image } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db, auth } from "../lib/firebase";
-import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, Query } from "firebase/firestore";
 import RoomCard from "../components/RoomCard";
 import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
@@ -120,7 +120,8 @@ export default function Dashboard() {
         name: firestoreData.name || u.displayName || '',
         email: firestoreData.email || u.email || '',
         role: userRole,
-        photoURL: firestoreData.avatar || u.photoURL || undefined, // Ensure photoURL is taken from Firestore first, then Auth
+        photoURL: firestoreData.avatar || u.photoURL || undefined,
+        ownerId: firestoreData.ownerId || undefined, // Add ownerId to currentUser state
       });
       console.log("Dashboard Page - Current User Data:", {
         uid: u.uid,
@@ -151,7 +152,13 @@ export default function Dashboard() {
     const fetchRooms = async () => {
       setLoading(true);
       try {
-        const querySnapshot = await getDocs(collection(db, "rooms"));
+        let roomsQuery: Query = collection(db, "rooms");
+
+        if (role === "owner" && currentUser?.uid) {
+          roomsQuery = query(roomsQuery, where("ownerId", "==", currentUser.uid));
+        }
+
+        const querySnapshot = await getDocs(roomsQuery);
         let data: Room[] = await Promise.all(querySnapshot.docs.map(async doc => {
           const d = doc.data();
           let billStatus = d.billStatus || "paid";
@@ -198,7 +205,15 @@ export default function Dashboard() {
       }
     };
 
-    fetchRooms(); // Initial fetch
+    if (role === "admin") {
+      fetchRooms();
+    } else if (role === "owner" && currentUser?.uid) {
+      fetchRooms();
+    } else if (role === "employee") {
+      // Employee might see all rooms or a subset, depending on requirements
+      // For now, let's assume they see all rooms like admin
+      fetchRooms();
+    }
 
     const handleRouteChange = (url: string) => {
       if (url === "/dashboard") {
@@ -211,7 +226,7 @@ export default function Dashboard() {
     return () => {
       router.events.off('routeChangeComplete', handleRouteChange);
     };
-  }, [toast, router.events]);
+  }, [toast, router.events, role, currentUser]);
 
   useEffect(() => {
     async function fetchAllBills() {
