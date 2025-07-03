@@ -523,11 +523,11 @@ export default function AdminUsers() {
               onChange={(e) => setFilter(e.target.value)}
             >
               <option value="">ทุกสิทธิ์</option>
-              <option value="admin">ผู้ดูแลระบบ</option>
-              <option value="juristic">นิติ</option>
-              <option value="technician">ช่าง</option>
-              <option value="owner">เจ้าของห้อง</option>
-              <option value="user">ลูกบ้าน</option>
+              <option value="admin">🛡️ ผู้ดูแลระบบ</option>
+                <option value="juristic">🏢 นิติ</option>
+                <option value="technician">🛠️ ช่าง</option>
+                <option value="owner">🏠 เจ้าของห้อง</option>
+                <option value="user">👤 ลูกบ้าน</option>
             </Select>
             <Button
               leftIcon={<FaPlus />}
@@ -605,7 +605,7 @@ export default function AdminUsers() {
                               borderRadius="full"
                               fontSize="xs"
                             >
-                              ผู้ดูแลระบบ
+                              🛡️ ผู้ดูแลระบบ
                             </Badge>
                           ) : u.role === "juristic" ? (
                             <Badge
@@ -613,7 +613,7 @@ export default function AdminUsers() {
                               borderRadius="full"
                               fontSize="xs"
                             >
-                              นิติ
+                              🏢 นิติ
                             </Badge>
                           ) : u.role === "technician" ? (
                             <Badge
@@ -621,7 +621,7 @@ export default function AdminUsers() {
                               borderRadius="full"
                               fontSize="xs"
                             >
-                              ช่าง
+                              🛠️ ช่าง
                             </Badge>
                           ) : u.role === "owner" ? (
                             <Badge
@@ -629,7 +629,7 @@ export default function AdminUsers() {
                               borderRadius="full"
                               fontSize="xs"
                             >
-                              เจ้าของห้อง
+                              🏠 เจ้าของห้อง
                             </Badge>
                           ) : (
                             <Badge
@@ -637,7 +637,7 @@ export default function AdminUsers() {
                               borderRadius="full"
                               fontSize="xs"
                             >
-                              ลูกบ้าน
+                              👤 ลูกบ้าน
                             </Badge>
                           )}
                         </Td>
@@ -753,11 +753,11 @@ export default function AdminUsers() {
                 }
                 borderRadius="lg"
               >
-                <option value="admin">ผู้ดูแลระบบ</option>
-                <option value="juristic">นิติ</option>
-                <option value="technician">ช่าง</option>
-                <option value="owner">เจ้าของห้อง</option>
-                <option value="user">ลูกบ้าน</option>
+                <option value="admin">🛡️ ผู้ดูแลระบบ</option>
+                        <option value="juristic">🏢 นิติ</option>
+                        <option value="technician">🛠️ ช่าง</option>
+                        <option value="owner">🏠 เจ้าของห้อง</option>
+                        <option value="user">👤 ลูกบ้าน</option>
               </Select>
             </FormControl>
             <FormControl mt={4}>
@@ -1125,14 +1125,14 @@ export default function AdminUsers() {
                       <Tooltip
                         label={
                           u.role === "admin"
-                            ? "ผู้ดูแลระบบ"
+                            ? "🛡️ ผู้ดูแลระบบ"
                             : u.role === "juristic"
-                            ? "นิติ"
+                            ? "🏢 นิติ"
                             : u.role === "technician"
-                            ? "ช่าง"
+                            ? "🛠️ ช่าง"
                             : u.role === "owner"
-                            ? "เจ้าของห้อง"
-                            : "ลูกบ้าน"
+                            ? "🏠 เจ้าของห้อง"
+                            : "👤 ลูกบ้าน"
                         }
                         hasArrow
                       >

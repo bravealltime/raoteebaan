@@ -550,11 +550,15 @@ const Inbox = () => {
   const getRoleColorScheme = (role: string) => {
     switch (role) {
       case "admin":
-        return "red";
+        return "yellow";
       case "juristic":
-        return "blue";
-      case "tenant":
+        return "purple";
+      case "technician":
+        return "orange";
+      case "owner":
         return "green";
+      case "user":
+        return "blue";
       default:
         return "gray";
     }
@@ -651,7 +655,11 @@ const Inbox = () => {
                       </Text>
                     </VStack>
                     <Badge colorScheme={getRoleColorScheme(otherUser?.role || "")}>
-                      {otherUser?.role}
+                      {otherUser?.role === "admin" ? "🛡️ ผู้ดูแลระบบ" : 
+                       otherUser?.role === "juristic" ? "🏢 นิติ" : 
+                       otherUser?.role === "technician" ? "🛠️ ช่าง" : 
+                       otherUser?.role === "owner" ? "🏠 เจ้าของห้อง" : 
+                       "👤 ลูกบ้าน"}
                     </Badge>
                   </HStack>
                 );
@@ -718,7 +726,11 @@ const Inbox = () => {
                           </VStack>
                           <Spacer />
                           <Badge colorScheme={getRoleColorScheme(otherParticipantInHeader?.role || "")}>
-                            {otherParticipantInHeader?.role}
+                            {otherParticipantInHeader?.role === "admin" ? "🛡️ ผู้ดูแลระบบ" : 
+                             otherParticipantInHeader?.role === "juristic" ? "🏢 นิติ" : 
+                             otherParticipantInHeader?.role === "technician" ? "🛠️ ช่าง" : 
+                             otherParticipantInHeader?.role === "owner" ? "🏠 เจ้าของห้อง" : 
+                             "👤 ลูกบ้าน"}
                           </Badge>
                           <IconButton
                             aria-label="Delete Conversation"
