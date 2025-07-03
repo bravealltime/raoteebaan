@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 interface MainLayoutProps {
   children: React.ReactNode;
   role: string | null;
-  currentUser?: | null; // Change to currentUser object
+  currentUser?: any | null; // Change to currentUser object
   showSidebar?: boolean; // Optional parameter to control sidebar visibility
 }
 
