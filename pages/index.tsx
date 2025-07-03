@@ -719,6 +719,87 @@ export default function Rooms() {
     }
   };
 
+  const handleDownloadEquipmentAssessment = () => {
+    setIsEquipmentModalOpen(true);
+  };
+
+  const handleConfirmEquipmentDownload = () => {
+    if (!selectedRoomForEquipment) {
+      toast({ title: "กรุณาเลือกห้อง", status: "warning" });
+      return;
+    }
+    const equipmentData = {
+      roomId: selectedRoomForEquipment,
+      date: new Date().toLocaleDateString('th-TH'),
+      tenantName: rooms.find(r => r.id === selectedRoomForEquipment)?.tenantName || "ว่าง",
+      items: [
+        { name: "เตียง", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "ที่นอน", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "โต๊ะทำงาน", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "เก้าอี้", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "ตู้เสื้อผ้า", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "แอร์คอนดิชัน", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "พัดลม", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "โคมไฟ", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "ผ้าม่าน", status: "ครบ", condition: "ดี", notes: "" },
+        { name: "พรม", status: "ครบ", condition: "ดี", notes: "" }
+      ]
+    };
+    const pdf = new jsPDF();
+    pdf.setFont("helvetica");
+    pdf.setFontSize(20);
+    pdf.setTextColor(75, 0, 130);
+    pdf.text("ใบประเมินอุปกรณ์ในห้องพัก", 105, 20, { align: "center" });
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(`ห้อง: ${equipmentData.roomId}`, 20, 40);
+    pdf.text(`ผู้เช่า: ${equipmentData.tenantName}`, 20, 50);
+    pdf.text(`วันที่ประเมิน: ${equipmentData.date}`, 20, 60);
+    pdf.setFillColor(75, 0, 130);
+    pdf.rect(20, 75, 170, 10, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(10);
+    pdf.text("ลำดับ", 25, 82);
+    pdf.text("รายการอุปกรณ์", 45, 82);
+    pdf.text("สถานะ", 100, 82);
+    pdf.text("สภาพ", 130, 82);
+    pdf.text("หมายเหตุ", 160, 82);
+    pdf.setTextColor(0, 0, 0);
+    pdf.setFontSize(9);
+    equipmentData.items.forEach((item, index) => {
+      const y = 90 + (index * 8);
+      if (y > 250) {
+        pdf.addPage();
+        return;
+      }
+      pdf.text(`${index + 1}`, 25, y);
+      pdf.text(item.name, 45, y);
+      pdf.text(item.status, 100, y);
+      pdf.text(item.condition, 130, y);
+      pdf.text(item.notes || "-", 160, y);
+    });
+    const signatureY = 220;
+    pdf.setFontSize(12);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text("ลายเซ็นผู้ประเมิน:", 20, signatureY);
+    pdf.text("ลายเซ็นผู้เช่า:", 110, signatureY);
+    pdf.line(20, signatureY + 10, 80, signatureY + 10);
+    pdf.line(110, signatureY + 10, 170, signatureY + 10);
+    pdf.setFontSize(10);
+    pdf.text("(_________________)", 20, signatureY + 25);
+    pdf.text("(_________________)", 110, signatureY + 25);
+    pdf.text("วันที่: _________________", 20, signatureY + 40);
+    pdf.text("วันที่: _________________", 110, signatureY + 40);
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 100, 100);
+    pdf.text("หมายเหตุ: ใบประเมินนี้เป็นเอกสารสำหรับตรวจสอบอุปกรณ์ในห้องพัก กรุณาตรวจสอบและเซ็นยืนยัน", 20, 270);
+    const fileName = `equipment-assessment-room-${selectedRoomForEquipment}-${new Date().toISOString().split('T')[0]}.pdf`;
+    pdf.save(fileName);
+    toast({ title: "ดาวน์โหลดใบประเมินอุปกรณ์สำเร็จ", status: "success" });
+    setIsEquipmentModalOpen(false);
+    setSelectedRoomForEquipment("");
+  };
+
   const filteredRooms = rooms.filter(room => {
     const matchSearch = room.id.toLowerCase().includes(searchRoom.trim().toLowerCase()) ||
       room.tenantName.toLowerCase().includes(searchRoom.trim().toLowerCase());
@@ -770,7 +851,7 @@ export default function Rooms() {
                 colorScheme="purple"
                 variant="outline"
                 borderRadius="xl"
-                onClick={() => {}}
+                onClick={handleDownloadEquipmentAssessment}
               >
                 ใบประเมินอุปกรณ์
               </Button>
@@ -902,6 +983,36 @@ export default function Rooms() {
         rooms={filteredRooms}
         previousReadings={previousReadings}
       />
+
+      <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>ดาวน์โหลดใบประเมินอุปกรณ์</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Select
+              placeholder="เลือกห้องที่ต้องการดาวน์โหลด"
+              value={selectedRoomForEquipment}
+              onChange={e => setSelectedRoomForEquipment(e.target.value)}
+              mb={4}
+            >
+              {rooms.map(room => (
+                <option key={room.id} value={room.id}>
+                  ห้อง {room.id} ({room.tenantName})
+                </option>
+              ))}
+            </Select>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="gray" mr={3} onClick={() => setIsEquipmentModalOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button colorScheme="purple" onClick={handleConfirmEquipmentDownload}>
+              ดาวน์โหลด PDF
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </MainLayout>
   );
 }
