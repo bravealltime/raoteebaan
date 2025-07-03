@@ -6,15 +6,16 @@ import { AnimatePresence, motion } from "framer-motion";
 interface MainLayoutProps {
   children: React.ReactNode;
   role: string | null;
-  currentUser?: User | null; // Change to currentUser object
+  currentUser?: | null; // Change to currentUser object
+  showSidebar?: boolean; // Optional parameter to control sidebar visibility
 }
 
-export default function MainLayout({ children, role, currentUser }: MainLayoutProps) {
+export default function MainLayout({ children, role, currentUser, showSidebar = true }: MainLayoutProps) {
   return (
     <Box minH="100vh">
       <AppHeader currentUser={currentUser} />
       <Flex minH="100vh" p={0}>
-        <Sidebar role={role} />
+        {showSidebar && <Sidebar role={role} />}
         <AnimatePresence mode="wait">
           <motion.div
             key={typeof window !== 'undefined' ? window.location.pathname : 'static'}
