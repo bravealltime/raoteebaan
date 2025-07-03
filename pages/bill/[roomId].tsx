@@ -1,10 +1,11 @@
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
-import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure } from "@chakra-ui/react";
-import { db } from "../../lib/firebase";
+import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogCloseButton } from "@chakra-ui/react";
+import { db, auth } from "../../lib/firebase";
 import { collection, query, where, orderBy, limit, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { FaFileInvoice, FaArrowLeft, FaDownload, FaUpload, FaEye, FaTrash } from "react-icons/fa";
+import { onAuthStateChanged } from "firebase/auth";
+import { FaFileInvoice, FaArrowLeft, FaDownload, FaUpload, FaEye, FaTrash, FaCheckCircle } from "react-icons/fa";
 import Script from "next/script";
 import AppHeader from "../../components/AppHeader";
 
@@ -36,6 +37,10 @@ export default function BillDetail() {
   const [proofFile, setProofFile] = useState<File | null>(null);
   const { isOpen: isProofModalOpen, onOpen: onProofModalOpen, onClose: onProofModalClose } = useDisclosure();
   const [currentProofImageUrl, setCurrentProofImageUrl] = useState<string | null>(null);
+  const [isConfirmAlertOpen, setIsConfirmAlertOpen] = useState(false);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // Hardcode promptpay for now (replace with real data if available)
   const promptpay = "1209701702030";
@@ -45,6 +50,19 @@ export default function BillDetail() {
     avatar: "/avatar.png",
     greeting: "อาทิตย์ 21 มิ.ย. 2568"
   };
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setCurrentUser(user);
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          setUserRole(snap.data().role);
+        }
+      }
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     if (!roomId) return;
@@ -216,6 +234,9 @@ export default function BillDetail() {
   const handleUploadProof = async () => {
     if (!proofFile || !bill) return;
 
+    console.log("handleUploadProof: bill object:", bill);
+    console.log("handleUploadProof: bill.id:", bill.id);
+
     setUploadingProof(true);
     try {
       const storage = getStorage();
@@ -279,6 +300,43 @@ export default function BillDetail() {
       toast({
         title: "ลบหลักฐานไม่สำเร็จ",
         description: "เกิดข้อผิดพลาดในการลบหลักฐาน",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setUploadingProof(false);
+    }
+  };
+
+  const handleConfirmProof = async () => {
+    setIsConfirmAlertOpen(true); // Open the confirmation alert
+  };
+
+  const confirmMarkAsPaid = async () => {
+    setIsConfirmAlertOpen(false); // Close the alert
+    if (!bill) return;
+
+    setUploadingProof(true);
+    try {
+      const billDocRef = doc(db, "bills", bill.id);
+      await updateDoc(billDocRef, {
+        proofUrl: null,
+        status: "paid", // Mark bill as paid
+      });
+
+      setProofUrl(null);
+      toast({
+        title: "ยืนยันหลักฐานสำเร็จ",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error("Error confirming proof:", error);
+      toast({
+        title: "ยืนยันหลักฐานไม่สำเร็จ",
+        description: "เกิดข้อผิดพลาดในการยืนยันหลักฐาน",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -417,25 +475,53 @@ export default function BillDetail() {
               </Box>
               <Box mt={6} p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50">
                 <Heading size="md" mb={4} color="blue.700">อัปโหลดหลักฐานการชำระเงิน</Heading>
-                {!proofUrl ? (
-                  <VStack spacing={4}>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setProofFile(e.target.files ? e.target.files[0] : null)}
-                    />
-                    <Button
-                      colorScheme="blue"
-                      onClick={handleUploadProof}
-                      isLoading={uploadingProof}
-                      isDisabled={!proofFile || uploadingProof}
-                      leftIcon={<Icon as={FaUpload} />}
-                      w="full"
-                    >
-                      {uploadingProof ? "กำลังอัปโหลด..." : "อัปโหลดสลิป"}
-                    </Button>
-                  </VStack>
-                ) : (
+                {userRole === "user" ? (
+                  !proofUrl ? (
+                    <VStack spacing={4}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setProofFile(e.target.files ? e.target.files[0] : null)}
+                      />
+                      <Button
+                        colorScheme="blue"
+                        onClick={handleUploadProof}
+                        isLoading={uploadingProof}
+                        isDisabled={!proofFile || uploadingProof}
+                        leftIcon={<Icon as={FaUpload} />}
+                        w="full"
+                      >
+                        {uploadingProof ? "กำลังอัปโหลด..." : "อัปโหลดสลิป"}
+                      </Button>
+                    </VStack>
+                  ) : (
+                    <VStack spacing={4}>
+                      <Text fontWeight="bold" color="green.600">หลักฐานการชำระเงินถูกอัปโหลดแล้ว</Text>
+                      <Image src={proofUrl} alt="Payment Proof" maxW="200px" borderRadius="md" />
+                      <HStack>
+                        <Button
+                          colorScheme="teal"
+                          onClick={() => {
+                            setCurrentProofImageUrl(proofUrl);
+                            onProofModalOpen();
+                          }}
+                          leftIcon={<Icon as={FaEye} />}
+                        >
+                          ดูหลักฐาน
+                        </Button>
+                        <Button
+                          colorScheme="red"
+                          onClick={handleDeleteProof}
+                          isLoading={uploadingProof}
+                          isDisabled={uploadingProof}
+                          leftIcon={<Icon as={FaTrash} />}
+                        >
+                          ลบหลักฐาน
+                        </Button>
+                      </HStack>
+                    </VStack>
+                  )
+                ) : (userRole === "owner" || userRole === "admin") && proofUrl ? (
                   <VStack spacing={4}>
                     <Text fontWeight="bold" color="green.600">หลักฐานการชำระเงินถูกอัปโหลดแล้ว</Text>
                     <Image src={proofUrl} alt="Payment Proof" maxW="200px" borderRadius="md" />
@@ -451,6 +537,15 @@ export default function BillDetail() {
                         ดูหลักฐาน
                       </Button>
                       <Button
+                        colorScheme="green"
+                        onClick={handleConfirmProof}
+                        isLoading={uploadingProof}
+                        isDisabled={uploadingProof}
+                        leftIcon={<Icon as={FaCheckCircle} />}
+                      >
+                        ยืนยันหลักฐาน
+                      </Button>
+                      <Button
                         colorScheme="red"
                         onClick={handleDeleteProof}
                         isLoading={uploadingProof}
@@ -461,6 +556,8 @@ export default function BillDetail() {
                       </Button>
                     </HStack>
                   </VStack>
+                ) : (
+                  <Text color="gray.500">ไม่มีหลักฐานการชำระเงิน</Text>
                 )}
               </Box>
             </div>
@@ -491,6 +588,34 @@ export default function BillDetail() {
           </ModalBody>
         </ModalContent>
       </Modal>
+
+      {/* Confirmation AlertDialog for Marking as Paid */}
+      <AlertDialog
+        isOpen={isConfirmAlertOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={() => setIsConfirmAlertOpen(false)}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              ยืนยันการชำระเงิน
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              คุณแน่ใจหรือไม่ว่าต้องการยืนยันว่าบิลนี้ชำระแล้ว?
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={() => setIsConfirmAlertOpen(false)}>
+                ยกเลิก
+              </Button>
+              <Button colorScheme="green" onClick={confirmMarkAsPaid} ml={3}>
+                ยืนยัน
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </>
   );
 } 

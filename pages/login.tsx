@@ -49,6 +49,8 @@ export default function Login() {
 
           if (userRole === "admin") {
             router.push("/dashboard");
+          } else if (userRole === "user") {
+            router.push("/tenant-dashboard");
           } else {
             router.push("/");
           }

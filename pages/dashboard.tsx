@@ -1,4 +1,4 @@
-import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner } from "@chakra-ui/react";
+import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Image } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db, auth } from "../lib/firebase";
 import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc } from "firebase/firestore";
@@ -6,7 +6,7 @@ import RoomCard from "../components/RoomCard";
 import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
 import AppHeader from "../components/AppHeader";
-import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf } from "react-icons/fa";
+import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaEye, FaCheckCircle } from "react-icons/fa";
 import { saveAs } from "file-saver";
 import Papa from "papaparse";
 import EditRoomModal from "../components/EditRoomModal";
@@ -28,6 +28,8 @@ interface Room {
   service: number;
   overdueDays: number;
   billStatus: string;
+  proofUrl?: string;
+  latestBillId?: string;
 }
 
 function generateSampleRoomsCSV() {
@@ -94,6 +96,8 @@ export default function Dashboard() {
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
   const [role, setRole] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any | null>(null); // Add currentUser state
+  const [proofImageUrl, setProofImageUrl] = useState<string | null>(null);
+  const { isOpen: isProofModalOpen, onOpen: onProofModalOpen, onClose: onProofModalClose } = useDisclosure();
 
   const user = {
     name: "xxx",
@@ -125,7 +129,7 @@ export default function Dashboard() {
         role: userRole,
         photoURL: firestoreData.avatar || u.photoURL || undefined,
       });
-      if (userRole !== "admin") {
+        if (role !== "admin" && role !== "owner") return null;
         if (userRole === "owner") {
           router.replace("/");
           return;
@@ -145,8 +149,26 @@ export default function Dashboard() {
       setLoading(true);
       try {
         const querySnapshot = await getDocs(collection(db, "rooms"));
-        let data: Room[] = querySnapshot.docs.map(doc => {
+        let data: Room[] = await Promise.all(querySnapshot.docs.map(async doc => {
           const d = doc.data();
+          let billStatus = d.billStatus || "paid";
+          let proofUrl = null;
+
+          // Fetch latest bill for billStatus and proofUrl
+          const q = query(
+            collection(db, "bills"),
+            where("roomId", "==", doc.id),
+            orderBy("createdAt", "desc"),
+            limit(1)
+          );
+          const billSnap = await getDocs(q);
+          if (!billSnap.empty) {
+            const latestBill = billSnap.docs[0].data();
+            billStatus = latestBill.status || billStatus;
+            proofUrl = latestBill.proofUrl || null;
+            latestBillId = billSnap.docs[0].id; // Assign the bill ID here
+          }
+
           return {
             id: doc.id,
             status: d.status || "occupied",
@@ -158,9 +180,11 @@ export default function Dashboard() {
             rent: d.rent || 0,
             service: d.service || 0,
             overdueDays: d.overdueDays || 0,
-            billStatus: d.billStatus || "paid",
+            billStatus: billStatus,
+            proofUrl: proofUrl,
+            latestBillId: latestBillId, // Include latestBillId here
           };
-        });
+        }));
         setRooms(data);
       } catch (e) {
         toast({ title: "โหลดข้อมูลห้องพักล้มเหลว", status: "error" });
@@ -269,6 +293,59 @@ export default function Dashboard() {
       toast({ title: "บันทึกข้อมูลห้องไม่สำเร็จ", status: "error" });
     }
     setEditRoom(null);
+  };
+
+  const handleMarkAsPaid = async (roomId: string, billId: string) => {
+    try {
+      await setDoc(doc(db, "bills", billId), { status: "paid", proofUrl: null }, { merge: true });
+      // Optionally update room status if needed
+      await setDoc(doc(db, "rooms", roomId), { billStatus: "paid" }, { merge: true });
+      toast({ title: "ทำเครื่องหมายว่าชำระแล้วสำเร็จ", status: "success" });
+      // Refresh rooms data to reflect changes
+      const querySnapshot = await getDocs(collection(db, "rooms"));
+      let data: Room[] = await Promise.all(querySnapshot.docs.map(async doc => {
+        const d = doc.data();
+        let billStatus = d.billStatus || "paid";
+        let proofUrl = null;
+
+        const q = query(
+          collection(db, "bills"),
+          where("roomId", "==", doc.id),
+          orderBy("createdAt", "desc"),
+          limit(1)
+        );
+        const billSnap = await getDocs(q);
+        if (!billSnap.empty) {
+          const latestBill = billSnap.docs[0].data();
+          billStatus = latestBill.status || billStatus;
+          proofUrl = latestBill.proofUrl || null;
+        }
+
+        return {
+          id: doc.id,
+          status: d.status || "occupied",
+          tenantName: d.tenantName || "-",
+          area: d.area || 0,
+          latestTotal: d.latestTotal || 0,
+          electricity: d.electricity || 0,
+          water: d.water || 0,
+          rent: d.rent || 0,
+          service: d.service || 0,
+          overdueDays: d.overdueDays || 0,
+          billStatus: billStatus,
+          proofUrl: proofUrl,
+        };
+      }));
+      setRooms(data);
+    } catch (e) {
+      console.error("Error marking as paid:", e);
+      toast({ title: "ทำเครื่องหมายว่าชำระแล้วไม่สำเร็จ", status: "error" });
+    }
+  };
+
+  const handleViewProof = (url: string) => {
+    setProofImageUrl(url);
+    onProofModalOpen();
   };
 
   function handleImportCSV(e: React.ChangeEvent<HTMLInputElement>) {
@@ -490,17 +567,134 @@ export default function Dashboard() {
     return matchSearch && matchFilter;
   });
 
-  if (role === null) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
-  if (role !== "admin") return null;
-
   return (
     <MainLayout role={role} currentUser={currentUser}>
-      <Flex align="center" justify="center" flex={1} minH="80vh">
-        <Box bg="white" borderRadius="2xl" boxShadow="xl" p={12} textAlign="center">
-          <Heading fontSize="3xl" color="blue.600" mb={4}>Dashboard</Heading>
-          <Text color="gray.600">สรุปข้อมูลภาพรวมระบบ (Coming soon...)</Text>
-        </Box>
-      </Flex>
+      <Box p={[2, 4, 8]}>
+        <Flex mb={4} gap={2} align="center" flexWrap="wrap">
+          <Button
+            leftIcon={<FaHome />}
+            colorScheme="blue"
+            variant="solid"
+            borderRadius="xl"
+            fontWeight="bold"
+            mr={2}
+          >
+            จัดการห้อง
+          </Button>
+          <Button
+            leftIcon={<FaFilter />}
+            colorScheme="gray"
+            variant="ghost"
+            borderRadius="xl"
+            fontWeight="bold"
+            mr={2}
+            onClick={() => setFilterType(filterType === 'unpaid' ? 'all' : 'unpaid')}
+          >
+            {filterType === 'unpaid' ? 'แสดงทั้งหมด' : 'บิลค้างชำระ'}
+          </Button>
+          <Button
+            leftIcon={<FaFilter />}
+            colorScheme="gray"
+            variant="ghost"
+            borderRadius="xl"
+            fontWeight="bold"
+            mr={2}
+            onClick={() => setFilterType(filterType === 'vacant' ? 'all' : 'vacant')}
+          >
+            {filterType === 'vacant' ? 'แสดงทั้งหมด' : 'ห้องว่าง'}
+          </Button>
+          <Input
+            placeholder="ค้นหาห้อง..."
+            maxW="220px"
+            bg="gray.50"
+            borderRadius="xl"
+            color="gray.800"
+            mr={2}
+            value={searchRoom}
+            onChange={(e) => setSearchRoom(e.target.value)}
+          />
+          <Button
+            leftIcon={<FaPlus />}
+            colorScheme="green"
+            borderRadius="xl"
+            fontWeight="bold"
+            ml="auto"
+            onClick={onOpen}
+          >
+            เพิ่มห้องใหม่
+          </Button>
+        </Flex>
+
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+          {filteredRooms.map((room) => (
+            <RoomCard
+              key={room.id}
+              id={room.id}
+              status={room.status}
+              tenantName={room.tenantName}
+              area={room.area}
+              latestTotal={room.latestTotal}
+              electricity={room.electricity}
+              water={room.water}
+              rent={room.rent}
+              service={room.service}
+              overdueDays={room.overdueDays}
+              billStatus={room.billStatus}
+              proofUrl={room.proofUrl}
+              role={role}
+              onViewBill={() => handleViewBill(room.id)}
+              onAddData={() => handleAddData(room.id)}
+              onDelete={() => handleDelete(room.id)}
+              onSettings={() => handleSettings(room.id)}
+              onViewProof={() => room.proofUrl && handleViewProof(room.proofUrl)}
+              onMarkAsPaid={() => room.latestBillId && handleMarkAsPaid(room.id, room.latestBillId)}
+            />
+          ))}
+        </SimpleGrid>
+
+        {/* Proof Image Modal */}
+        <Modal isOpen={isProofModalOpen} onClose={onProofModalClose} isCentered size="xl">
+          <ModalOverlay />
+          <ModalContent>
+            <ModalCloseButton />
+            <ModalBody p={4}>
+              {proofImageUrl && (
+                <Image src={proofImageUrl} alt="Payment Proof" maxW="full" maxH="80vh" objectFit="contain" />
+              )}
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+
+        <AddRoomModal isOpen={isOpen} onClose={onClose} onAddRoom={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} />
+        {editRoom && (
+          <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} room={editRoom} onSave={handleSaveEditRoom} />
+        )}
+
+        <AlertDialog
+          isOpen={isDialogOpen}
+          leastDestructiveRef={cancelRef}
+          onClose={() => setIsDialogOpen(false)}
+        >
+          <AlertDialogOverlay>
+            <AlertDialogContent>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                ลบห้อง
+              </AlertDialogHeader>
+              <AlertDialogBody>
+                คุณแน่ใจหรือไม่ว่าต้องการลบห้องนี้? การกระทำนี้ไม่สามารถย้อนกลับได้
+              </AlertDialogBody>
+              <AlertDialogFooter>
+                <Button ref={cancelRef} onClick={() => setIsDialogOpen(false)}>
+                  ยกเลิก
+                </Button>
+                <Button colorScheme="red" onClick={confirmDelete} ml={3}>
+                  ลบ
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
+      </Box>
     </MainLayout>
   );
 } 

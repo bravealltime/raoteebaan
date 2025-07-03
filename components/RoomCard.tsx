@@ -23,6 +23,7 @@ interface RoomCardProps {
   onViewProof?: () => void;
   onMarkAsPaid?: () => void;
   onDeleteProof?: () => void;
+  proofUrl?: string;
 }
 
 const statusMap = {
