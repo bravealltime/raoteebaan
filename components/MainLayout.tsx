@@ -1,4 +1,4 @@
-import { Flex, Box } from "@chakra-ui/react";
+import { Flex, Box, Modal, ModalOverlay, ModalContent, ModalCloseButton, ModalBody, Image } from "@chakra-ui/react";
 import AppHeader from "./AppHeader";
 import Sidebar from "./Sidebar";
 import { AnimatePresence, motion } from "framer-motion";
@@ -6,11 +6,15 @@ import { AnimatePresence, motion } from "framer-motion";
 interface MainLayoutProps {
   children: React.ReactNode;
   role: string | null;
-  currentUser?: any | null; // Change to currentUser object
-  showSidebar?: boolean; // Optional parameter to control sidebar visibility
+  currentUser?: any | null;
+  showSidebar?: boolean;
+  isProofModalOpen?: boolean;
+  onProofModalClose?: () => void;
+  proofImageUrl?: string | null;
 }
 
-export default function MainLayout({ children, role, currentUser, showSidebar = true }: MainLayoutProps) {
+export default function MainLayout({ children, role, currentUser, showSidebar = true, isProofModalOpen, onProofModalClose, proofImageUrl }: MainLayoutProps) {
+  console.log("[DEBUG] MainLayout props:", { isProofModalOpen, proofImageUrl });
   return (
     <Box minH="100vh">
       <AppHeader currentUser={currentUser} />
@@ -29,6 +33,19 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
           </motion.div>
         </AnimatePresence>
       </Flex>
+
+      {/* Proof Image Modal */}
+      <Modal isOpen={isProofModalOpen || false} onClose={onProofModalClose || (() => {})} isCentered size="xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalCloseButton />
+          <ModalBody p={4}>
+            {proofImageUrl && (
+              <Image src={proofImageUrl} alt="Payment Proof" maxW="full" maxH="80vh" objectFit="contain" />
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 } 

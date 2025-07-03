@@ -181,12 +181,13 @@ export default function Dashboard() {
           latestBillId = billSnap.docs[0].id;
         }
         
-        // Ensure the billStatus from the room document is used
         billStatus = d.billStatus || "paid";
 
-          return {
-            id: doc.id,
-            status: d.status || "occupied",
+        console.log(`[DEBUG] Data for Room ${doc.id}:`, { roomData: d, latestBillId, proofUrl, finalBillStatus: billStatus });
+
+        return {
+          id: doc.id,
+          status: d.status || "occupied",
             tenantName: d.tenantName || "-",
             area: d.area || 0,
             latestTotal: d.latestTotal || 0,
@@ -604,7 +605,13 @@ export default function Dashboard() {
   });
 
   return (
-    <MainLayout role={role} currentUser={currentUser}>
+    <MainLayout 
+      role={role} 
+      currentUser={currentUser}
+      isProofModalOpen={isProofModalOpen}
+      onProofModalClose={onProofModalClose}
+      proofImageUrl={proofImageUrl}
+    >
       <Box p={[2, 4, 8]}>
         <Flex mb={4} gap={2} align="center" flexWrap="wrap">
           <Button
