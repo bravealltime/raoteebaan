@@ -142,7 +142,7 @@ export default function Dashboard() {
       }
     });
     return () => unsub();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const fetchRooms = async () => {
