@@ -76,7 +76,10 @@ The system supports multiple user roles with distinct permissions and views:
 
 ### `users` Collection
 ```typescript
+import { Timestamp } from "firebase/firestore";
+
 interface User {
+  uid: string;
   name: string;
   email: string;
   role: "admin" | "owner" | "employee" | "user";
@@ -85,8 +88,9 @@ interface User {
   phoneNumber?: string;
   roomId?: string;      // For tenants
   tenantId?: string;    // User ID reference
-  joinedDate?: string;
   roomNumber?: string;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 ```
 
@@ -116,13 +120,15 @@ interface Room {
 
 ### `bills` Collection
 ```typescript
+import { Timestamp } from "firebase/firestore";
+
 interface Bill {
-  id: string;
   roomId: string;
   tenantId?: string;
-  createdAt: Date;
-  date: Date;              // Bill date
-  dueDate: Date;           // Payment due date
+  tenantName?: string;
+  createdAt: Timestamp;
+  date: Timestamp;              // Bill date
+  dueDate: Timestamp;           // Payment due date
   status: "unpaid" | "pending" | "paid";
   
   // Electricity details
@@ -149,24 +155,20 @@ interface Bill {
   total: number;
   
   // Payment tracking
-  proofUrl?: string;       // Payment slip image URL
   slipUrl?: string;        // Discord webhook URL
   paidAmount?: number;
-  paidAt?: Date;
+  paidAt?: Timestamp;
 }
 ```
 
 ### `conversations` Collection
 ```typescript
+import { Timestamp } from "firebase/firestore";
+import { User } from "./users"; // Assuming User interface is in a separate file
+
 interface Conversation {
-  id: string;
-  participants: string[];   // Array of user IDs
-  lastMessage: {
-    text: string;
-    senderId: string;
-    isRead?: boolean;
-    receiverId?: string;
-  };
+  participants: User[];
+  lastMessage: string;
   updatedAt: Timestamp;
 }
 ```
@@ -174,12 +176,11 @@ interface Conversation {
 ### `messages` Subcollection (under conversations)
 ```typescript
 interface Message {
-  id: string;
   senderId: string;
   receiverId?: string;
   text?: string;
   imageUrl?: string;
-  timestamp: Timestamp;
+  timestamp: any;
   isRead?: boolean;
 }
 ```
