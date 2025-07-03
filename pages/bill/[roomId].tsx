@@ -1,9 +1,10 @@
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
-import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure } from "@chakra-ui/react";
 import { db } from "../../lib/firebase";
-import { collection, query, where, orderBy, limit, getDocs, doc, getDoc } from "firebase/firestore";
-import { FaFileInvoice, FaArrowLeft, FaDownload } from "react-icons/fa";
+import { collection, query, where, orderBy, limit, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { FaFileInvoice, FaArrowLeft, FaDownload, FaUpload, FaEye, FaTrash } from "react-icons/fa";
 import Script from "next/script";
 import AppHeader from "../../components/AppHeader";
 
@@ -24,11 +25,17 @@ const mockBill = {
 
 export default function BillDetail() {
   const router = useRouter();
+  const toast = useToast();
   const { roomId } = router.query;
   const [bill, setBill] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [qr, setQr] = useState<string | null>(null);
   const pdfRef = useRef<HTMLDivElement>(null);
+  const [uploadingProof, setUploadingProof] = useState(false);
+  const [proofUrl, setProofUrl] = useState<string | null>(null);
+  const [proofFile, setProofFile] = useState<File | null>(null);
+  const { isOpen: isProofModalOpen, onOpen: onProofModalOpen, onClose: onProofModalClose } = useDisclosure();
+  const [currentProofImageUrl, setCurrentProofImageUrl] = useState<string | null>(null);
 
   // Hardcode promptpay for now (replace with real data if available)
   const promptpay = "1209701702030";
@@ -121,6 +128,7 @@ export default function BillDetail() {
           const formatDate = (dateObj: Date) => dateObj.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
           const finalBill = {
+            id: snap.docs[0].id, // Add the bill document ID here
             date: formatDate(billDate),
             dueDate: formatDate(dueDate),
             room: d.roomId,
@@ -134,10 +142,12 @@ export default function BillDetail() {
             status: roomData?.status || "vacant",
             overdueDays: overdueDays,
             billStatus: d.status || "unpaid",
+            proofUrl: d.proofUrl || null, // Fetch existing proof URL
           };
 
           console.log('[DEBUG] mapped bill for setBill:', finalBill);
           setBill(finalBill);
+          setProofUrl(d.proofUrl || null); // Set proofUrl state
         } else {
           setBill(null);
         }
@@ -151,14 +161,6 @@ export default function BillDetail() {
   }, [roomId]);
 
   useEffect(() => {
-    console.log('QR Generation useEffect triggered:', {
-      window: typeof window !== "undefined",
-      ThaiQRCode: typeof window !== "undefined" ? !!(window as any).ThaiQRCode : false,
-      promptpay: bill?.promptpay,
-      total: bill?.total,
-      qr: qr
-    });
-    
     if (typeof window !== "undefined" && (window as any).ThaiQRCode && bill?.promptpay && bill?.total) {
       try {
         const qrData = (window as any).ThaiQRCode.generate(bill.promptpay, { amount: bill.total });
@@ -166,13 +168,6 @@ export default function BillDetail() {
       } catch (error) {
         console.error('Error generating QR code:', error);
       }
-    } else {
-      console.log('QR generation conditions not met:', {
-        hasWindow: typeof window !== "undefined",
-        hasThaiQRCode: typeof window !== "undefined" ? !!(window as any).ThaiQRCode : false,
-        hasPromptpay: !!bill?.promptpay,
-        hasTotal: !!bill?.total
-      });
     }
   }, [bill?.promptpay, bill?.total]);
 
@@ -203,41 +198,6 @@ export default function BillDetail() {
     console.log('window.qrcode:', typeof window !== "undefined" ? (window as any).qrcode : undefined);
   }, []);
 
-  useEffect(() => {
-    const loadQrcodeGenerator = () => {
-      if (typeof window !== "undefined" && !(window as any).qrcode) {
-        const script1 = document.createElement('script');
-        script1.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.5.0/qrcode.min.js';
-        script1.async = false;
-        script1.onload = () => {
-          console.log('qrcode-generator loaded');
-          loadPromptpayScript();
-        };
-        document.body.appendChild(script1);
-      } else {
-        // qrcode-generator is already loaded, proceed to load promptpay.js
-        loadPromptpayScript();
-      }
-    };
-
-    const loadPromptpayScript = () => {
-      if (typeof window !== "undefined" && !(window as any).ThaiQRCode) {
-        const script2 = document.createElement('script');
-        script2.src = '/scripts/promptpay.js';
-        script2.async = false;
-        script2.onload = () => {
-          console.log('promptpay.js loaded');
-        };
-        document.body.appendChild(script2);
-      }
-    };
-
-    loadQrcodeGenerator();
-
-    // No explicit cleanup needed for global scripts if we ensure they are loaded only once.
-    // The checks for `window.qrcode` and `window.ThaiQRCode` prevent re-appending.
-  }, []);
-
   const handleExportPDF = async () => {
     if (!pdfRef.current) return;
     // โหลด html2pdf เฉพาะฝั่ง client
@@ -253,11 +213,88 @@ export default function BillDetail() {
       .save();
   };
 
+  const handleUploadProof = async () => {
+    if (!proofFile || !bill) return;
+
+    setUploadingProof(true);
+    try {
+      const storage = getStorage();
+      const storageRefPath = `proofs/${bill.room}/${bill.id}_${Date.now()}_${proofFile.name}`;
+      const fileRef = storageRef(storage, storageRefPath);
+      await uploadBytes(fileRef, proofFile);
+      const downloadURL = await getDownloadURL(fileRef);
+
+      const billDocRef = doc(db, "bills", bill.id);
+      await updateDoc(billDocRef, {
+        proofUrl: downloadURL,
+        status: "pending", // Change bill status to pending after proof upload
+      });
+
+      setProofUrl(downloadURL);
+      setProofFile(null);
+      toast({
+        title: "อัปโหลดหลักฐานสำเร็จ",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error("Error uploading proof:", error);
+      toast({
+        title: "อัปโหลดหลักฐานไม่สำเร็จ",
+        description: "เกิดข้อผิดพลาดในการอัปโหลดหลักฐาน",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setUploadingProof(false);
+    }
+  };
+
+  const handleDeleteProof = async () => {
+    if (!proofUrl || !bill) return;
+
+    setUploadingProof(true); // Use the same loading state for delete operation
+    try {
+      const storage = getStorage();
+      const fileRef = storageRef(storage, proofUrl); // Create ref from URL
+      await deleteObject(fileRef);
+
+      const billDocRef = doc(db, "bills", bill.id);
+      await updateDoc(billDocRef, {
+        proofUrl: null,
+        status: "unpaid", // Change bill status back to unpaid after proof delete
+      });
+
+      setProofUrl(null);
+      toast({
+        title: "ลบหลักฐานสำเร็จ",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error("Error deleting proof:", error);
+      toast({
+        title: "ลบหลักฐานไม่สำเร็จ",
+        description: "เกิดข้อผิดพลาดในการลบหลักฐาน",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setUploadingProof(false);
+    }
+  };
+
   if (loading) return <Flex minH="100vh" align="center" justify="center"><Spinner size="xl" /></Flex>;
   if (!bill) return <Box p={8}><Text>ไม่พบข้อมูลบิล</Text></Box>;
 
   return (
     <>
+      <Script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.5.0/qrcode.min.js" strategy="afterInteractive" />
+      <Script src="/scripts/promptpay.js" strategy="afterInteractive" />
       <AppHeader user={user} />
       <Flex minH="100vh" align="center" justify="center" bgGradient="linear(to-br, brand.50, brand.100)" p={[1, 2, 4]}>
         <Box w="full" display="flex" flexDirection="column" alignItems="center">
@@ -378,6 +415,54 @@ export default function BillDetail() {
                   <li>แจ้งสลิปหรือหลักฐานการชำระเงินกับผู้ดูแล</li>
                 </ul>
               </Box>
+              <Box mt={6} p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50">
+                <Heading size="md" mb={4} color="blue.700">อัปโหลดหลักฐานการชำระเงิน</Heading>
+                {!proofUrl ? (
+                  <VStack spacing={4}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setProofFile(e.target.files ? e.target.files[0] : null)}
+                    />
+                    <Button
+                      colorScheme="blue"
+                      onClick={handleUploadProof}
+                      isLoading={uploadingProof}
+                      isDisabled={!proofFile || uploadingProof}
+                      leftIcon={<Icon as={FaUpload} />}
+                      w="full"
+                    >
+                      {uploadingProof ? "กำลังอัปโหลด..." : "อัปโหลดสลิป"}
+                    </Button>
+                  </VStack>
+                ) : (
+                  <VStack spacing={4}>
+                    <Text fontWeight="bold" color="green.600">หลักฐานการชำระเงินถูกอัปโหลดแล้ว</Text>
+                    <Image src={proofUrl} alt="Payment Proof" maxW="200px" borderRadius="md" />
+                    <HStack>
+                      <Button
+                        colorScheme="teal"
+                        onClick={() => {
+                          setCurrentProofImageUrl(proofUrl);
+                          onProofModalOpen();
+                        }}
+                        leftIcon={<Icon as={FaEye} />}
+                      >
+                        ดูหลักฐาน
+                      </Button>
+                      <Button
+                        colorScheme="red"
+                        onClick={handleDeleteProof}
+                        isLoading={uploadingProof}
+                        isDisabled={uploadingProof}
+                        leftIcon={<Icon as={FaTrash} />}
+                      >
+                        ลบหลักฐาน
+                      </Button>
+                    </HStack>
+                  </VStack>
+                )}
+              </Box>
             </div>
           </Box>
           <Button
@@ -393,6 +478,19 @@ export default function BillDetail() {
           </Button>
         </Box>
       </Flex>
+
+      {/* Proof Image Modal */}
+      <Modal isOpen={isProofModalOpen} onClose={onProofModalClose} isCentered size="xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalCloseButton />
+          <ModalBody p={4}>
+            {currentProofImageUrl && (
+              <Image src={currentProofImageUrl} alt="Payment Proof" maxW="full" maxH="80vh" objectFit="contain" />
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </>
   );
 } 

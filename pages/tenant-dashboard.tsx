@@ -67,6 +67,7 @@ export default function TenantDashboard() {
               avatar: data.avatar || user.photoURL || "",
               role: data.role || "user",
               status: data.status || "active",
+              roomId: data.roomId, // This is where roomId is set
               tenantId: data.tenantId,
               phoneNumber: data.phoneNumber,
               joinedDate: data.joinedDate || user.metadata?.creationTime?.split("T")[0],
@@ -383,10 +384,10 @@ export default function TenantDashboard() {
               <Button leftIcon={<FaFileInvoice />} colorScheme="brand" onClick={() => router.push("/inbox")}>
                 ข้อความ
               </Button>
-              <Button leftIcon={<FaCreditCard />} colorScheme="green" onClick={() => userData?.roomId && router.push(`/bill/${userData.roomId}`)}>
+              <Button leftIcon={<FaCreditCard />} colorScheme="green" onClick={() => roomData?.id && router.push(`/bill/${roomData.id}`)}>
                 ชำระเงิน
               </Button>
-              <Button leftIcon={<FaCalendarAlt />} colorScheme="purple" onClick={() => userData?.roomId && router.push(`/history/${userData.roomId}`)}>
+              <Button leftIcon={<FaCalendarAlt />} colorScheme="purple" onClick={() => roomData?.id && router.push(`/history/${roomData.id}`)}>
                 ประวัติ
               </Button>
               <Button leftIcon={<FaUser />} colorScheme="gray" onClick={() => router.push("/profile")}>

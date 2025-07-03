@@ -85,6 +85,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (role === 'user' && roomId) {
           userData.roomId = roomId;
+          // Update the room document with the new tenantId
+          await admin.firestore().collection('rooms').doc(roomId).set(
+            { tenantId: userRecord.uid, tenantName: name, status: "occupied" },
+            { merge: true }
+          );
+          console.log(`Room ${roomId} updated with tenantId: ${userRecord.uid}`);
         }
 
         await admin.firestore().collection('users').doc(userRecord.uid).set(userData);

@@ -5,8 +5,9 @@ import {
 } from "@chakra-ui/react";
 import { FaArrowLeft, FaCalculator, FaBolt, FaTint, FaTrash } from "react-icons/fa";
 import AppHeader from "../../components/AppHeader";
-import { db } from "../../lib/firebase";
+import { db, auth } from "../../lib/firebase";
 import { collection, addDoc, query, where, orderBy, limit, getDocs, deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function HistoryRoom() {
   const router = useRouter();
@@ -19,6 +20,23 @@ export default function HistoryRoom() {
   const isMobile = useBreakpointValue({ base: true, md: false });
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const cancelRef = useRef<any>(null);
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setCurrentUser(user);
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists()) {
+          setUserRole(snap.data().role);
+        }
+      } else {
+        router.replace("/login");
+      }
+    });
+    return () => unsub();
+  }, [router]);
 
   // โหลดข้อมูลห้องจาก Firestore
   useEffect(() => {
@@ -302,80 +320,84 @@ export default function HistoryRoom() {
             </Flex>
           </Box>
         )}
-        <Flex gap={6} flexWrap="wrap" mb={8}>
-          {/* Card: บันทึกค่าไฟฟ้า */}
-          <Box flex={1} minW="320px" bg="white" borderRadius="2xl" boxShadow="0 2px 16px 0 rgba(33,150,243,0.10)" p={[4, 6]}>
-            <Flex align="center" mb={4} gap={2}>
-              <Icon as={FaBolt} color="yellow.400" boxSize={6} />
-              <Text fontWeight="bold" fontSize="lg" color="blue.700">บันทึกค่าไฟฟ้ารอบใหม่</Text>
-            </Flex>
-            <Flex gap={3} mb={4}>
-              <Box flex={1} minW="120px">
-                <Text mb={1} color="gray.600">วันที่จด</Text>
-                <Input type="date" value={electricity.date} onChange={e => setElectricity({ ...electricity, date: e.target.value })} size="lg" bg="gray.50" />
+        {userRole !== 'user' && (
+          <Flex gap={6} flexWrap="wrap" mb={8}>
+            {/* Card: บันทึกค่าไฟฟ้า */}
+            <Box flex={1} minW="320px" bg="white" borderRadius="2xl" boxShadow="0 2px 16px 0 rgba(33,150,243,0.10)" p={[4, 6]}>
+              <Flex align="center" mb={4} gap={2}>
+                <Icon as={FaBolt} color="yellow.400" boxSize={6} />
+                <Text fontWeight="bold" fontSize="lg" color="blue.700">บันทึกค่าไฟฟ้ารอบใหม่</Text>
+              </Flex>
+              <Flex gap={3} mb={4}>
+                <Box flex={1} minW="120px">
+                  <Text mb={1} color="gray.600">วันที่จด</Text>
+                  <Input type="date" value={electricity.date} onChange={e => setElectricity({ ...electricity, date: e.target.value })} size="lg" bg="gray.50" />
+                </Box>
+                <Box flex={1} minW="120px">
+                  <Text mb={1} color="gray.600">วันครบกำหนด</Text>
+                  <Input type="date" value={electricity.dueDate} onChange={e => setElectricity({ ...electricity, dueDate: e.target.value })} size="lg" bg="gray.50" />
+                </Box>
+              </Flex>
+              <Box mb={3}>
+                <Text mb={1} color="gray.600">เลขมิเตอร์ปัจจุบัน</Text>
+                <InputGroup>
+                  <InputLeftElement pointerEvents="none"><FaBolt color="#fbbf24" /></InputLeftElement>
+                  <Input placeholder="เลขมิเตอร์" value={electricity.meter} onChange={e => setElectricity({ ...electricity, meter: e.target.value })} size="lg" bg="gray.50" />
+                </InputGroup>
               </Box>
-              <Box flex={1} minW="120px">
-                <Text mb={1} color="gray.600">วันครบกำหนด</Text>
-                <Input type="date" value={electricity.dueDate} onChange={e => setElectricity({ ...electricity, dueDate: e.target.value })} size="lg" bg="gray.50" />
+              <Box mb={3}>
+                <Text mb={1} color="gray.600">ค่ามิเตอร์ครั้งก่อน</Text>
+                <Input value={electricity.prev} isReadOnly size="lg" bg="gray.100" color="gray.500" />
+                <Text fontSize="xs" color="gray.400" mt={1}>
+                  {roomData ? 'จากข้อมูลห้อง' : history.length > 0 ? 'จากประวัติล่าสุด' : 'ไม่มีข้อมูล'}
+                </Text>
               </Box>
-            </Flex>
-            <Box mb={3}>
-              <Text mb={1} color="gray.600">เลขมิเตอร์ปัจจุบัน</Text>
-              <InputGroup>
-                <InputLeftElement pointerEvents="none"><FaBolt color="#fbbf24" /></InputLeftElement>
-                <Input placeholder="เลขมิเตอร์" value={electricity.meter} onChange={e => setElectricity({ ...electricity, meter: e.target.value })} size="lg" bg="gray.50" />
-              </InputGroup>
+              <Box mb={3}>
+                <Text mb={1} color="gray.600">เรทค่าไฟ (บาท/หน่วย)</Text>
+                <Input placeholder="เช่น 4.5" value={electricity.rate} onChange={e => setElectricity({ ...electricity, rate: e.target.value })} size="lg" bg="gray.50" type="number" min="0" step="0.01" />
+                <Text fontSize="xs" color="gray.400" mt={1}>
+                  {history.length > 0 ? 'จากประวัติล่าสุด' : 'ค่าเริ่มต้น'}
+                </Text>
+              </Box>
             </Box>
-            <Box mb={3}>
-              <Text mb={1} color="gray.600">ค่ามิเตอร์ครั้งก่อน</Text>
-              <Input value={electricity.prev} isReadOnly size="lg" bg="gray.100" color="gray.500" />
-              <Text fontSize="xs" color="gray.400" mt={1}>
-                {roomData ? 'จากข้อมูลห้อง' : history.length > 0 ? 'จากประวัติล่าสุด' : 'ไม่มีข้อมูล'}
-              </Text>
+            {/* Card: บันทึกค่าน้ำ */}
+            <Box flex={1} minW="320px" bg="white" borderRadius="2xl" boxShadow="0 2px 16px 0 rgba(33,150,243,0.10)" p={[4, 6]}>
+              <Flex align="center" mb={4} gap={2}>
+                <Icon as={FaTint} color="blue.400" boxSize={6} />
+                <Text fontWeight="bold" fontSize="lg" color="blue.700">บันทึกค่าน้ำรอบใหม่</Text>
+              </Flex>
+              <Box mb={3}>
+                <Text mb={1} color="gray.600">เลขมิเตอร์น้ำปัจจุบัน</Text>
+                <InputGroup>
+                  <InputLeftElement pointerEvents="none"><FaTint color="#38bdf8" /></InputLeftElement>
+                  <Input placeholder="เลขมิเตอร์น้ำ" value={water.meter} onChange={e => setWater({ ...water, meter: e.target.value })} size="lg" bg="gray.50" />
+                </InputGroup>
+              </Box>
+              <Box mb={3}>
+                <Text mb={1} color="gray.600">ค่ามิเตอร์น้ำครั้งก่อน</Text>
+                <Input value={water.prev} isReadOnly size="lg" bg="gray.100" color="gray.500" />
+                <Text fontSize="xs" color="gray.400" mt={1}>
+                  {roomData ? 'จากข้อมูลห้อง' : history.length > 0 ? 'จากประวัติล่าสุด' : 'ไม่มีข้อมูล'}
+                </Text>
+              </Box>
+              <Box mb={3}>
+                <Text mb={1} color="gray.600">เรทค่าน้ำ (บาท/หน่วย)</Text>
+                <Input placeholder="เช่น 15.5" value={water.rate} onChange={e => setWater({ ...water, rate: e.target.value })} size="lg" bg="gray.50" type="number" min="0" step="0.01" />
+                <Text fontSize="xs" color="gray.400" mt={1}>
+                  {history.length > 0 ? 'จากประวัติล่าสุด' : 'ค่าเริ่มต้น'}
+                </Text>
+              </Box>
             </Box>
-            <Box mb={3}>
-              <Text mb={1} color="gray.600">เรทค่าไฟ (บาท/หน่วย)</Text>
-              <Input placeholder="เช่น 4.5" value={electricity.rate} onChange={e => setElectricity({ ...electricity, rate: e.target.value })} size="lg" bg="gray.50" type="number" min="0" step="0.01" />
-              <Text fontSize="xs" color="gray.400" mt={1}>
-                {history.length > 0 ? 'จากประวัติล่าสุด' : 'ค่าเริ่มต้น'}
-              </Text>
-            </Box>
-          </Box>
-          {/* Card: บันทึกค่าน้ำ */}
-          <Box flex={1} minW="320px" bg="white" borderRadius="2xl" boxShadow="0 2px 16px 0 rgba(33,150,243,0.10)" p={[4, 6]}>
-            <Flex align="center" mb={4} gap={2}>
-              <Icon as={FaTint} color="blue.400" boxSize={6} />
-              <Text fontWeight="bold" fontSize="lg" color="blue.700">บันทึกค่าน้ำรอบใหม่</Text>
-            </Flex>
-            <Box mb={3}>
-              <Text mb={1} color="gray.600">เลขมิเตอร์น้ำปัจจุบัน</Text>
-              <InputGroup>
-                <InputLeftElement pointerEvents="none"><FaTint color="#38bdf8" /></InputLeftElement>
-                <Input placeholder="เลขมิเตอร์น้ำ" value={water.meter} onChange={e => setWater({ ...water, meter: e.target.value })} size="lg" bg="gray.50" />
-              </InputGroup>
-            </Box>
-            <Box mb={3}>
-              <Text mb={1} color="gray.600">ค่ามิเตอร์น้ำครั้งก่อน</Text>
-              <Input value={water.prev} isReadOnly size="lg" bg="gray.100" color="gray.500" />
-              <Text fontSize="xs" color="gray.400" mt={1}>
-                {roomData ? 'จากข้อมูลห้อง' : history.length > 0 ? 'จากประวัติล่าสุด' : 'ไม่มีข้อมูล'}
-              </Text>
-            </Box>
-            <Box mb={3}>
-              <Text mb={1} color="gray.600">เรทค่าน้ำ (บาท/หน่วย)</Text>
-              <Input placeholder="เช่น 15.5" value={water.rate} onChange={e => setWater({ ...water, rate: e.target.value })} size="lg" bg="gray.50" type="number" min="0" step="0.01" />
-              <Text fontSize="xs" color="gray.400" mt={1}>
-                {history.length > 0 ? 'จากประวัติล่าสุด' : 'ค่าเริ่มต้น'}
-              </Text>
-            </Box>
-          </Box>
-        </Flex>
+          </Flex>
+        )}
         {/* ปุ่มบันทึกข้อมูลรวม */}
-        <Flex justify="flex-end" mb={8}>
-          <Button leftIcon={<FaCalculator />} colorScheme="blue" size="md" borderRadius="xl" fontFamily="Kanit" fontWeight="bold" px={6} onClick={handleSaveData}>
-            บันทึกข้อมูล
-          </Button>
-        </Flex>
+        {userRole !== 'user' && (
+          <Flex justify="flex-end" mb={8}>
+            <Button leftIcon={<FaCalculator />} colorScheme="blue" size="md" borderRadius="xl" fontFamily="Kanit" fontWeight="bold" px={6} onClick={handleSaveData}>
+              บันทึกข้อมูล
+            </Button>
+          </Flex>
+        )}
         {/* Card: ประวัติการคำนวณ */}
         <Box bg="white" borderRadius="2xl" boxShadow="0 2px 16px 0 rgba(33,150,243,0.10)" p={[4, 6]}>
           <Text fontWeight="bold" fontSize="lg" color="blue.700" mb={4}>ประวัติการคำนวณ</Text>
@@ -410,35 +432,39 @@ export default function HistoryRoom() {
                       ? item.waterTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                       : '-'}
                   </Td>
-                  <Td>
-                    <Button size="sm" colorScheme="red" variant="ghost" borderRadius="xl" fontFamily="Kanit" onClick={() => handleDeleteBill(item.id)} leftIcon={<FaTrash />}>
-                      ลบ
-                    </Button>
-                  </Td>
+                  {userRole !== 'user' && (
+                    <Td>
+                      <Button size="sm" colorScheme="red" variant="ghost" borderRadius="xl" fontFamily="Kanit" onClick={() => handleDeleteBill(item.id)} leftIcon={<FaTrash />}>
+                        ลบ
+                      </Button>
+                    </Td>
+                  )}
                 </Tr>
               ))}
             </Tbody>
           </Table>
         </Box>
-        <AlertDialog
-          isOpen={!!deleteConfirmId}
-          leastDestructiveRef={cancelRef}
-          onClose={() => setDeleteConfirmId(null)}
-        >
-          <AlertDialogOverlay />
-          <AlertDialogContent borderRadius="2xl">
-            <AlertDialogHeader fontWeight="bold">ยืนยันการลบข้อมูล</AlertDialogHeader>
-            <AlertDialogBody>คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลบิลนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</AlertDialogBody>
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={() => setDeleteConfirmId(null)} borderRadius="xl" fontFamily="Kanit" size="md">
-                ยกเลิก
-              </Button>
-              <Button colorScheme="red" onClick={confirmDeleteBill} ml={3} borderRadius="xl" fontFamily="Kanit" size="md">
-                ลบ
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {userRole !== 'user' && (
+          <AlertDialog
+            isOpen={!!deleteConfirmId}
+            leastDestructiveRef={cancelRef}
+            onClose={() => setDeleteConfirmId(null)}
+          >
+            <AlertDialogOverlay />
+            <AlertDialogContent borderRadius="2xl">
+              <AlertDialogHeader fontWeight="bold">ยืนยันการลบข้อมูล</AlertDialogHeader>
+              <AlertDialogBody>คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลบิลนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</AlertDialogBody>
+              <AlertDialogFooter>
+                <Button ref={cancelRef} onClick={() => setDeleteConfirmId(null)} borderRadius="xl" fontFamily="Kanit" size="md">
+                  ยกเลิก
+                </Button>
+                <Button colorScheme="red" onClick={confirmDeleteBill} ml={3} borderRadius="xl" fontFamily="Kanit" size="md">
+                  ลบ
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </Box>
     </>
   );
