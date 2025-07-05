@@ -305,72 +305,6 @@ export default function Parcel() {
     }
   }, [parcels, selectedRoom]);
 
-  const createSampleData = async () => {
-    if (!currentUser || rooms.length === 0) {
-      toast({
-        title: "ไม่สามารถสร้างข้อมูลตัวอย่างได้",
-        description: "ต้องมีห้องในระบบก่อน",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    try {
-      const sampleParcels = [
-        {
-          roomId: rooms[0].id,
-          roomNumber: rooms[0].id,
-          tenantName: rooms[0].tenantName,
-          recipient: rooms[0].tenantName,
-          sender: "Shopee",
-          description: "เสื้อผ้า 2 ชิ้น",
-          status: "received",
-          receivedDate: Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)),
-          trackingNumber: "TH123456789",
-          notes: "ขนาดกล่องกลาง สีน้ำเงิน"
-        },
-        {
-          roomId: rooms.length > 1 ? rooms[1].id : rooms[0].id,
-          roomNumber: rooms.length > 1 ? rooms[1].id : rooms[0].id,
-          tenantName: rooms.length > 1 ? rooms[1].tenantName : rooms[0].tenantName,
-          recipient: rooms.length > 1 ? rooms[1].tenantName : rooms[0].tenantName,
-          sender: "Lazada",
-          description: "อุปกรณ์ครัว",
-          status: "pending",
-          receivedDate: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)),
-          trackingNumber: "LZ987654321",
-          notes: ""
-        }
-      ];
-
-      for (const parcel of sampleParcels) {
-        await addDoc(collection(db, "parcels"), {
-          ...parcel,
-          createdBy: currentUser.uid,
-          createdAt: Timestamp.now()
-        });
-      }
-
-      toast({
-        title: "สร้างข้อมูลตัวอย่างสำเร็จ",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (error) {
-      console.error("Error creating sample data:", error);
-      toast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถสร้างข้อมูลตัวอย่างได้",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
-
   const handleRoomClick = (room: Room) => {
     const roomParcelsData = parcels.filter(p => p.roomId === room.id);
     setSelectedRoom(room);
@@ -596,18 +530,6 @@ export default function Parcel() {
             <Icon as={FaBox} />
             จัดการพัสดุ
           </Heading>
-          <HStack>
-            {(role === "admin" || role === "owner") && parcels.length === 0 && (
-              <Button variant="outline" colorScheme="blue" onClick={createSampleData}>
-                สร้างข้อมูลตัวอย่าง
-              </Button>
-            )}
-            {(role === "admin" || role === "owner") && (
-              <Button leftIcon={<FaPlus />} colorScheme="blue" onClick={onAddOpen}>
-                เพิ่มพัสดุ
-              </Button>
-            )}
-          </HStack>
         </Flex>
 
         {/* Stats Summary */}
@@ -770,16 +692,6 @@ export default function Parcel() {
                   <Icon as={FaBox} color="blue.500" />
                   พัสดุของห้อง {selectedRoom?.id} - {selectedRoom?.tenantName}
                 </Flex>
-                {(role === "admin" || role === "owner") && selectedRoom && (
-                  <Button
-                    leftIcon={<FaPlus />}
-                    colorScheme="blue"
-                    size="sm"
-                    onClick={() => handleCreateParcelForRoom(selectedRoom)}
-                  >
-                    เพิ่มพัสดุ
-                  </Button>
-                )}
               </Flex>
             </ModalHeader>
             <ModalCloseButton />
@@ -788,16 +700,6 @@ export default function Parcel() {
                 <Center py={8}>
                   <VStack spacing={4}>
                     <Text color="gray.500">ไม่มีพัสดุในห้องนี้</Text>
-                    {(role === "admin" || role === "owner") && selectedRoom && (
-                      <Button
-                        leftIcon={<FaPlus />}
-                        colorScheme="blue"
-                        variant="outline"
-                        onClick={() => handleCreateParcelForRoom(selectedRoom)}
-                      >
-                        เพิ่มพัสดุสำหรับห้องนี้
-                      </Button>
-                    )}
                   </VStack>
                 </Center>
               ) : (
@@ -809,7 +711,6 @@ export default function Parcel() {
                       <Th>รายละเอียด</Th>
                       <Th>วันที่รับ</Th>
                       <Th>สถานะ</Th>
-                      {(role === "admin" || role === "owner") && <Th>จัดการ</Th>}
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -854,31 +755,6 @@ export default function Parcel() {
                             {getStatusLabel(parcel.status)}
                           </Badge>
                         </Td>
-                        {(role === "admin" || role === "owner") && (
-                          <Td>
-                            <Flex gap={2} align="center">
-                              <Select
-                                size="sm"
-                                value={parcel.status}
-                                onChange={(e) => handleUpdateParcelStatus(parcel.id, e.target.value as any)}
-                                w="120px"
-                              >
-                                <option value="pending">รอรับ</option>
-                                <option value="received">รับแล้ว</option>
-                                <option value="delivered">ส่งมอบแล้ว</option>
-                              </Select>
-                              <IconButton
-                                size="sm"
-                                colorScheme="red"
-                                variant="ghost"
-                                icon={<FaTrash />}
-                                onClick={() => handleDeleteParcel(parcel.id)}
-                                aria-label="ลบพัสดุ"
-                                title="ลบพัสดุ"
-                              />
-                            </Flex>
-                          </Td>
-                        )}
                       </Tr>
                     ))}
                   </Tbody>

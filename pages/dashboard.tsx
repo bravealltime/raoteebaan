@@ -16,7 +16,7 @@ import Sidebar from "../components/Sidebar";
 import { onAuthStateChanged } from "firebase/auth";
 import MainLayout from "../components/MainLayout";
 import InvoiceModal from "../components/InvoiceModal";
-import RoomPaymentCard from "../components/RoomPaymentCard";
+import RoomPaymentCardList, { RoomPaymentCard } from "../components/RoomPaymentCard";
 
 interface Room {
   id: string;
@@ -32,45 +32,6 @@ interface Room {
   billStatus: string;
   proofUrl?: string;
   latestBillId?: string;
-}
-
-function generateSampleRoomsCSV() {
-  const headers = [
-    "Room,Status,Tenant,Area,LatestTotal,Electricity,Rent,Service,OverdueDays,DueDate,BillStatus"
-  ];
-  const rows = [];
-  for (let i = 1; i <= 30; i++) {
-    const status = i % 3 === 0 ? "vacant" : "occupied";
-    const tenant = status === "occupied" ? `สมชาย ${i}` : "-";
-    const area = 28 + (i % 5) * 2;
-    const total = 5000 + i * 123;
-    const elec = 100 + i * 3;
-    const rent = 5000;
-    const service = 200 + (i % 4) * 50;
-    const overdue = i % 4 === 0 ? i : 0;
-    const dueDate = `2025-07-${(i % 28 + 1).toString().padStart(2, "0")}`;
-    const billStatus = i % 5 === 0 ? "unpaid" : i % 3 === 0 ? "pending" : "paid";
-    rows.push([
-      `Room ${100 + i}`,
-      status,
-      tenant,
-      area,
-      total,
-      elec,
-      rent,
-      service,
-      overdue,
-      dueDate,
-      billStatus
-    ].join(","));
-  }
-  return headers.concat(rows).join("\n");
-}
-
-function handleExportCSV() {
-  const csv = generateSampleRoomsCSV();
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  saveAs(blob, "rooms_sample.csv");
 }
 
 export default function Dashboard() {
@@ -104,6 +65,7 @@ export default function Dashboard() {
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [parcelCount, setParcelCount] = useState(0);
   const [inboxCount, setInboxCount] = useState(0);
+  const [search, setSearch] = useState("");
 
   const user = {
     name: "xxx",
@@ -500,11 +462,6 @@ export default function Dashboard() {
     setImportPreview([]);
   }
 
-  const handleAddAllData = () => {
-    toast({ title: "เพิ่มข้อมูลห้องทั้งหมดสำเร็จ (mockup)", status: "success" });
-    setIsAddAllOpen(false);
-  };
-
   const handleDownloadEquipmentAssessment = () => {
     setIsEquipmentModalOpen(true);
   };
@@ -695,19 +652,17 @@ export default function Dashboard() {
                   <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M3 5h14M6 10h8M9 15h2" stroke="#BDBDBD" strokeWidth="2" strokeLinecap="round"/></svg>
                 </Button>
               </Flex>
+              <Input
+                placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                mb={4}
+                bg="gray.50"
+                borderRadius="xl"
+                maxW="320px"
+              />
               <Box flex="1">
-                {rooms.filter(r => r.billStatus === "pending" || r.billStatus === "unpaid").map(room => (
-                  <RoomPaymentCard
-                    key={room.id}
-                    id={room.id}
-                    status={room.billStatus as "pending" | "unpaid"}
-                    total={room.latestTotal}
-                    electricity={room.electricity}
-                    water={room.water}
-                    rent={room.rent}
-                    onNotify={() => toast({ title: `ส่งแจ้งเตือนไปยังห้อง ${room.id} แล้ว`, status: "success" })}
-                  />
-                ))}
+                <RoomPaymentCardList rooms={filteredRooms} />
               </Box>
             </Box>
             <Box

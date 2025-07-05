@@ -9,21 +9,6 @@ import { FaFileInvoice, FaArrowLeft, FaDownload, FaUpload, FaEye, FaTrash, FaChe
 import Script from "next/script";
 import AppHeader from "../../components/AppHeader";
 
-const mockBill = {
-  date: "25/12/2024",
-  dueDate: "31/12/2024",
-  room: "101",
-  tenant: "สมชาย ใจร้าย",
-  total: 10201.5,
-  items: [
-    { label: "ค่าไฟฟ้า", value: 1552.5 },
-    { label: "ค่าน้ำ", value: 0 },
-    { label: "ค่าเช่า", value: 5000 },
-    { label: "ค่าที่จอดรถ", value: 3000 },
-    { label: "ค่าเน็ต", value: 649 },
-  ],
-};
-
 export default function BillDetail() {
   const router = useRouter();
   const toast = useToast();
