@@ -290,6 +290,14 @@ export default function Parcel() {
     };
   }, [currentUser, role, toast]);
 
+  // Auto-refresh room parcels when global parcels change
+  useEffect(() => {
+    if (selectedRoom) {
+      const updatedRoomParcels = parcels.filter(p => p.roomId === selectedRoom.id);
+      setRoomParcels(updatedRoomParcels);
+    }
+  }, [parcels, selectedRoom]);
+
   const createSampleData = async () => {
     if (!currentUser || rooms.length === 0) {
       toast({
@@ -361,6 +369,19 @@ export default function Parcel() {
     setSelectedRoom(room);
     setRoomParcels(roomParcelsData);
     onOpen();
+  };
+
+  const handleCreateParcelForRoom = (room: Room) => {
+    setNewParcel({
+      roomId: room.id,
+      recipient: room.tenantName !== "-" ? room.tenantName : "",
+      sender: "",
+      description: "",
+      trackingNumber: "",
+      notes: ""
+    });
+    // Keep room details modal open and open add parcel modal
+    onAddOpen(); // Open add parcel modal
   };
 
   const handleAddParcel = async () => {
@@ -674,16 +695,40 @@ export default function Parcel() {
           <ModalOverlay />
           <ModalContent>
             <ModalHeader>
-              <Flex align="center" gap={2}>
-                <Icon as={FaBox} color="blue.500" />
-                พัสดุของห้อง {selectedRoom?.id} - {selectedRoom?.tenantName}
+              <Flex justify="space-between" align="center">
+                <Flex align="center" gap={2}>
+                  <Icon as={FaBox} color="blue.500" />
+                  พัสดุของห้อง {selectedRoom?.id} - {selectedRoom?.tenantName}
+                </Flex>
+                {(role === "admin" || role === "owner") && selectedRoom && (
+                  <Button
+                    leftIcon={<FaPlus />}
+                    colorScheme="blue"
+                    size="sm"
+                    onClick={() => handleCreateParcelForRoom(selectedRoom)}
+                  >
+                    เพิ่มพัสดุ
+                  </Button>
+                )}
               </Flex>
             </ModalHeader>
             <ModalCloseButton />
             <ModalBody pb={6}>
               {roomParcels.length === 0 ? (
                 <Center py={8}>
-                  <Text color="gray.500">ไม่มีพัสดุในห้องนี้</Text>
+                  <VStack spacing={4}>
+                    <Text color="gray.500">ไม่มีพัสดุในห้องนี้</Text>
+                    {(role === "admin" || role === "owner") && selectedRoom && (
+                      <Button
+                        leftIcon={<FaPlus />}
+                        colorScheme="blue"
+                        variant="outline"
+                        onClick={() => handleCreateParcelForRoom(selectedRoom)}
+                      >
+                        เพิ่มพัสดุสำหรับห้องนี้
+                      </Button>
+                    )}
+                  </VStack>
                 </Center>
               ) : (
                 <Table variant="simple">
@@ -769,7 +814,7 @@ export default function Parcel() {
             <ModalHeader>
               <Flex align="center" gap={2}>
                 <Icon as={FaPlus} color="blue.500" />
-                เพิ่มพัสดุใหม่
+                {newParcel.roomId ? `เพิ่มพัสดุสำหรับห้อง ${newParcel.roomId}` : "เพิ่มพัสดุใหม่"}
               </Flex>
             </ModalHeader>
             <ModalCloseButton />
@@ -781,6 +826,7 @@ export default function Parcel() {
                     placeholder="เลือกห้อง"
                     value={newParcel.roomId}
                     onChange={(e) => setNewParcel({ ...newParcel, roomId: e.target.value })}
+                    isDisabled={!!newParcel.roomId} // Disable if roomId is pre-filled
                   >
                     {rooms.filter(room => room.status === "occupied").map((room) => (
                       <option key={room.id} value={room.id}>
@@ -788,6 +834,11 @@ export default function Parcel() {
                       </option>
                     ))}
                   </Select>
+                  {newParcel.roomId && (
+                    <Text fontSize="xs" color="blue.600" mt={1}>
+                      * ห้องถูกเลือกไว้แล้ว
+                    </Text>
+                  )}
                 </Box>
 
                 <Box w="full">
