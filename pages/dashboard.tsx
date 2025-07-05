@@ -102,6 +102,7 @@ export default function Dashboard() {
   const { isOpen: isProofModalOpen, onOpen: onProofModalOpen, onClose: onProofModalClose } = useDisclosure();
   const [selectedBill, setSelectedBill] = useState<any | null>(null);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
+  const [parcelCount, setParcelCount] = useState(0);
 
   const user = {
     name: "xxx",
@@ -259,6 +260,16 @@ export default function Dashboard() {
     }
     if (rooms.length > 0) fetchAllBills();
   }, [rooms]);
+
+  useEffect(() => {
+    async function fetchParcels() {
+      const querySnapshot = await getDocs(collection(db, "parcels"));
+      const parcels = querySnapshot.docs.map(doc => doc.data());
+      const notReceived = parcels.filter((p: any) => p.status === 'received');
+      setParcelCount(notReceived.length);
+    }
+    fetchParcels();
+  }, []);
 
   const handleDelete = async (id: string) => {
     setDeleteId(id);
@@ -609,7 +620,6 @@ export default function Dashboard() {
   const totalRooms = rooms.length;
   const availableRooms = rooms.filter(r => r.status === "vacant").length;
   const inboxCount = 99;
-  const parcelCount = 99;
   const paymentsUnderReview = rooms.filter(r => r.billStatus === "pending").length;
 
   return (
@@ -620,7 +630,7 @@ export default function Dashboard() {
       onProofModalClose={onProofModalClose}
       proofImageUrl={proofImageUrl}
     >
-      <Box p={[2, 4, 8]}>
+      <Box maxW="1200px" mx="auto" px={[2, 4, 6]} py={4}>
         <Flex mb={6} gap={4} flexWrap="wrap">
           <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
             <Text color="gray.500">All Room</Text>
@@ -643,60 +653,6 @@ export default function Dashboard() {
             <Text fontWeight="bold" fontSize="3xl" color="yellow.500">{paymentsUnderReview}</Text>
           </Box>
         </Flex>
-        <Flex mb={4} gap={2} align="center" flexWrap="wrap">
-          <Button
-            leftIcon={<FaHome />}
-            colorScheme="blue"
-            variant="solid"
-            borderRadius="xl"
-            fontWeight="bold"
-            mr={2}
-          >
-            จัดการห้อง
-          </Button>
-          <Button
-            leftIcon={<FaFilter />}
-            colorScheme="gray"
-            variant="ghost"
-            borderRadius="xl"
-            fontWeight="bold"
-            mr={2}
-            onClick={() => setFilterType(filterType === 'unpaid' ? 'all' : 'unpaid')}
-          >
-            {filterType === 'unpaid' ? 'แสดงทั้งหมด' : 'บิลค้างชำระ'}
-          </Button>
-          <Button
-            leftIcon={<FaFilter />}
-            colorScheme="gray"
-            variant="ghost"
-            borderRadius="xl"
-            fontWeight="bold"
-            mr={2}
-            onClick={() => setFilterType(filterType === 'vacant' ? 'all' : 'vacant')}
-          >
-            {filterType === 'vacant' ? 'แสดงทั้งหมด' : 'ห้องว่าง'}
-          </Button>
-          <Input
-            placeholder="ค้นหาห้อง..."
-            maxW="220px"
-            bg="gray.50"
-            borderRadius="xl"
-            color="gray.800"
-            mr={2}
-            value={searchRoom}
-            onChange={(e) => setSearchRoom(e.target.value)}
-          />
-          <Button
-            leftIcon={<FaPlus />}
-            colorScheme="green"
-            borderRadius="xl"
-            fontWeight="bold"
-            ml="auto"
-            onClick={onOpen}
-          >
-            เพิ่มห้องใหม่
-          </Button>
-        </Flex>
 
         <Box mb={8} overflowX="auto">
           <Flex gap={4} minW="fit-content">
@@ -706,7 +662,6 @@ export default function Dashboard() {
                 id={room.id}
                 status={room.billStatus as "pending" | "unpaid"}
                 total={room.latestTotal}
-                onClick={() => handleViewBill(room.id)}
                 onNotify={() => toast({ title: `ส่งแจ้งเตือนไปยังห้อง ${room.id} แล้ว`, status: "success" })}
               />
             ))}
