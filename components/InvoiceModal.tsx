@@ -1,7 +1,6 @@
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, Box, Text, Flex, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, useToast, Center } from "@chakra-ui/react";
 import { FaFileInvoice, FaDownload } from "react-icons/fa";
 import { useRef, useEffect, useState } from "react";
-import html2pdf from "html2pdf.js";
 import Script from "next/script";
 
 interface InvoiceItem {
@@ -41,10 +40,11 @@ export default function InvoiceModal({ isOpen, onClose, bill }: InvoiceModalProp
     }
   }, [bill.promptpay, bill.total, isOpen]);
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!pdfRef.current) return;
-    
     setIsGeneratingPDF(true);
+    // dynamic import html2pdf.js only on client
+    const html2pdf = (await import('html2pdf.js')).default;
     
     // Create a clone of the content for PDF generation
     const pdfContent = pdfRef.current.cloneNode(true) as HTMLElement;

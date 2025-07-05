@@ -15,6 +15,8 @@ import Link from "next/link";
 import Sidebar from "../components/Sidebar";
 import { onAuthStateChanged } from "firebase/auth";
 import MainLayout from "../components/MainLayout";
+import InvoiceModal from "../components/InvoiceModal";
+import RoomPaymentCard from "../components/RoomPaymentCard";
 
 interface Room {
   id: string;
@@ -95,13 +97,15 @@ export default function Dashboard() {
   const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
   const [role, setRole] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<any | null>(null); // Add currentUser state
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [proofImageUrl, setProofImageUrl] = useState<string | null>(null);
   const { isOpen: isProofModalOpen, onOpen: onProofModalOpen, onClose: onProofModalClose } = useDisclosure();
+  const [selectedBill, setSelectedBill] = useState<any | null>(null);
+  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
 
   const user = {
     name: "xxx",
-    avatar: "/avatar.png", // เปลี่ยน path ตามจริงถ้ามี
+    avatar: "/avatar.png",
     greeting: "อาทิตย์ 21 มิ.ย. 2568"
   };
 
@@ -121,7 +125,7 @@ export default function Dashboard() {
         email: firestoreData.email || u.email || '',
         role: userRole,
         photoURL: firestoreData.avatar || u.photoURL || undefined,
-        ownerId: firestoreData.ownerId || undefined, // Add ownerId to currentUser state
+        ownerId: firestoreData.ownerId || undefined,
       });
       console.log("Dashboard Page - Current User Data:", {
         uid: u.uid,
@@ -143,7 +147,6 @@ export default function Dashboard() {
           router.replace("/tenant-dashboard");
           return;
         }
-      // Allow admin and other roles to access dashboard
     });
     return () => unsub();
   }, [router]);
@@ -163,9 +166,8 @@ export default function Dashboard() {
           const d = doc.data();
           let billStatus = d.billStatus || "paid";
           let proofUrl = null;
-          let latestBillId = undefined; // Initialize latestBillId
+          let latestBillId = undefined;
 
-          // Fetch latest bill for billStatus and proofUrl
           const q = query(
             collection(db, "bills"),
             where("roomId", "==", doc.id),
@@ -175,8 +177,6 @@ export default function Dashboard() {
           const billSnap = await getDocs(q);
         if (!billSnap.empty) {
           const latestBill = billSnap.docs[0].data();
-          // Use billStatus from room document (d.billStatus) as the source of truth
-          // Only fetch proofUrl and latestBillId from the bill
           proofUrl = latestBill.proofUrl || null;
           latestBillId = billSnap.docs[0].id;
         }
@@ -198,7 +198,7 @@ export default function Dashboard() {
             overdueDays: d.overdueDays || 0,
             billStatus: billStatus,
             proofUrl: proofUrl,
-            latestBillId: latestBillId, // Include latestBillId here
+            latestBillId: latestBillId,
           };
         }));
         setRooms(data);
@@ -215,14 +215,12 @@ export default function Dashboard() {
     } else if (role === "owner" && currentUser?.uid) {
       fetchRooms();
     } else if (role === "employee") {
-      // Employee might see all rooms or a subset, depending on requirements
-      // For now, let's assume they see all rooms like admin
       fetchRooms();
     }
 
     const handleRouteChange = (url: string) => {
       if (url === "/dashboard") {
-        fetchRooms(); // Re-fetch when navigating back to dashboard
+        fetchRooms();
       }
     };
 
@@ -283,7 +281,6 @@ export default function Dashboard() {
 
   const handleAddRoom = async (roomData: any) => {
     try {
-      // แปลงข้อมูลจาก AddRoomModal ให้ตรงกับ Room interface
       const room: Room = {
         id: roomData.id,
         status: roomData.status || "occupied",
@@ -307,9 +304,30 @@ export default function Dashboard() {
     onClose();
   };
 
-  // ปุ่ม action อื่น ๆ สามารถเพิ่มฟังก์ชันได้ที่นี่
   const handleViewBill = (id: string) => {
-    router.push(`/bill/${id}`);
+    const room = rooms.find(r => r.id === id);
+    const bill = roomBills[id];
+    if (!room || !bill) return;
+    setSelectedBill({
+      date: bill.date || "-",
+      dueDate: bill.dueDate || "-",
+      room: room.id,
+      tenant: room.tenantName,
+      total: bill.total || 0,
+      items: [
+        { label: "ค่าไฟฟ้า", value: bill.electricityTotal || 0 },
+        { label: "ค่าน้ำ", value: bill.waterTotal || 0 },
+        { label: "ค่าเช่า", value: bill.rent || 0 },
+        { label: "ค่าบริการ", value: bill.service || 0 },
+        ...(Array.isArray(bill.extraServices) ? bill.extraServices.map((svc: any) => ({ label: svc.label, value: svc.value })) : [])
+      ],
+      promptpay: bill.promptpay || undefined,
+      area: room.area,
+      status: room.status,
+      overdueDays: room.overdueDays,
+      billStatus: room.billStatus,
+    });
+    setIsInvoiceOpen(true);
   };
   const handleAddData = (id: string) => {
     router.push(`/history/${id}`);
@@ -335,10 +353,8 @@ export default function Dashboard() {
   const handleMarkAsPaid = async (roomId: string, billId: string) => {
     try {
       await setDoc(doc(db, "bills", billId), { status: "paid", proofUrl: null }, { merge: true });
-      // Optionally update room status if needed
       await setDoc(doc(db, "rooms", roomId), { billStatus: "paid" }, { merge: true });
       toast({ title: "ทำเครื่องหมายว่าชำระแล้วสำเร็จ", status: "success" });
-      // Refresh rooms data to reflect changes
       const querySnapshot = await getDocs(collection(db, "rooms"));
       let data: Room[] = await Promise.all(querySnapshot.docs.map(async doc => {
         const d = doc.data();
@@ -472,7 +488,6 @@ export default function Dashboard() {
       return;
     }
     
-    // Mockup equipment data
     const equipmentData = {
       roomId: selectedRoomForEquipment,
       date: new Date().toLocaleDateString('th-TH'),
@@ -491,25 +506,20 @@ export default function Dashboard() {
       ]
     };
 
-    // Create PDF
     const pdf = new jsPDF();
     
-    // Set font for Thai text
     pdf.setFont("helvetica");
     
-    // Header
     pdf.setFontSize(20);
-    pdf.setTextColor(75, 0, 130); // Purple color
+    pdf.setTextColor(75, 0, 130);
     pdf.text("ใบประเมินอุปกรณ์ในห้องพัก", 105, 20, { align: "center" });
     
-    // Room information
     pdf.setFontSize(12);
     pdf.setTextColor(0, 0, 0);
     pdf.text(`ห้อง: ${equipmentData.roomId}`, 20, 40);
     pdf.text(`ผู้เช่า: ${equipmentData.tenantName}`, 20, 50);
     pdf.text(`วันที่ประเมิน: ${equipmentData.date}`, 20, 60);
     
-    // Table header
     pdf.setFillColor(75, 0, 130);
     pdf.rect(20, 75, 170, 10, "F");
     pdf.setTextColor(255, 255, 255);
@@ -520,7 +530,6 @@ export default function Dashboard() {
     pdf.text("สภาพ", 130, 82);
     pdf.text("หมายเหตุ", 160, 82);
     
-    // Table content
     pdf.setTextColor(0, 0, 0);
     pdf.setFontSize(9);
     equipmentData.items.forEach((item, index) => {
@@ -537,14 +546,12 @@ export default function Dashboard() {
       pdf.text(item.notes || "-", 160, y);
     });
     
-    // Signature section
     const signatureY = 220;
     pdf.setFontSize(12);
     pdf.setTextColor(0, 0, 0);
     pdf.text("ลายเซ็นผู้ประเมิน:", 20, signatureY);
     pdf.text("ลายเซ็นผู้เช่า:", 110, signatureY);
     
-    // Signature lines
     pdf.line(20, signatureY + 10, 80, signatureY + 10);
     pdf.line(110, signatureY + 10, 170, signatureY + 10);
     
@@ -555,12 +562,10 @@ export default function Dashboard() {
     pdf.text("วันที่: _________________", 20, signatureY + 40);
     pdf.text("วันที่: _________________", 110, signatureY + 40);
     
-    // Footer note
     pdf.setFontSize(8);
     pdf.setTextColor(100, 100, 100);
     pdf.text("หมายเหตุ: ใบประเมินนี้เป็นเอกสารสำหรับตรวจสอบอุปกรณ์ในห้องพัก กรุณาตรวจสอบและเซ็นยืนยัน", 20, 270);
     
-    // Save PDF
     const fileName = `equipment-assessment-room-${selectedRoomForEquipment}-${new Date().toISOString().split('T')[0]}.pdf`;
     pdf.save(fileName);
     
@@ -570,7 +575,6 @@ export default function Dashboard() {
   };
 
   const fetchLastMeter = async (roomId: string) => {
-    // สมมุติว่าเก็บใน collection 'bills' โดยมี field 'roomId', 'waterMeterCurrent', 'electricityMeterCurrent', 'createdAt'
     const billsRef = collection(db, "bills");
     const q = query(billsRef, where("roomId", "==", roomId), orderBy("createdAt", "desc"), limit(1));
     const snap = await getDocs(q);
@@ -585,8 +589,6 @@ export default function Dashboard() {
   };
 
   const handleOpenAddRoom = async () => {
-    // ถ้าต้องการ autofill จากห้องที่เลือก ให้ใส่ roomId ที่ต้องการ
-    // ตัวอย่างนี้จะไม่ autofill ถ้าไม่มี roomId (เพิ่มห้องใหม่จริง ๆ)
     setLastWaterMeter(undefined);
     setLastElecMeter(undefined);
     onOpen();
@@ -604,6 +606,12 @@ export default function Dashboard() {
     return matchSearch && matchFilter;
   });
 
+  const totalRooms = rooms.length;
+  const availableRooms = rooms.filter(r => r.status === "vacant").length;
+  const inboxCount = 99;
+  const parcelCount = 99;
+  const paymentsUnderReview = rooms.filter(r => r.billStatus === "pending").length;
+
   return (
     <MainLayout 
       role={role} 
@@ -613,6 +621,28 @@ export default function Dashboard() {
       proofImageUrl={proofImageUrl}
     >
       <Box p={[2, 4, 8]}>
+        <Flex mb={6} gap={4} flexWrap="wrap">
+          <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
+            <Text color="gray.500">All Room</Text>
+            <Text fontWeight="bold" fontSize="2xl">{totalRooms}</Text>
+          </Box>
+          <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
+            <Text color="gray.500">Room available</Text>
+            <Text fontWeight="bold" fontSize="2xl">{availableRooms}</Text>
+          </Box>
+          <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
+            <Text color="gray.500">Inbox</Text>
+            <Text fontWeight="bold" fontSize="2xl">{inboxCount}</Text>
+          </Box>
+          <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
+            <Text color="gray.500">Parcel</Text>
+            <Text fontWeight="bold" fontSize="2xl">{parcelCount}</Text>
+          </Box>
+          <Box bg="white" borderRadius="xl" p={4} minW="220px" boxShadow="sm" display="flex" flexDirection="column" alignItems="center" justifyContent="center">
+            <Text color="gray.700" fontWeight="bold">Payment under review</Text>
+            <Text fontWeight="bold" fontSize="3xl" color="yellow.500">{paymentsUnderReview}</Text>
+          </Box>
+        </Flex>
         <Flex mb={4} gap={2} align="center" flexWrap="wrap">
           <Button
             leftIcon={<FaHome />}
@@ -668,34 +698,21 @@ export default function Dashboard() {
           </Button>
         </Flex>
 
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-          {filteredRooms.map((room) => (
-            <RoomCard
-              key={room.id}
-              id={room.id}
-              status={room.status}
-              tenantName={room.tenantName}
-              area={room.area}
-              latestTotal={room.latestTotal}
-              electricity={room.electricity}
-              water={room.water}
-              rent={room.rent}
-              service={room.service}
-              overdueDays={room.overdueDays}
-              billStatus={room.billStatus}
-              proofUrl={room.proofUrl}
-              role={role}
-              onViewBill={() => handleViewBill(room.id)}
-              onAddData={() => handleAddData(room.id)}
-              onDelete={() => handleDelete(room.id)}
-              onSettings={() => handleSettings(room.id)}
-              onViewProof={() => room.proofUrl && handleViewProof(room.proofUrl)}
-              onMarkAsPaid={() => room.latestBillId && handleMarkAsPaid(room.id, room.latestBillId)}
-            />
-          ))}
-        </SimpleGrid>
+        <Box mb={8} overflowX="auto">
+          <Flex gap={4} minW="fit-content">
+            {rooms.filter(r => r.billStatus === "pending" || r.billStatus === "unpaid").map(room => (
+              <RoomPaymentCard
+                key={room.id}
+                id={room.id}
+                status={room.billStatus as "pending" | "unpaid"}
+                total={room.latestTotal}
+                onClick={() => handleViewBill(room.id)}
+                onNotify={() => toast({ title: `ส่งแจ้งเตือนไปยังห้อง ${room.id} แล้ว`, status: "success" })}
+              />
+            ))}
+          </Flex>
+        </Box>
 
-        {/* Proof Image Modal */}
         <Modal isOpen={isProofModalOpen} onClose={onProofModalClose} isCentered size="xl">
           <ModalOverlay />
           <ModalContent>
@@ -737,6 +754,10 @@ export default function Dashboard() {
             </AlertDialogContent>
           </AlertDialogOverlay>
         </AlertDialog>
+
+        {selectedBill && (
+          <InvoiceModal isOpen={isInvoiceOpen} onClose={() => setIsInvoiceOpen(false)} bill={selectedBill} />
+        )}
       </Box>
     </MainLayout>
   );
