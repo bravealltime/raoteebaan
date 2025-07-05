@@ -603,8 +603,9 @@ export default function Dashboard() {
       onProofModalClose={onProofModalClose}
       proofImageUrl={proofImageUrl}
     >
-      <Box maxW="1200px" mx="auto" px={[2, 4, 6]} py={4}>
-        <Flex mb={6} gap={4} flexWrap="wrap">
+      <Box maxW="1400px" mx="auto" px={4} py={8}>
+        {/* Summary Cards */}
+        <Flex gap={4} mb={8} flexWrap="wrap">
           <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
             <Text color="gray.500">ห้องทั้งหมด</Text>
             <Text fontWeight="bold" fontSize="2xl">{totalRooms}</Text>
@@ -626,121 +627,84 @@ export default function Dashboard() {
             <Text fontWeight="bold" fontSize="2xl">{parcelCount}</Text>
           </Box>
         </Flex>
-
-        <Box mb={8}>
-          <Flex direction={["column", "row"]} justify="center" align="stretch" gap={8}>
-            <Box
-              flex="1"
-              minW={["100%", "380px", "480px"]}
-              maxW="540px"
-              bg="white"
-              borderRadius="2xl"
-              boxShadow="sm"
-              p={[4, 6]}
-              display="flex"
-              flexDirection="column"
-              justifyContent="flex-start"
-              alignItems="stretch"
-            >
-              <Box
-                maxW="1536px"
-                mx="auto"
-                bg="white"
-                borderRadius="2xl"
-                p={6}
-                boxShadow="md"
-                mb={8}
-              >
-                <Flex align="center" justify="space-between" mb={2}>
-                  <Box>
-                    <Text fontWeight="bold" fontSize="lg">Unpaid</Text>
-                    <Text color="gray.400" fontSize="sm">List of rooms that have not completed payment yet</Text>
-                  </Box>
-                  <Button variant="ghost" size="sm" borderRadius="full" p={1} minW={0}>
-                    {/* filter icon placeholder */}
-                    <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M3 5h14M6 10h8M9 15h2" stroke="#BDBDBD" strokeWidth="2" strokeLinecap="round"/></svg>
-                  </Button>
-                </Flex>
-                <Input
-                  placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  mb={4}
-                  bg="gray.50"
-                  borderRadius="xl"
-                  maxW="320px"
-                />
-                <RoomPaymentCardList rooms={filteredRooms} gridProps={{ columns: 4, spacing: 6, w: 'auto', justifyContent: 'center' }} />
+        {/* Main Grid */}
+        <Flex gap={8} align="flex-start">
+          {/* Unpaid Section */}
+          <Box flex={2} bg="white" borderRadius="2xl" p={8} boxShadow="md">
+            <Flex align="center" justify="space-between" mb={2}>
+              <Box>
+                <Text fontWeight="bold" fontSize="lg">Unpaid</Text>
+                <Text color="gray.400" fontSize="sm">List of rooms that have not completed payment yet</Text>
               </Box>
-            </Box>
-            <Box
-              minW={["100%", "320px"]}
-              maxW="400px"
-              bg="white"
-              borderRadius="2xl"
-              boxShadow="sm"
-              p={[4, 6]}
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
-              justifyContent="center"
-              height="100%"
-              alignSelf={["auto", "flex-start"]}
-              position={["static", "sticky"]}
-              top={[null, "32px"]}
-            >
-              <Text color="gray.700" fontWeight="bold" fontSize="xl" mb={2}>รายการรอตรวจสอบ</Text>
-              <Text fontWeight="bold" fontSize="4xl" color="yellow.500">{paymentsUnderReview}</Text>
-            </Box>
-          </Flex>
-        </Box>
-
-        <Modal isOpen={isProofModalOpen} onClose={onProofModalClose} isCentered size="xl">
-          <ModalOverlay />
-          <ModalContent>
-            <ModalCloseButton />
-            <ModalBody p={4}>
-              {proofImageUrl && (
-                <Image src={proofImageUrl} alt="Payment Proof" maxW="full" maxH="80vh" objectFit="contain" />
-              )}
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-
-        <AddRoomModal isOpen={isOpen} onClose={onClose} onAdd={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} />
-        {editRoom && (
-          <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} />
-        )}
-
-        <AlertDialog
-          isOpen={isDialogOpen}
-          leastDestructiveRef={cancelRef}
-          onClose={() => setIsDialogOpen(false)}
-        >
-          <AlertDialogOverlay>
-            <AlertDialogContent>
-              <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                ลบห้อง
-              </AlertDialogHeader>
-              <AlertDialogBody>
-                คุณแน่ใจหรือไม่ว่าต้องการลบห้องนี้? การกระทำนี้ไม่สามารถย้อนกลับได้
-              </AlertDialogBody>
-              <AlertDialogFooter>
-                <Button ref={cancelRef} onClick={() => setIsDialogOpen(false)}>
-                  ยกเลิก
-                </Button>
-                <Button colorScheme="red" onClick={confirmDelete} ml={3}>
-                  ลบ
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialogOverlay>
-        </AlertDialog>
-
-        {selectedBill && (
-          <InvoiceModal isOpen={isInvoiceOpen} onClose={() => setIsInvoiceOpen(false)} bill={selectedBill} />
-        )}
+              <Button variant="ghost" size="sm" borderRadius="full" p={1} minW={0}>
+                {/* filter icon placeholder */}
+                <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M3 5h14M6 10h8M9 15h2" stroke="#BDBDBD" strokeWidth="2" strokeLinecap="round"/></svg>
+              </Button>
+            </Flex>
+            <Input
+              placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              mb={4}
+              bg="gray.50"
+              borderRadius="xl"
+              maxW="320px"
+            />
+            <RoomPaymentCardList rooms={filteredRooms} gridProps={{ columns: 4, spacing: 6, w: 'auto', justifyContent: 'center' }} />
+          </Box>
+          {/* รายการรอตรวจสอบ */}
+          <Box flex={1} minW="320px" maxW="400px" bg="white" borderRadius="2xl" p={8} boxShadow="md" display="flex" flexDirection="column" alignItems="center" justifyContent="center">
+            <Text color="gray.700" fontWeight="bold" fontSize="xl" mb={2}>รายการรอตรวจสอบ</Text>
+            <Text fontWeight="bold" fontSize="4xl" color="yellow.500">{paymentsUnderReview}</Text>
+          </Box>
+        </Flex>
       </Box>
+
+      <Modal isOpen={isProofModalOpen} onClose={onProofModalClose} isCentered size="xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalCloseButton />
+          <ModalBody p={4}>
+            {proofImageUrl && (
+              <Image src={proofImageUrl} alt="Payment Proof" maxW="full" maxH="80vh" objectFit="contain" />
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      <AddRoomModal isOpen={isOpen} onClose={onClose} onAdd={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} />
+      {editRoom && (
+        <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} />
+      )}
+
+      <AlertDialog
+        isOpen={isDialogOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={() => setIsDialogOpen(false)}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              ลบห้อง
+            </AlertDialogHeader>
+            <AlertDialogBody>
+              คุณแน่ใจหรือไม่ว่าต้องการลบห้องนี้? การกระทำนี้ไม่สามารถย้อนกลับได้
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={() => setIsDialogOpen(false)}>
+                ยกเลิก
+              </Button>
+              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
+                ลบ
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+
+      {selectedBill && (
+        <InvoiceModal isOpen={isInvoiceOpen} onClose={() => setIsInvoiceOpen(false)} bill={selectedBill} />
+      )}
     </MainLayout>
   );
 } 
