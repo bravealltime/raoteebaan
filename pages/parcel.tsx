@@ -46,6 +46,8 @@ import {
   useToast,
   Select,
   Input,
+  InputGroup,
+  InputLeftElement,
   VStack,
   HStack,
   Divider,
@@ -60,7 +62,8 @@ import {
   FaPlus, 
   FaEye,
   FaEdit,
-  FaTrash
+  FaTrash,
+  FaSearch
 } from "react-icons/fa";
 import { onAuthStateChanged } from "firebase/auth";
 import MainLayout from "../components/MainLayout";
@@ -106,6 +109,7 @@ export default function Parcel() {
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [roomParcels, setRoomParcels] = useState<Parcel[]>([]);
   const [roomFilter, setRoomFilter] = useState<"all" | "with-parcels">("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isAddOpen, onOpen: onAddOpen, onClose: onAddClose } = useDisclosure();
   const toast = useToast();
@@ -558,11 +562,23 @@ export default function Parcel() {
   const getFilteredRooms = () => {
     const allRoomsWithData = getAllRoomsWithParcelData();
     
+    let filteredRooms = allRoomsWithData;
+    
+    // Filter by parcel status
     if (roomFilter === "with-parcels") {
-      return allRoomsWithData.filter(room => room.parcelCount > 0);
+      filteredRooms = filteredRooms.filter(room => room.parcelCount > 0);
     }
     
-    return allRoomsWithData;
+    // Filter by search term
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filteredRooms = filteredRooms.filter(room => 
+        room.id.toLowerCase().includes(searchLower) ||
+        room.tenantName.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return filteredRooms;
   };
 
   if (role === null || loading) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
@@ -630,24 +646,49 @@ export default function Parcel() {
               {roomFilter === "all" ? `ห้องทั้งหมด (${filteredRooms.length})` : `ห้องที่มีพัสดุรอ (${filteredRooms.length})`}
             </Heading>
             
-            <Select
-              value={roomFilter}
-              onChange={(e) => setRoomFilter(e.target.value as "all" | "with-parcels")}
-              w="250px"
-              bg="white"
-              borderColor="gray.300"
-            >
-              <option value="all">แสดงห้องทั้งหมด</option>
-              <option value="with-parcels">แสดงเฉพาะห้องที่มีพัสดุ</option>
-            </Select>
+            <HStack spacing={3}>
+              <InputGroup w="300px">
+                <InputLeftElement pointerEvents="none">
+                  <Icon as={FaSearch} color="gray.400" />
+                </InputLeftElement>
+                <Input
+                  placeholder="ค้นหาห้อง หรือ ชื่อผู้เช่า..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  bg="white"
+                  borderColor="gray.300"
+                  size="md"
+                />
+              </InputGroup>
+              <Select
+                value={roomFilter}
+                onChange={(e) => setRoomFilter(e.target.value as "all" | "with-parcels")}
+                w="250px"
+                bg="white"
+                borderColor="gray.300"
+              >
+                <option value="all">แสดงห้องทั้งหมด</option>
+                <option value="with-parcels">แสดงเฉพาะห้องที่มีพัสดุ</option>
+              </Select>
+            </HStack>
           </Flex>
           
           {filteredRooms.length === 0 ? (
             <Box bg="white" borderRadius="xl" p={8} textAlign="center" boxShadow="sm">
               <Icon as={FaBox} fontSize="4xl" color="gray.300" mb={4} />
               <Text color="gray.500" fontSize="lg">
-                {roomFilter === "all" ? "ไม่มีห้องในระบบ" : "ไม่มีพัสดุที่รอส่งมอบ"}
+                {searchTerm.trim() 
+                  ? `ไม่พบห้องที่ตรงกับ "${searchTerm}"`
+                  : roomFilter === "all" 
+                    ? "ไม่มีห้องในระบบ" 
+                    : "ไม่มีพัสดุที่รอส่งมอบ"
+                }
               </Text>
+              {searchTerm.trim() && (
+                <Text color="gray.400" fontSize="sm" mt={2}>
+                  ลองค้นหาด้วยหมายเลขห้องหรือชื่อผู้เช่า
+                </Text>
+              )}
             </Box>
           ) : (
             <Grid templateColumns={["1fr", "repeat(2, 1fr)", "repeat(3, 1fr)", "repeat(4, 1fr)"]} gap={4}>
