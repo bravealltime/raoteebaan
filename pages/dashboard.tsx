@@ -1,4 +1,4 @@
-import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Image } from "@chakra-ui/react";
+import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Image, InputGroup, InputRightElement } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db, auth } from "../lib/firebase";
 import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, Query } from "firebase/firestore";
@@ -6,7 +6,7 @@ import RoomCard from "../components/RoomCard";
 import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
 import AppHeader from "../components/AppHeader";
-import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaEye, FaCheckCircle } from "react-icons/fa";
+import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaEye, FaCheckCircle, FaSearch } from "react-icons/fa";
 import { saveAs } from "file-saver";
 import Papa from "papaparse";
 import EditRoomModal from "../components/EditRoomModal";
@@ -53,7 +53,6 @@ export default function Dashboard() {
   const [lastWaterMeter, setLastWaterMeter] = useState<number | undefined>(undefined);
   const [lastElecMeter, setLastElecMeter] = useState<number | undefined>(undefined);
   const [roomBills, setRoomBills] = useState<Record<string, any>>({});
-  const [searchRoom, setSearchRoom] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
   const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
@@ -578,22 +577,18 @@ export default function Dashboard() {
     onOpen();
   };
 
-  const filteredRooms = rooms.filter(room => {
-    const matchSearch = room.id.toLowerCase().includes(searchRoom.trim().toLowerCase()) ||
-      room.tenantName.toLowerCase().includes(searchRoom.trim().toLowerCase());
-    let matchFilter = true;
-    if (filterType === 'unpaid') {
-      matchFilter = room.billStatus === 'unpaid';
-    } else if (filterType === 'vacant') {
-      matchFilter = room.status === 'vacant';
-    }
-    return matchSearch && matchFilter;
-  });
-
   const totalRooms = rooms.length;
   const availableRooms = rooms.filter(r => r.status === "occupied").length;
   const vacantRooms = rooms.filter(r => r.status === "vacant").length;
   const paymentsUnderReview = rooms.filter(r => r.billStatus === "pending").length;
+  const unpaidRooms = rooms.filter(room => room.billStatus === 'unpaid');
+  
+  // Filter unpaid rooms based on search
+  const filteredUnpaidRooms = unpaidRooms.filter(room => {
+    const searchTerm = search.trim().toLowerCase();
+    return room.id.toLowerCase().includes(searchTerm) ||
+           room.tenantName.toLowerCase().includes(searchTerm);
+  });
 
   return (
     <MainLayout 
@@ -605,7 +600,14 @@ export default function Dashboard() {
     >
       <Box maxW="1400px" mx="auto" px={4} py={8}>
         {/* Summary Cards */}
-        <Flex gap={4} mb={8} flexWrap="wrap">
+        <Flex
+          gap={4}
+          mb={8}
+          flexWrap="wrap"
+          maxW="1432px"
+          mx="auto"
+          px={6}
+        >
           <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
             <Text color="gray.500">ห้องทั้งหมด</Text>
             <Text fontWeight="bold" fontSize="2xl">{totalRooms}</Text>
@@ -626,12 +628,28 @@ export default function Dashboard() {
             <Text color="gray.500">พัสดุ</Text>
             <Text fontWeight="bold" fontSize="2xl">{parcelCount}</Text>
           </Box>
+          <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm" display="flex" flexDirection="column" alignItems="center" justifyContent="center">
+            <Text color="gray.700" fontWeight="bold" fontSize="xl" mb={2}>รายการรอตรวจสอบ</Text>
+            <Text fontWeight="bold" fontSize="4xl" color="yellow.500">{paymentsUnderReview}</Text>
+          </Box>
         </Flex>
         {/* Main Grid */}
         <Flex gap={8} align="flex-start">
           {/* Unpaid Section */}
-          <Box flex={2} bg="white" borderRadius="2xl" p={8} boxShadow="md">
-            <Flex align="center" justify="space-between" mb={2}>
+          <Box
+            maxW="1432px"
+            mx="auto"
+            bg="white"
+            borderRadius="2xl"
+            px={6}
+            py={6}
+            boxShadow="md"
+            mb={8}
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+          >
+            <Flex align="center" justify="space-between" mb={2} w="100%">
               <Box>
                 <Text fontWeight="bold" fontSize="lg">Unpaid</Text>
                 <Text color="gray.400" fontSize="sm">List of rooms that have not completed payment yet</Text>
@@ -641,21 +659,28 @@ export default function Dashboard() {
                 <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M3 5h14M6 10h8M9 15h2" stroke="#BDBDBD" strokeWidth="2" strokeLinecap="round"/></svg>
               </Button>
             </Flex>
-            <Input
-              placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              mb={4}
-              bg="gray.50"
-              borderRadius="xl"
-              maxW="320px"
-            />
-            <RoomPaymentCardList rooms={filteredRooms} gridProps={{ columns: 4, spacing: 6, w: 'auto', justifyContent: 'center' }} />
-          </Box>
-          {/* รายการรอตรวจสอบ */}
-          <Box flex={1} minW="320px" maxW="400px" bg="white" borderRadius="2xl" p={8} boxShadow="md" display="flex" flexDirection="column" alignItems="center" justifyContent="center">
-            <Text color="gray.700" fontWeight="bold" fontSize="xl" mb={2}>รายการรอตรวจสอบ</Text>
-            <Text fontWeight="bold" fontSize="4xl" color="yellow.500">{paymentsUnderReview}</Text>
+            <InputGroup maxW="320px" mb={4} alignSelf="flex-start">
+              <Input
+                placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                bg="gray.50"
+                borderRadius="xl"
+              />
+              <InputRightElement width="3rem">
+                <IconButton
+                  aria-label="ค้นหา"
+                  icon={<FaSearch />}
+                  size="sm"
+                  borderRadius="xl"
+                  onClick={() => {
+                    // Search is already handled by onChange, this is just for visual feedback
+                    console.log("Search triggered for:", search);
+                  }}
+                />
+              </InputRightElement>
+            </InputGroup>
+            <RoomPaymentCardList rooms={filteredUnpaidRooms} gridProps={{ columns: 4, spacing: 4, w: '100%', justifyContent: 'center' }} />
           </Box>
         </Flex>
       </Box>

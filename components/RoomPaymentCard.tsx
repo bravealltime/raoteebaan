@@ -154,6 +154,9 @@ export default function RoomPaymentCardList({ rooms = [], itemsPerPage = 4, grid
     setCurrentPage(page);
   };
 
+  // Determine columns based on number of rooms
+  const columns = rooms.length < 4 ? Math.max(rooms.length, 1) : 4;
+
   if (safeRooms.length === 0) {
     return (
       <Box textAlign="center" py={8}>
@@ -164,19 +167,24 @@ export default function RoomPaymentCardList({ rooms = [], itemsPerPage = 4, grid
 
   return (
     <Box w="100%">
-      <SimpleGrid
-        columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
-        spacing={6}
-        mb={6}
-        w="full"
-        maxW="unset"
-        justifyItems="center"
-        {...gridProps}
-      >
-        {currentRooms.map((room, index) => (
-          <RoomPaymentCard key={`${room.id}-${index}`} {...room} />
+      <Flex position="relative" w="100%" justify="center" align="flex-end">
+        {currentRooms.map((room, idx) => (
+          <Box
+            key={room.id}
+            position="relative"
+            ml={idx === 0 ? 0 : -12}
+            zIndex={idx}
+            transition="all 0.2s"
+            _hover={{
+              zIndex: 99,
+              transform: "translateY(-12px) scale(1.04)",
+              boxShadow: "2xl",
+            }}
+          >
+            <RoomPaymentCard {...room} />
+          </Box>
         ))}
-      </SimpleGrid>
+      </Flex>
 
       {/* Pagination */}
       {totalPages > 1 && (
