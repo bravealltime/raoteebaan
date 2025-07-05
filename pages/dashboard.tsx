@@ -635,6 +635,7 @@ export default function Dashboard() {
 
   const totalRooms = rooms.length;
   const availableRooms = rooms.filter(r => r.status === "occupied").length;
+  const vacantRooms = rooms.filter(r => r.status === "vacant").length;
   const paymentsUnderReview = rooms.filter(r => r.billStatus === "pending").length;
 
   return (
@@ -648,38 +649,86 @@ export default function Dashboard() {
       <Box maxW="1200px" mx="auto" px={[2, 4, 6]} py={4}>
         <Flex mb={6} gap={4} flexWrap="wrap">
           <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
-            <Text color="gray.500">All Room</Text>
+            <Text color="gray.500">ห้องทั้งหมด</Text>
             <Text fontWeight="bold" fontSize="2xl">{totalRooms}</Text>
           </Box>
           <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
-            <Text color="gray.500">Room available</Text>
+            <Text color="gray.500">ห้องมีผู้เช่า</Text>
             <Text fontWeight="bold" fontSize="2xl">{availableRooms}</Text>
           </Box>
           <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
-            <Text color="gray.500">Inbox</Text>
+            <Text color="gray.500">ห้องว่าง</Text>
+            <Text fontWeight="bold" fontSize="2xl">{vacantRooms}</Text>
+          </Box>
+          <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
+            <Text color="gray.500">กล่องข้อความ</Text>
             <Text fontWeight="bold" fontSize="2xl">{inboxCount}</Text>
           </Box>
           <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
-            <Text color="gray.500">Parcel</Text>
+            <Text color="gray.500">พัสดุ</Text>
             <Text fontWeight="bold" fontSize="2xl">{parcelCount}</Text>
-          </Box>
-          <Box bg="white" borderRadius="xl" p={4} minW="220px" boxShadow="sm" display="flex" flexDirection="column" alignItems="center" justifyContent="center">
-            <Text color="gray.700" fontWeight="bold">Payment under review</Text>
-            <Text fontWeight="bold" fontSize="3xl" color="yellow.500">{paymentsUnderReview}</Text>
           </Box>
         </Flex>
 
-        <Box mb={8} overflowX="auto">
-          <Flex gap={4} minW="fit-content">
-            {rooms.filter(r => r.billStatus === "pending" || r.billStatus === "unpaid").map(room => (
-              <RoomPaymentCard
-                key={room.id}
-                id={room.id}
-                status={room.billStatus as "pending" | "unpaid"}
-                total={room.latestTotal}
-                onNotify={() => toast({ title: `ส่งแจ้งเตือนไปยังห้อง ${room.id} แล้ว`, status: "success" })}
-              />
-            ))}
+        <Box mb={8}>
+          <Flex direction={["column", "row"]} justify="center" align="stretch" gap={8}>
+            <Box
+              flex="1"
+              minW={["100%", "380px", "480px"]}
+              maxW="540px"
+              bg="white"
+              borderRadius="2xl"
+              boxShadow="sm"
+              p={[4, 6]}
+              display="flex"
+              flexDirection="column"
+              justifyContent="flex-start"
+              alignItems="stretch"
+            >
+              <Flex align="center" justify="space-between" mb={2}>
+                <Box>
+                  <Text fontWeight="bold" fontSize="lg">Unpaid</Text>
+                  <Text color="gray.400" fontSize="sm">List of rooms that have not completed payment yet</Text>
+                </Box>
+                <Button variant="ghost" size="sm" borderRadius="full" p={1} minW={0}>
+                  {/* filter icon placeholder */}
+                  <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M3 5h14M6 10h8M9 15h2" stroke="#BDBDBD" strokeWidth="2" strokeLinecap="round"/></svg>
+                </Button>
+              </Flex>
+              <Box flex="1">
+                {rooms.filter(r => r.billStatus === "pending" || r.billStatus === "unpaid").map(room => (
+                  <RoomPaymentCard
+                    key={room.id}
+                    id={room.id}
+                    status={room.billStatus as "pending" | "unpaid"}
+                    total={room.latestTotal}
+                    electricity={room.electricity}
+                    water={room.water}
+                    rent={room.rent}
+                    onNotify={() => toast({ title: `ส่งแจ้งเตือนไปยังห้อง ${room.id} แล้ว`, status: "success" })}
+                  />
+                ))}
+              </Box>
+            </Box>
+            <Box
+              minW={["100%", "320px"]}
+              maxW="400px"
+              bg="white"
+              borderRadius="2xl"
+              boxShadow="sm"
+              p={[4, 6]}
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+              justifyContent="center"
+              height="100%"
+              alignSelf={["auto", "flex-start"]}
+              position={["static", "sticky"]}
+              top={[null, "32px"]}
+            >
+              <Text color="gray.700" fontWeight="bold" fontSize="xl" mb={2}>รายการรอตรวจสอบ</Text>
+              <Text fontWeight="bold" fontSize="4xl" color="yellow.500">{paymentsUnderReview}</Text>
+            </Box>
           </Flex>
         </Box>
 

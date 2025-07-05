@@ -1,47 +1,64 @@
-import { Box, Flex, Text, Badge, Button } from "@chakra-ui/react";
+import { Box, Flex, Text, Badge, Button, Avatar } from "@chakra-ui/react";
+import { FaDoorOpen } from "react-icons/fa";
 
 interface RoomPaymentCardProps {
   id: string;
   status: "pending" | "unpaid";
   total: number;
-  onClick?: () => void;
+  electricity: number;
+  water: number;
+  rent: number;
   onNotify: () => void;
 }
 
 const statusMap = {
-  pending: { colorScheme: "orange", label: "PENDING" },
-  unpaid: { colorScheme: "red", label: "UNPAID" },
+  pending: { label: "Pending", color: "orange.500" },
+  unpaid: { label: "Unpaid", color: "red.500" },
 };
 
-export default function RoomPaymentCard({ id, status, total, onNotify }: RoomPaymentCardProps) {
+export default function RoomPaymentCard({ id, status, total, electricity, water, rent, onNotify }: RoomPaymentCardProps) {
   const statusInfo = statusMap[status];
   return (
     <Box
       bg="white"
-      borderRadius="xl"
+      borderRadius="2xl"
       boxShadow="sm"
-      p={4}
-      minW="240px"
-      maxW="280px"
-      w="full"
-      minH="180px"
+      p={6}
+      mb={4}
+      w="100%"
+      maxW="420px"
+      mx="auto"
       display="flex"
       flexDirection="column"
       gap={3}
     >
-      <Flex justify="space-between" align="center" mb={2}>
-        <Text fontWeight="bold" color="blue.700" fontSize="lg">
-          Room {id}
-        </Text>
-        <Badge colorScheme={statusInfo.colorScheme} borderRadius="full" fontSize="xs" px={2} py={1}>
-          {statusInfo.label}
-        </Badge>
+      <Flex align="center" gap={4} mb={2}>
+        <Avatar icon={<FaDoorOpen />} bg="blue.100" color="blue.600" size="md" />
+        <Box>
+          <Flex align="center" gap={3}>
+            <Text fontWeight="bold" fontSize="lg" color="gray.700">Room {id}</Text>
+            <Text fontWeight="bold" fontSize="md" color={statusInfo.color}>{statusInfo.label}</Text>
+          </Flex>
+        </Box>
       </Flex>
-      <Box bg="blue.50" borderRadius="lg" py={3} px={2} my={1} boxShadow="xs">
-        <Text color="blue.700" fontWeight="bold" fontSize="2xl" textAlign="center">
-          ฿{total.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-        </Text>
-      </Box>
+      <Flex align="center" gap={6} mt={2} mb={2}>
+        <Box>
+          <Text fontSize="sm" color="gray.500">Electric bill</Text>
+          <Text fontWeight="bold" color="yellow.500">{electricity}</Text>
+        </Box>
+        <Box>
+          <Text fontSize="sm" color="gray.500">Water bill</Text>
+          <Text fontWeight="bold" color="blue.400">{water}</Text>
+        </Box>
+        <Box>
+          <Text fontSize="sm" color="gray.500">Room bill</Text>
+          <Text fontWeight="bold" color="gray.700">{rent}</Text>
+        </Box>
+        <Box>
+          <Text fontSize="sm" color="gray.500">Total</Text>
+          <Text fontWeight="bold" color="red.500">{total}</Text>
+        </Box>
+      </Flex>
       <Button
         mt={2}
         colorScheme="orange"
