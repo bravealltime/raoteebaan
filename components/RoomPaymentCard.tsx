@@ -20,6 +20,7 @@ export interface RoomPaymentCardProps {
 export interface RoomPaymentCardListProps {
   rooms: RoomPaymentCardProps[];
   itemsPerPage?: number;
+  gridProps?: any;
 }
 
 const statusMap = {
@@ -60,12 +61,18 @@ export function RoomPaymentCard({
       w="100%"
       minW="320px"
       maxW="360px"
-      mx="auto"
       display="flex"
       flexDirection="column"
       gap={5}
       transition="all 0.2s"
-      _hover={{ boxShadow: "lg", transform: "translateY(-2px)" }}
+      zIndex={1}
+      _hover={{
+        boxShadow: "xl",
+        transform: "scale(1.02)",
+        zIndex: 10,
+        borderColor: status === 'unpaid' ? 'red.200' : 'orange.200',
+        bg: status === 'unpaid' ? 'red.50' : 'orange.50',
+      }}
     >
       {/* Header Section */}
       <Flex align="center" gap={4} mb={2}>
@@ -130,7 +137,7 @@ export function RoomPaymentCard({
   );
 }
 
-export default function RoomPaymentCardList({ rooms = [], itemsPerPage = 4 }: RoomPaymentCardListProps) {
+export default function RoomPaymentCardList({ rooms = [], itemsPerPage = 4, gridProps = {} }: RoomPaymentCardListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   
   // Ensure rooms is always an array
@@ -156,9 +163,16 @@ export default function RoomPaymentCardList({ rooms = [], itemsPerPage = 4 }: Ro
   }
 
   return (
-    <Box>
-      {/* Cards Grid */}
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} mb={6}>
+    <Box w="100%">
+      <SimpleGrid
+        columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
+        spacing={6}
+        mb={6}
+        w="full"
+        maxW="unset"
+        justifyItems="center"
+        {...gridProps}
+      >
         {currentRooms.map((room, index) => (
           <RoomPaymentCard key={`${room.id}-${index}`} {...room} />
         ))}

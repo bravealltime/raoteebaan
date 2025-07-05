@@ -642,27 +642,35 @@ export default function Dashboard() {
               justifyContent="flex-start"
               alignItems="stretch"
             >
-              <Flex align="center" justify="space-between" mb={2}>
-                <Box>
-                  <Text fontWeight="bold" fontSize="lg">Unpaid</Text>
-                  <Text color="gray.400" fontSize="sm">List of rooms that have not completed payment yet</Text>
-                </Box>
-                <Button variant="ghost" size="sm" borderRadius="full" p={1} minW={0}>
-                  {/* filter icon placeholder */}
-                  <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M3 5h14M6 10h8M9 15h2" stroke="#BDBDBD" strokeWidth="2" strokeLinecap="round"/></svg>
-                </Button>
-              </Flex>
-              <Input
-                placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                mb={4}
-                bg="gray.50"
-                borderRadius="xl"
-                maxW="320px"
-              />
-              <Box flex="1">
-                <RoomPaymentCardList rooms={filteredRooms} />
+              <Box
+                maxW="1536px"
+                mx="auto"
+                bg="white"
+                borderRadius="2xl"
+                p={6}
+                boxShadow="md"
+                mb={8}
+              >
+                <Flex align="center" justify="space-between" mb={2}>
+                  <Box>
+                    <Text fontWeight="bold" fontSize="lg">Unpaid</Text>
+                    <Text color="gray.400" fontSize="sm">List of rooms that have not completed payment yet</Text>
+                  </Box>
+                  <Button variant="ghost" size="sm" borderRadius="full" p={1} minW={0}>
+                    {/* filter icon placeholder */}
+                    <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M3 5h14M6 10h8M9 15h2" stroke="#BDBDBD" strokeWidth="2" strokeLinecap="round"/></svg>
+                  </Button>
+                </Flex>
+                <Input
+                  placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  mb={4}
+                  bg="gray.50"
+                  borderRadius="xl"
+                  maxW="320px"
+                />
+                <RoomPaymentCardList rooms={filteredRooms} gridProps={{ columns: 4, spacing: 6, w: 'auto', justifyContent: 'center' }} />
               </Box>
             </Box>
             <Box
