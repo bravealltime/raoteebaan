@@ -103,6 +103,7 @@ export default function Dashboard() {
   const [selectedBill, setSelectedBill] = useState<any | null>(null);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
   const [parcelCount, setParcelCount] = useState(0);
+  const [inboxCount, setInboxCount] = useState(0);
 
   const user = {
     name: "xxx",
@@ -270,6 +271,21 @@ export default function Dashboard() {
     }
     fetchParcels();
   }, []);
+
+  useEffect(() => {
+    async function fetchInbox() {
+      const querySnapshot = await getDocs(collection(db, "conversations"));
+      const conversations = querySnapshot.docs.map(doc => doc.data());
+      const currentUid = currentUser?.uid;
+      const unread = conversations.filter((c: any) =>
+        c.lastMessage &&
+        c.lastMessage.receiverId === currentUid &&
+        !c.lastMessage.isRead
+      );
+      setInboxCount(unread.length);
+    }
+    if (currentUser?.uid) fetchInbox();
+  }, [currentUser]);
 
   const handleDelete = async (id: string) => {
     setDeleteId(id);
@@ -618,8 +634,7 @@ export default function Dashboard() {
   });
 
   const totalRooms = rooms.length;
-  const availableRooms = rooms.filter(r => r.status === "vacant").length;
-  const inboxCount = 99;
+  const availableRooms = rooms.filter(r => r.status === "occupied").length;
   const paymentsUnderReview = rooms.filter(r => r.billStatus === "pending").length;
 
   return (
