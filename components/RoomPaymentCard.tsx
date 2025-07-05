@@ -51,98 +51,75 @@ export function RoomPaymentCard({
   return (
     <Box
       bg="white"
-      borderRadius="md"
-      boxShadow="sm"
+      borderRadius="2xl"
+      boxShadow="md"
       border="1px solid"
       borderColor="gray.100"
-      p={3}
-      mb={2}
+      p={6}
+      mb={6}
       w="100%"
-      maxW="280px"
+      minW="320px"
+      maxW="360px"
       mx="auto"
-      _hover={{ boxShadow: "md", transform: "translateY(-1px)" }}
+      display="flex"
+      flexDirection="column"
+      gap={5}
       transition="all 0.2s"
+      _hover={{ boxShadow: "lg", transform: "translateY(-2px)" }}
     >
-      {/* Ultra Compact Header */}
-      <Flex justify="space-between" align="center" mb={2}>
-        <Flex align="center" gap={1.5}>
-          <Avatar icon={<FaDoorOpen />} bg="blue.100" color="blue.600" size="xs" />
-          <VStack align="start" spacing={0}>
-            <Text fontWeight="bold" fontSize="sm" color="gray.800">
-              {roomType} {id}
-            </Text>
-            <Flex align="center" gap={0.5}>
-              <FaUser size={8} color="#718096" />
-              <Text fontSize="xs" color="gray.600" noOfLines={1} maxW="80px">{tenantName}</Text>
-            </Flex>
-          </VStack>
-        </Flex>
-        <Badge
-          colorScheme={status === 'pending' ? 'orange' : 'red'}
-          variant="subtle"
-          px={1.5}
-          py={0.5}
-          borderRadius="full"
-          fontSize="xs"
-          fontWeight="semibold"
-        >
-          {statusInfo.label}
-        </Badge>
+      {/* Header Section */}
+      <Flex align="center" gap={4} mb={2}>
+        <Avatar icon={<FaDoorOpen />} bg="blue.100" color="blue.600" size="md" />
+        <Box>
+          <Text fontWeight="bold" fontSize="xl" color="gray.800">{roomType} {id}</Text>
+          <Text fontWeight="semibold" fontSize="md" color={statusInfo.color}>{statusInfo.label}</Text>
+        </Box>
       </Flex>
-
-      {/* Ultra Compact Bill Details */}
-      <VStack spacing={1.5} mb={2}>
-        {/* Due Date & Meter */}
-        <Flex justify="space-between" w="full" align="center" fontSize="xs" color="gray.500">
-          <Flex align="center" gap={0.5}>
-            <FaCalendarAlt size={8} />
-            <Text>ครบกำหนด: {dueDate}</Text>
-          </Flex>
-          <Text>มิเตอร์: {lastReading}</Text>
+      <Box mb={2}>
+        <Text fontSize="md" color="gray.600" noOfLines={1} isTruncated>{tenantName}</Text>
+        <Flex gap={6} mt={2}>
+          <Box>
+            <Text fontSize="sm" color="gray.500">ครบกำหนด</Text>
+            <Text fontWeight="medium" color="gray.700" fontSize="md">{dueDate}</Text>
+          </Box>
+          <Box>
+            <Text fontSize="sm" color="gray.500">มิเตอร์ล่าสุด</Text>
+            <Text fontWeight="medium" color="gray.700" fontSize="md">{lastReading}</Text>
+          </Box>
         </Flex>
-        
-        {/* Bill Breakdown */}
-        <HStack spacing={1} w="full" justify="space-between" bg="gray.50" p={1.5} borderRadius="sm">
-          <VStack spacing={0} align="center" flex={1}>
-            <Text fontSize="xs" color="gray.500">ไฟฟ้า</Text>
-            <Text fontWeight="bold" color="yellow.600" fontSize="xs">
-              ฿{safeElectricity.toLocaleString()}
-            </Text>
-          </VStack>
-          <VStack spacing={0} align="center" flex={1}>
-            <Text fontSize="xs" color="gray.500">น้ำ</Text>
-            <Text fontWeight="bold" color="blue.600" fontSize="xs">
-              ฿{safeWater.toLocaleString()}
-            </Text>
-          </VStack>
-          <VStack spacing={0} align="center" flex={1}>
-            <Text fontSize="xs" color="gray.500">ค่าเช่า</Text>
-            <Text fontWeight="bold" color="gray.700" fontSize="xs">
-              ฿{safeRent.toLocaleString()}
-            </Text>
-          </VStack>
-        </HStack>
-
-        {/* Total Section */}
-        <Flex justify="space-between" align="center" w="full" bg={status === 'unpaid' ? 'red.50' : 'orange.50'} p={1.5} borderRadius="sm">
-          <Flex align="center" gap={0.5}>
-            <FaExclamationTriangle color={statusInfo.color} size={10} />
-            <Text fontWeight="bold" color="gray.700" fontSize="xs">รวมทั้งหมด</Text>
+      </Box>
+      <Flex align="center" gap={8} mt={2} mb={2}>
+        <Box>
+          <Text fontSize="md" color="gray.500">ไฟฟ้า</Text>
+          <Text fontWeight="bold" color="yellow.600" fontSize="lg">฿{safeElectricity.toLocaleString()}</Text>
+        </Box>
+        <Box>
+          <Text fontSize="md" color="gray.500">น้ำ</Text>
+          <Text fontWeight="bold" color="blue.600" fontSize="lg">฿{safeWater.toLocaleString()}</Text>
+        </Box>
+        <Box>
+          <Text fontSize="md" color="gray.500">ค่าเช่า</Text>
+          <Text fontWeight="bold" color="gray.700" fontSize="lg">฿{safeRent.toLocaleString()}</Text>
+        </Box>
+      </Flex>
+      <Box bg={status === 'unpaid' ? 'red.50' : 'orange.50'} p={4} borderRadius="lg" mb={2}>
+        <Flex align="center" justify="space-between">
+          <Flex align="center" gap={2}>
+            <FaExclamationTriangle color={statusInfo.color} size={18} />
+            <Text fontWeight="bold" color="gray.800" fontSize="lg">รวมทั้งหมด</Text>
           </Flex>
-          <Text fontWeight="bold" color={statusInfo.color} fontSize="sm">
-            ฿{safeTotal.toLocaleString()}
-          </Text>
+          <Text fontWeight="bold" color={statusInfo.color} fontSize="2xl">฿{safeTotal.toLocaleString()}</Text>
         </Flex>
-      </VStack>
-
-      {/* Action Button */}
+      </Box>
       <Button
         colorScheme={status === 'pending' ? 'orange' : 'red'}
         variant="solid"
-        borderRadius="sm"
+        borderRadius="lg"
         w="full"
         fontWeight="bold"
-        size="xs"
+        size="lg"
+        fontSize="lg"
+        py={6}
         onClick={e => { e.stopPropagation(); onNotify(); }}
         _hover={{ transform: "translateY(-1px)" }}
         transition="all 0.2s"
