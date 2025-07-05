@@ -53,7 +53,7 @@ export default function Dashboard() {
   const [lastWaterMeter, setLastWaterMeter] = useState<number | undefined>(undefined);
   const [lastElecMeter, setLastElecMeter] = useState<number | undefined>(undefined);
   const [roomBills, setRoomBills] = useState<Record<string, any>>({});
-  const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant' | 'review'>('unpaid');
   const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
   const [role, setRole] = useState<string | null>(null);
@@ -142,9 +142,11 @@ export default function Dashboard() {
           const latestBill = billSnap.docs[0].data();
           proofUrl = latestBill.proofUrl || null;
           latestBillId = billSnap.docs[0].id;
+          // Update billStatus from the latest bill
+          billStatus = latestBill.status || d.billStatus || "paid";
+        } else {
+          billStatus = d.billStatus || "paid";
         }
-        
-        billStatus = d.billStatus || "paid";
 
         console.log(`[DEBUG] Data for Room ${doc.id}:`, { roomData: d, latestBillId, proofUrl, finalBillStatus: billStatus });
 
@@ -580,14 +582,123 @@ export default function Dashboard() {
   const totalRooms = rooms.length;
   const availableRooms = rooms.filter(r => r.status === "occupied").length;
   const vacantRooms = rooms.filter(r => r.status === "vacant").length;
-  const paymentsUnderReview = rooms.filter(r => r.billStatus === "pending").length;
+  // Count rooms that have bills with proofUrl (slips uploaded for review)
+  const paymentsUnderReview = rooms.filter(r => r.proofUrl && r.proofUrl !== null).length;
+  // Filter unpaid rooms based on billStatus from rooms collection
   const unpaidRooms = rooms.filter(room => room.billStatus === 'unpaid');
   
-  // Filter unpaid rooms based on search
-  const filteredUnpaidRooms = unpaidRooms.filter(room => {
+  // Filter rooms based on filterType and search
+  const getFilteredRooms = () => {
+    let baseRooms: Room[] = [];
+    
+    switch (filterType) {
+      case 'unpaid':
+        baseRooms = rooms.filter(room => room.billStatus === 'unpaid');
+        break;
+      case 'vacant':
+        baseRooms = rooms.filter(room => room.status === 'vacant');
+        break;
+      case 'review':
+        baseRooms = rooms.filter(room => room.proofUrl && room.proofUrl !== null);
+        break;
+      default:
+        baseRooms = rooms;
+    }
+    
+    // Apply search filter
     const searchTerm = search.trim().toLowerCase();
-    return room.id.toLowerCase().includes(searchTerm) ||
-           room.tenantName.toLowerCase().includes(searchTerm);
+    return baseRooms.filter(room => {
+      return room.id.toLowerCase().includes(searchTerm) ||
+             room.tenantName.toLowerCase().includes(searchTerm);
+    });
+  };
+
+  const filteredRooms = getFilteredRooms();
+
+  // Convert rooms to RoomPaymentCard format
+  const roomPaymentCards = filteredRooms.map(room => {
+    const bill = roomBills[room.id];
+    const total = bill?.total || room.latestTotal || 0;
+    
+    // Determine status based on filterType and room data
+    let status: "pending" | "unpaid" | "review" = "unpaid";
+    if (filterType === 'review' && room.proofUrl) {
+      status = "review";
+    } else if (room.billStatus === 'pending') {
+      status = "pending";
+    } else if (room.billStatus === 'unpaid') {
+      status = "unpaid";
+    }
+
+    return {
+      id: room.id,
+      status,
+      total,
+      electricity: bill?.electricityTotal || room.electricity || 0,
+      water: bill?.waterTotal || room.water || 0,
+      rent: bill?.rent || room.rent || 0,
+      onNotify: () => {
+        toast({ title: `แจ้งเตือนห้อง ${room.id}`, status: "info" });
+      },
+      onReview: status === "review" ? () => {
+        if (room.proofUrl) {
+          setProofImageUrl(room.proofUrl);
+          onProofModalOpen();
+        }
+      } : undefined,
+      onRevert: status === "review" ? async () => {
+        try {
+          if (room.latestBillId) {
+            // Remove proofUrl from the bill
+            await setDoc(doc(db, "bills", room.latestBillId), { 
+              proofUrl: null 
+            }, { merge: true });
+            
+            // Update room's billStatus back to unpaid
+            await setDoc(doc(db, "rooms", room.id), { 
+              billStatus: "unpaid" 
+            }, { merge: true });
+            
+            toast({ title: `ย้อนกลับห้อง ${room.id} ไปค้างชำระสำเร็จ`, status: "success" });
+            
+            // Refresh the page to update the data
+            window.location.reload();
+          }
+        } catch (error) {
+          console.error("Error reverting room status:", error);
+          toast({ title: "ย้อนกลับสถานะไม่สำเร็จ", status: "error" });
+        }
+      } : undefined,
+      onConfirmPayment: status === "review" ? async () => {
+        try {
+          if (room.latestBillId) {
+            // Update bill status to paid and remove proofUrl
+            await setDoc(doc(db, "bills", room.latestBillId), { 
+              status: "paid",
+              proofUrl: null,
+              paidDate: new Date()
+            }, { merge: true });
+            
+            // Update room's billStatus to paid
+            await setDoc(doc(db, "rooms", room.id), { 
+              billStatus: "paid" 
+            }, { merge: true });
+            
+            toast({ title: `ยืนยันการชำระเงินห้อง ${room.id} สำเร็จ`, status: "success" });
+            
+            // Refresh the page to update the data
+            window.location.reload();
+          }
+        } catch (error) {
+          console.error("Error confirming payment:", error);
+          toast({ title: "ยืนยันการชำระเงินไม่สำเร็จ", status: "error" });
+        }
+      } : undefined,
+      tenantName: room.tenantName,
+      dueDate: bill?.dueDate ? (typeof bill.dueDate === 'object' ? bill.dueDate.toDate?.()?.toLocaleDateString('th-TH') : bill.dueDate) : "ไม่ระบุ",
+      lastReading: bill?.date ? (typeof bill.date === 'object' ? bill.date.toDate?.()?.toLocaleDateString('th-TH') : bill.date) : "ไม่ระบุ",
+      roomType: "ห้องพัก"
+    };
   });
 
   return (
@@ -628,14 +739,28 @@ export default function Dashboard() {
             <Text color="gray.500">พัสดุ</Text>
             <Text fontWeight="bold" fontSize="2xl">{parcelCount}</Text>
           </Box>
-          <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm" display="flex" flexDirection="column" alignItems="center" justifyContent="center">
+          <Button
+            bg="white"
+            borderRadius="xl"
+            p={4}
+            minW="180px"
+            boxShadow="sm"
+            display="flex"
+            flexDirection="column"
+            alignItems="center"
+            justifyContent="center"
+            onClick={() => setFilterType('review')}
+            _hover={{ bg: 'gray.50' }}
+            _active={{ bg: 'gray.100' }}
+            h="auto"
+          >
             <Text color="gray.700" fontWeight="bold" fontSize="xl" mb={2}>รายการรอตรวจสอบ</Text>
             <Text fontWeight="bold" fontSize="4xl" color="yellow.500">{paymentsUnderReview}</Text>
-          </Box>
+          </Button>
         </Flex>
         {/* Main Grid */}
         <Flex gap={8} align="flex-start">
-          {/* Unpaid Section */}
+          {/* Dynamic Section based on filterType */}
           <Box
             maxW="1432px"
             mx="auto"
@@ -651,8 +776,16 @@ export default function Dashboard() {
           >
             <Flex align="center" justify="space-between" mb={2} w="100%">
               <Box>
-                <Text fontWeight="bold" fontSize="lg">Unpaid</Text>
-                <Text color="gray.400" fontSize="sm">List of rooms that have not completed payment yet</Text>
+                <Text fontWeight="bold" fontSize="lg">
+                  {filterType === 'review' ? 'รายการรอตรวจสอบ' : 
+                   filterType === 'unpaid' ? 'ค้างชำระ' :
+                   filterType === 'vacant' ? 'ห้องว่าง' : 'ห้องทั้งหมด'}
+                </Text>
+                <Text color="gray.400" fontSize="sm">
+                  {filterType === 'review' ? 'รายการที่มีการส่งสลิปเข้ามาให้ตรวจสอบ' :
+                   filterType === 'unpaid' ? 'รายการห้องที่ยังไม่ได้ชำระเงิน' :
+                   filterType === 'vacant' ? 'รายการห้องว่าง' : 'รายการห้องทั้งหมด'}
+                </Text>
               </Box>
               <Button variant="ghost" size="sm" borderRadius="full" p={1} minW={0}>
                 {/* filter icon placeholder */}
@@ -680,7 +813,7 @@ export default function Dashboard() {
                 />
               </InputRightElement>
             </InputGroup>
-            <RoomPaymentCardList rooms={filteredUnpaidRooms} gridProps={{ columns: 4, spacing: 4, w: '100%', justifyContent: 'center' }} />
+            <RoomPaymentCardList rooms={roomPaymentCards} gridProps={{ columns: 4, spacing: 4, w: '100%', justifyContent: 'center' }} />
           </Box>
         </Flex>
       </Box>

@@ -5,12 +5,15 @@ import { useState, useMemo } from "react";
 // Export interfaces for external use
 export interface RoomPaymentCardProps {
   id: string;
-  status: "pending" | "unpaid";
+  status: "pending" | "unpaid" | "review";
   total: number;
   electricity: number;
   water: number;
   rent: number;
   onNotify: () => void;
+  onReview?: () => void;
+  onRevert?: () => void;
+  onConfirmPayment?: () => void;
   tenantName?: string;
   dueDate?: string;
   lastReading?: string;
@@ -26,6 +29,7 @@ export interface RoomPaymentCardListProps {
 const statusMap = {
   pending: { label: "รอชำระ", color: "orange.500", bg: "orange.50" },
   unpaid: { label: "ค้างชำระ", color: "red.500", bg: "red.50" },
+  review: { label: "รอตรวจสอบ", color: "yellow.600", bg: "yellow.50" },
 };
 
 export function RoomPaymentCard({ 
@@ -36,6 +40,9 @@ export function RoomPaymentCard({
   water, 
   rent, 
   onNotify,
+  onReview,
+  onRevert,
+  onConfirmPayment,
   tenantName = "ไม่มีผู้เช่า",
   dueDate = "ไม่ระบุ",
   lastReading = "ไม่ระบุ",
@@ -70,8 +77,8 @@ export function RoomPaymentCard({
         boxShadow: "xl",
         transform: "scale(1.02)",
         zIndex: 10,
-        borderColor: status === 'unpaid' ? 'red.200' : 'orange.200',
-        bg: status === 'unpaid' ? 'red.50' : 'orange.50',
+        borderColor: status === 'unpaid' ? 'red.200' : status === 'review' ? 'yellow.200' : 'orange.200',
+        bg: status === 'unpaid' ? 'red.50' : status === 'review' ? 'yellow.50' : 'orange.50',
       }}
     >
       {/* Header Section */}
@@ -109,7 +116,7 @@ export function RoomPaymentCard({
           <Text fontWeight="bold" color="gray.700" fontSize="lg">฿{safeRent.toLocaleString()}</Text>
         </Box>
       </Flex>
-      <Box bg={status === 'unpaid' ? 'red.50' : 'orange.50'} p={4} borderRadius="lg" mb={2}>
+      <Box bg={statusInfo.bg} p={4} borderRadius="lg" mb={2}>
         <Flex align="center" justify="space-between">
           <Flex align="center" gap={2}>
             <FaExclamationTriangle color={statusInfo.color} size={18} />
@@ -118,21 +125,91 @@ export function RoomPaymentCard({
           <Text fontWeight="bold" color={statusInfo.color} fontSize="2xl">฿{safeTotal.toLocaleString()}</Text>
         </Flex>
       </Box>
-      <Button
-        colorScheme={status === 'pending' ? 'orange' : 'red'}
-        variant="solid"
-        borderRadius="lg"
-        w="full"
-        fontWeight="bold"
-        size="lg"
-        fontSize="lg"
-        py={6}
-        onClick={e => { e.stopPropagation(); onNotify(); }}
-        _hover={{ transform: "translateY(-1px)" }}
-        transition="all 0.2s"
-      >
-        {status === 'pending' ? 'แจ้งเตือนชำระเงิน' : 'แจ้งเตือนค้างชำระ'}
-      </Button>
+      {status === 'review' ? (
+        <Flex gap={3} direction="column">
+          <Button
+            colorScheme="yellow"
+            variant="solid"
+            borderRadius="lg"
+            w="full"
+            fontWeight="bold"
+            size="lg"
+            fontSize="lg"
+            py={6}
+            onClick={e => { 
+              e.stopPropagation(); 
+              if (onReview) {
+                onReview();
+              }
+            }}
+            _hover={{ transform: "translateY(-1px)" }}
+            transition="all 0.2s"
+          >
+            ตรวจสอบสลิป
+          </Button>
+          <Flex gap={2}>
+            <Button
+              colorScheme="green"
+              variant="solid"
+              borderRadius="lg"
+              flex={1}
+              fontWeight="bold"
+              size="md"
+              fontSize="md"
+              py={4}
+              onClick={e => { 
+                e.stopPropagation(); 
+                if (onConfirmPayment) {
+                  onConfirmPayment();
+                }
+              }}
+              _hover={{ transform: "translateY(-1px)" }}
+              transition="all 0.2s"
+            >
+              ยืนยันชำระ
+            </Button>
+            <Button
+              colorScheme="gray"
+              variant="outline"
+              borderRadius="lg"
+              flex={1}
+              fontWeight="bold"
+              size="md"
+              fontSize="md"
+              py={4}
+              onClick={e => { 
+                e.stopPropagation(); 
+                if (onRevert) {
+                  onRevert();
+                }
+              }}
+              _hover={{ transform: "translateY(-1px)", bg: "gray.50" }}
+              transition="all 0.2s"
+            >
+              ย้อนกลับ
+            </Button>
+          </Flex>
+        </Flex>
+      ) : (
+        <Button
+          colorScheme={status === 'pending' ? 'orange' : 'red'}
+          variant="solid"
+          borderRadius="lg"
+          w="full"
+          fontWeight="bold"
+          size="lg"
+          fontSize="lg"
+          py={6}
+          onClick={e => { 
+            e.stopPropagation(); 
+            onNotify();
+          }}
+          _hover={{ transform: "translateY(-1px)" }}
+          transition="all 0.2s"
+        >
+          {status === 'pending' ? 'แจ้งเตือนชำระเงิน' : 'แจ้งเตือนค้างชำระ'}
+        </Button>
+      )}
     </Box>
   );
 }
