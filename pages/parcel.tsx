@@ -11,6 +11,7 @@ import {
   orderBy, 
   updateDoc, 
   addDoc,
+  deleteDoc,
   Timestamp,
   onSnapshot
 } from "firebase/firestore";
@@ -48,7 +49,8 @@ import {
   VStack,
   HStack,
   Divider,
-  SimpleGrid
+  SimpleGrid,
+  IconButton
 } from "@chakra-ui/react";
 import { 
   FaBox, 
@@ -57,7 +59,8 @@ import {
   FaExclamationTriangle, 
   FaPlus, 
   FaEye,
-  FaEdit
+  FaEdit,
+  FaTrash
 } from "react-icons/fa";
 import { onAuthStateChanged } from "firebase/auth";
 import MainLayout from "../components/MainLayout";
@@ -467,6 +470,32 @@ export default function Parcel() {
     }
   };
 
+  const handleDeleteParcel = async (parcelId: string) => {
+    const confirmed = confirm("คุณแน่ใจหรือไม่ที่จะลบพัสดุนี้? การกระทำนี้ไม่สามารถยกเลิกได้");
+    
+    if (!confirmed) return;
+
+    try {
+      await deleteDoc(doc(db, "parcels", parcelId));
+      
+      toast({
+        title: "ลบพัสดุสำเร็จ",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error("Error deleting parcel:", error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถลบพัสดุได้",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "pending": return "orange";
@@ -786,16 +815,27 @@ export default function Parcel() {
                         </Td>
                         {(role === "admin" || role === "owner") && (
                           <Td>
-                            <Select
-                              size="sm"
-                              value={parcel.status}
-                              onChange={(e) => handleUpdateParcelStatus(parcel.id, e.target.value as any)}
-                              w="120px"
-                            >
-                              <option value="pending">รอรับ</option>
-                              <option value="received">รับแล้ว</option>
-                              <option value="delivered">ส่งมอบแล้ว</option>
-                            </Select>
+                            <Flex gap={2} align="center">
+                              <Select
+                                size="sm"
+                                value={parcel.status}
+                                onChange={(e) => handleUpdateParcelStatus(parcel.id, e.target.value as any)}
+                                w="120px"
+                              >
+                                <option value="pending">รอรับ</option>
+                                <option value="received">รับแล้ว</option>
+                                <option value="delivered">ส่งมอบแล้ว</option>
+                              </Select>
+                              <IconButton
+                                size="sm"
+                                colorScheme="red"
+                                variant="ghost"
+                                icon={<FaTrash />}
+                                onClick={() => handleDeleteParcel(parcel.id)}
+                                aria-label="ลบพัสดุ"
+                                title="ลบพัสดุ"
+                              />
+                            </Flex>
                           </Td>
                         )}
                       </Tr>
