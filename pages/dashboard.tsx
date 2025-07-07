@@ -1,4 +1,4 @@
-import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Image, InputGroup, InputRightElement, Container, VStack, Icon } from "@chakra-ui/react";
+import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Image, InputGroup, InputRightElement, Container, VStack, Icon, HStack } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db, auth } from "../lib/firebase";
 import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, Query } from "firebase/firestore";
@@ -6,7 +6,7 @@ import RoomCard from "../components/RoomCard";
 import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
 import AppHeader from "../components/AppHeader";
-import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaEye, FaCheckCircle, FaSearch, FaBed, FaFileInvoiceDollar } from "react-icons/fa";
+import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaEye, FaCheckCircle, FaSearch, FaBed, FaFileInvoiceDollar, FaClipboardList } from "react-icons/fa";
 import { saveAs } from "file-saver";
 import Papa from "papaparse";
 import EditRoomModal from "../components/EditRoomModal";
@@ -65,6 +65,13 @@ export default function Dashboard() {
   const [parcelCount, setParcelCount] = useState(0);
   const [inboxCount, setInboxCount] = useState(0);
   const [search, setSearch] = useState("");
+
+  const filterLabels: Record<string, string> = {
+    all: 'ทั้งหมด',
+    unpaid: 'ค้างชำระ',
+    vacant: 'ห้องว่าง',
+    review: 'รอตรวจสอบ'
+  };
 
   const user = {
     name: "xxx",
@@ -738,14 +745,14 @@ export default function Dashboard() {
               </VStack>
               <Flex gap={2}>
                 <Menu>
-                  <MenuButton as={Button} rightIcon={<FaFilter />} variant="outline" colorScheme="gray">
-                    ตัวกรอง
+                  <MenuButton as={Button} leftIcon={<FaFilter />} colorScheme="purple" variant="solid" w="160px" px={4}>
+                    <Text as="span" isTruncated>{filterLabels[filterType]}</Text>
                   </MenuButton>
                   <MenuList>
-                    <MenuItem onClick={() => setFilterType('all')}>ทั้งหมด</MenuItem>
-                    <MenuItem onClick={() => setFilterType('unpaid')}>ค้างชำระ</MenuItem>
-                    <MenuItem onClick={() => setFilterType('vacant')}>ห้องว่าง</MenuItem>
-                    <MenuItem onClick={() => setFilterType('review')}>รอตรวจสอบ</MenuItem>
+                    <MenuItem onClick={() => setFilterType('all')} fontWeight={filterType === 'all' ? 'bold' : 'normal'}>ทั้งหมด</MenuItem>
+                    <MenuItem onClick={() => setFilterType('unpaid')} fontWeight={filterType === 'unpaid' ? 'bold' : 'normal'}>ค้างชำระ</MenuItem>
+                    <MenuItem onClick={() => setFilterType('vacant')} fontWeight={filterType === 'vacant' ? 'bold' : 'normal'}>ห้องว่าง</MenuItem>
+                    <MenuItem onClick={() => setFilterType('review')} fontWeight={filterType === 'review' ? 'bold' : 'normal'}>รอตรวจสอบ</MenuItem>
                   </MenuList>
                 </Menu>
                 <InputGroup maxW={{ base: "100%", md: "320px" }}>
@@ -771,8 +778,16 @@ export default function Dashboard() {
               <Center h="200px">
                 <Spinner size="xl" />
               </Center>
-            ) : (
+            ) : filteredRooms.length > 0 ? (
               <RoomPaymentCardList rooms={roomPaymentCards} gridProps={{ columns: { base: 1, md: 2, lg: 3, xl: 4 }, spacing: 6 }} />
+            ) : (
+              <Center h="200px">
+                <VStack spacing={4}>
+                  <Icon as={FaClipboardList} w={16} h={16} color="gray.300" />
+                  <Heading as="h3" size="md" color="gray.500">ไม่พบข้อมูล</Heading>
+                  <Text color="gray.400">ลองเปลี่ยนตัวกรองหรือคำค้นหาของคุณ</Text>
+                </VStack>
+              </Center>
             )}
           </Box>
         </VStack>
@@ -827,7 +842,7 @@ export default function Dashboard() {
   );
 }
 
-const SummaryCard = ({ icon, label, value, color = "gray.700" }) => (
+const SummaryCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; color?: string; }> = ({ icon, label, value, color = "gray.700" }) => (
   <Flex align="center" bg="white" borderRadius="xl" p={4} boxShadow="sm">
     <Icon as={icon} w={8} h={8} color={color} />
     <Box ml={4}>
