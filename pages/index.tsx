@@ -366,6 +366,9 @@ export default function Rooms() {
     const warnings: string[] = [];
     let successCount = 0;
 
+    // Debug log for readings array
+    console.log('[DEBUG] handleSaveMeterReadings: readings', readings);
+
     const toastId = toast({
       title: "กำลังบันทึกข้อมูล...",
       status: "info",
@@ -375,6 +378,8 @@ export default function Rooms() {
 
     try {
       const billPromises = readings.map(async (reading: any) => {
+        // Debug log for each reading
+        console.log('[DEBUG] handleSaveMeterReadings: reading', reading);
         const roomDocRef = doc(db, "rooms", reading.roomId);
         const roomSnap = await getDoc(roomDocRef);
         if (!roomSnap.exists()) {
@@ -424,13 +429,13 @@ export default function Rooms() {
           electricityMeterPrev: prevElec,
           electricityRate: rates.electricity,
           electricityUnit,
-          electricityTotal,
+          electricityTotal: elecTotal,
 
           waterMeterCurrent: newWater,
           waterMeterPrev: prevWater,
           waterRate: rates.water,
           waterUnit,
-          waterTotal,
+          waterTotal: waterTotal,
 
           rent,
           service,
@@ -439,6 +444,9 @@ export default function Rooms() {
           electricityImageUrl: reading.electricityImageUrl || undefined, // Add electricity image URL here
           waterImageUrl: reading.waterImageUrl || undefined, // Add water image URL here
         };
+
+        // Debug log for newBill
+        console.log('[DEBUG] handleSaveMeterReadings: newBill', newBill);
 
         await addDoc(collection(db, "bills"), newBill);
 

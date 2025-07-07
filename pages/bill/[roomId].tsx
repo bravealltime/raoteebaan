@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
-import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogCloseButton } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogCloseButton, SimpleGrid } from "@chakra-ui/react";
 import { db, auth } from "../../lib/firebase";
 import { collection, query, where, orderBy, limit, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
@@ -388,7 +388,7 @@ export default function BillDetail() {
             bg="white"
             borderRadius="2xl"
             boxShadow="2xl"
-            p={[2, 4, 8]}
+            p={[4, 6, 8]}
             maxW={["98vw", "98vw", "800px"]}
             minW={["0", "320px", "400px"]}
             w="full"
@@ -397,62 +397,77 @@ export default function BillDetail() {
             mb={4}
           >
             <div ref={pdfRef}>
-              <Flex direction="column" align="center" mb={4}>
-                <Icon as={FaFileInvoice} w={[6, 8]} h={[6, 8]} color="green.500" mb={2} />
-                <Heading fontWeight="bold" fontSize={["xl", "2xl"]} color="green.600" mb={1} textAlign="center">
+              <VStack spacing={1} mb={6}>
+                <Icon as={FaFileInvoice} w={[8, 10]} h={[8, 10]} color="green.500" />
+                <Heading fontWeight="extrabold" fontSize={["2xl", "3xl"]} color="green.700" textAlign="center">
                   ใบแจ้งค่าใช้จ่าย
                 </Heading>
-                <Text color="gray.500" fontSize={["xs", "sm"]} textAlign="center">
+                <Text color="gray.500" fontSize={["sm", "md"]} textAlign="center">
                   วันที่ออกใบแจ้งหนี้: {bill.date}
                 </Text>
-              </Flex>
-              <Flex justify="space-between" mb={2} flexDir={["column", "row"]} gap={[2, 0]}>
-                <Box mb={[2, 0]}>
-                  <Text fontSize={["sm", "md"]}>ห้อง: <b>{bill.room}</b></Text>
-                  <Text fontSize={["sm", "md"]}>ชื่อผู้เช่า: <b>{bill.tenant}</b></Text>
+              </VStack>
+
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={6}>
+                <Box>
+                  <Text fontSize={["md", "lg"]}>ห้อง: <Text as="b" color="blue.600">{bill.room}</Text></Text>
+                  <Text fontSize={["md", "lg"]}>ชื่อผู้เช่า: <Text as="b" color="blue.600">{bill.tenant}</Text></Text>
                 </Box>
-                <Box textAlign={["left", "right"]}>
-                  <Text fontSize={["sm", "md"]}>รอบบิล: <b>{bill.date}</b></Text>
-                  <Text fontSize={["sm", "md"]}>วันครบกำหนด: <b>{bill.dueDate}</b></Text>
+                <Box textAlign={{ base: "left", md: "right" }}>
+                  <Text fontSize={["md", "lg"]}>รอบบิล: <Text as="b" color="blue.600">{bill.date}</Text></Text>
+                  <Text fontSize={["md", "lg"]}>วันครบกำหนด: <Text as="b" color="red.500">{bill.dueDate}</Text></Text>
+                  {bill.overdueDays > 0 && (
+                    <Text fontSize={["md", "lg"]} color="red.600" fontWeight="bold">
+                      (เกินกำหนด {bill.overdueDays} วัน)
+                    </Text>
+                  )}
                 </Box>
-              </Flex>
-              <Text textAlign="center" fontSize={["2xl", "3xl"]} color="green.500" fontWeight="extrabold" my={4}>
-                ฿{bill.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-              </Text>
-              <Box mb={4} overflowX="auto">
-                <Text fontWeight="bold" mb={2} fontSize={["sm", "md"]}>รายละเอียดค่าใช้จ่าย</Text>
-                <Table size="sm" variant="simple" minW="320px">
-                  <Thead bg="gray.50">
+              </SimpleGrid>
+
+              <Box bg="green.50" p={4} borderRadius="lg" mb={6} textAlign="center">
+                <Text fontSize={["3xl", "4xl"]} color="green.700" fontWeight="extrabold">
+                  ยอดรวม: ฿{bill.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                </Text>
+              </Box>
+
+              <Box mb={6} overflowX="auto">
+                <Heading size="md" mb={3} color="gray.700">รายละเอียดค่าใช้จ่าย</Heading>
+                <Table size="md" variant="simple" minW="320px">
+                  <Thead bg="gray.100">
                     <Tr>
-                      <Th fontSize={["xs", "sm"]}>รายการ</Th>
-                      <Th isNumeric fontSize={["xs", "sm"]}>จำนวนเงิน (บาท)</Th>
+                      <Th fontSize={["sm", "md"]}>รายการ</Th>
+                      <Th isNumeric fontSize={["sm", "md"]}>จำนวนเงิน (บาท)</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
                     {bill.items.map((item: any, index: number) => (
                       <Tr key={index}>
-                        <Td fontSize={["xs", "sm"]}>{item.label}</Td>
-                        <Td isNumeric fontSize={["xs", "sm"]}>{item.value.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
+                        <Td fontSize={["sm", "md"]}>{item.label}</Td>
+                        <Td isNumeric fontSize={["sm", "md"]}>{item.value.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
                       </Tr>
                     ))}
-                    <Tr fontWeight="bold">
-                      <Td fontSize={["xs", "sm"]}>รวมทั้งสิ้น</Td>
-                      <Td isNumeric fontSize={["xs", "sm"]}>{bill.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
+                    <Tr fontWeight="bold" bg="green.50">
+                      <Td fontSize={["md", "lg"]}>รวมทั้งสิ้น</Td>
+                      <Td isNumeric fontSize={["md", "lg"]}>{bill.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
                     </Tr>
                   </Tbody>
                 </Table>
               </Box>
+
               {bill.promptpay && (
-                <Box mb={4} textAlign="center">
-                  <Text fontWeight="bold" mb={2} color="green.700" fontSize={["md", "lg"]}>ชำระผ่านพร้อมเพย์</Text>
-                  <Flex direction="column" align="center" justify="center" w="100%">
+                <Box mb={6} p={4} bg="blue.50" borderRadius="lg" textAlign="center">
+                  <Heading size="md" mb={3} color="blue.700">ชำระผ่านพร้อมเพย์</Heading>
+                  <VStack spacing={3} align="center">
                     {qr && (
                       <Box
                         as="span"
                         display="inline-block"
-                        width={["140px", "180px"]}
-                        height={["140px", "180px"]}
+                        width={["160px", "200px"]}
+                        height={["160px", "200px"]}
                         mb={2}
+                        border="2px solid"
+                        borderColor="gray.200"
+                        borderRadius="md"
+                        overflow="hidden"
                       >
                         <img
                           src={qr}
@@ -460,8 +475,6 @@ export default function BillDetail() {
                           style={{
                             width: "100%",
                             height: "100%",
-                            maxWidth: 180,
-                            maxHeight: 180,
                             display: "block",
                             margin: "0 auto"
                           }}
@@ -473,38 +486,49 @@ export default function BillDetail() {
                         <Text fontSize="sm" color="gray.600">กำลังสร้าง QR Code...</Text>
                       </Box>
                     )}
-                    <Text fontSize={["sm", "md"]} color="gray.700" wordBreak="break-all" whiteSpace="break-spaces">
-                      PromptPay: <b>{bill.promptpay}</b>
+                    <Text fontSize={["md", "lg"]} color="gray.700" wordBreak="break-all" whiteSpace="break-spaces">
+                      PromptPay ID: <Text as="b" color="blue.800">{bill.promptpay}</Text>
                     </Text>
-                    <Text fontSize={["sm", "md"]} color="gray.700">
-                      ยอดเงิน: <b>{bill.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท</b>
+                    <Text fontSize={["md", "lg"]} color="gray.700">
+                      ยอดเงิน: <Text as="b" color="blue.800">{bill.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท</Text>
                     </Text>
-                  </Flex>
+                  </VStack>
                 </Box>
               )}
-              <Box bg="yellow.50" borderRadius="md" p={[2, 3]} color="yellow.800" fontSize={["xs", "sm"]} mb={2} mt={4}>
-                <b>วิธีการชำระเงิน</b>
-                <ul style={{ marginLeft: 16 }}>
-                  <li>กรุณาชำระเงินภายในวันที่ <b>{bill.dueDate}</b></li>
+
+              <Box bg="yellow.50" borderRadius="lg" p={[3, 4]} color="yellow.800" fontSize={["sm", "md"]} mb={6}>
+                <Heading size="sm" mb={2} color="yellow.700">วิธีการชำระเงิน</Heading>
+                <ul style={{ marginLeft: 20, listStyleType: "disc" }}>
+                  <li>กรุณาชำระเงินภายในวันที่ <Text as="b" color="red.600">{bill.dueDate}</Text></li>
                   <li>ช่องทางการชำระเงิน: โอนบัญชีธนาคาร/พร้อมเพย์/เงินสด</li>
                   <li>แจ้งสลิปหรือหลักฐานการชำระเงินกับผู้ดูแล</li>
                 </ul>
               </Box>
-              <Box mt={6} p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50">
-                <Heading size="md" mb={4} color="blue.700">รูปภาพมิเตอร์ไฟฟ้า</Heading>
-                {bill.electricityImageUrl ? (
-                  <Image src={bill.electricityImageUrl} alt="Electricity Meter" maxW="300px" borderRadius="md" mb={2} />
-                ) : (
-                  <Text color="gray.500">ไม่มีรูปภาพมิเตอร์ไฟฟ้า</Text>
-                )}
-                <Heading size="md" mb={4} color="blue.700" mt={6}>รูปภาพมิเตอร์น้ำ</Heading>
-                {bill.waterImageUrl ? (
-                  <Image src={bill.waterImageUrl} alt="Water Meter" maxW="300px" borderRadius="md" mb={2} />
-                ) : (
-                  <Text color="gray.500">ไม่มีรูปภาพมิเตอร์น้ำ</Text>
-                )}
+
+              {/* Meter Images Section */}
+              <Box mt={8} p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50" mb={6}>
+                <Heading size="md" mb={4} color="gray.700">รูปภาพมิเตอร์</Heading>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                  <Box>
+                    <Text fontWeight="semibold" mb={2} fontSize={["md", "lg"]}>รูปภาพมิเตอร์ไฟฟ้า</Text>
+                    {bill.electricityImageUrl ? (
+                      <Image src={bill.electricityImageUrl} alt="รูปมิเตอร์ไฟฟ้า" borderRadius="md" maxW="100%" boxShadow="sm" />
+                    ) : (
+                      <Text color="gray.500">ไม่มีรูปมิเตอร์ไฟฟ้า</Text>
+                    )}
+                  </Box>
+                  <Box>
+                    <Text fontWeight="semibold" mb={2} fontSize={["md", "lg"]}>รูปภาพมิเตอร์น้ำ</Text>
+                    {bill.waterImageUrl ? (
+                      <Image src={bill.waterImageUrl} alt="รูปมิเตอร์น้ำ" borderRadius="md" maxW="100%" boxShadow="sm" />
+                    ) : (
+                      <Text color="gray.500">ไม่มีรูปมิเตอร์น้ำ</Text>
+                    )}
+                  </Box>
+                </SimpleGrid>
               </Box>
-              <Box mt={6} p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50">
+
+              <Box p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50">
                 <Heading size="md" mb={4} color="blue.700">อัปโหลดหลักฐานการชำระเงิน</Heading>
                 {userRole === "user" ? (
                   !proofUrl ? (
@@ -513,6 +537,7 @@ export default function BillDetail() {
                         type="file"
                         accept="image/*"
                         onChange={(e) => setProofFile(e.target.files ? e.target.files[0] : null)}
+                        style={{ padding: "10px", border: "1px solid #ccc", borderRadius: "md", width: "100%" }}
                       />
                       <Button
                         colorScheme="blue"
@@ -521,15 +546,16 @@ export default function BillDetail() {
                         isDisabled={!proofFile || uploadingProof}
                         leftIcon={<Icon as={FaUpload} />}
                         w="full"
+                        size="lg"
                       >
                         {uploadingProof ? "กำลังอัปโหลด..." : "อัปโหลดสลิป"}
                       </Button>
                     </VStack>
                   ) : (
                     <VStack spacing={4}>
-                      <Text fontWeight="bold" color="green.600">หลักฐานการชำระเงินถูกอัปโหลดแล้ว</Text>
-                      <Image src={proofUrl} alt="Payment Proof" maxW="200px" borderRadius="md" />
-                      <HStack>
+                      <Text fontWeight="bold" color="green.600" fontSize="lg">หลักฐานการชำระเงินถูกอัปโหลดแล้ว</Text>
+                      <Image src={proofUrl} alt="Payment Proof" maxW="250px" borderRadius="md" boxShadow="md" />
+                      <HStack spacing={3}>
                         <Button
                           colorScheme="teal"
                           onClick={() => {
@@ -537,6 +563,7 @@ export default function BillDetail() {
                             onProofModalOpen();
                           }}
                           leftIcon={<Icon as={FaEye} />}
+                          size="md"
                         >
                           ดูหลักฐาน
                         </Button>
@@ -546,6 +573,7 @@ export default function BillDetail() {
                           isLoading={uploadingProof}
                           isDisabled={uploadingProof}
                           leftIcon={<Icon as={FaTrash} />}
+                          size="md"
                         >
                           ลบหลักฐาน
                         </Button>
@@ -554,9 +582,9 @@ export default function BillDetail() {
                   )
                 ) : (userRole === "owner" || userRole === "admin") && proofUrl ? (
                   <VStack spacing={4}>
-                    <Text fontWeight="bold" color="green.600">หลักฐานการชำระเงินถูกอัปโหลดแล้ว</Text>
-                    <Image src={proofUrl} alt="Payment Proof" maxW="200px" borderRadius="md" />
-                    <HStack>
+                    <Text fontWeight="bold" color="green.600" fontSize="lg">หลักฐานการชำระเงินถูกอัปโหลดแล้ว</Text>
+                    <Image src={proofUrl} alt="Payment Proof" maxW="250px" borderRadius="md" boxShadow="md" />
+                    <HStack spacing={3}>
                       <Button
                         colorScheme="teal"
                         onClick={() => {
@@ -564,6 +592,7 @@ export default function BillDetail() {
                           onProofModalOpen();
                         }}
                         leftIcon={<Icon as={FaEye} />}
+                        size="md"
                       >
                         ดูหลักฐาน
                       </Button>
@@ -573,6 +602,7 @@ export default function BillDetail() {
                         isLoading={uploadingProof}
                         isDisabled={uploadingProof}
                         leftIcon={<Icon as={FaCheckCircle} />}
+                        size="md"
                       >
                         ยืนยันหลักฐาน
                       </Button>
@@ -582,13 +612,14 @@ export default function BillDetail() {
                         isLoading={uploadingProof}
                         isDisabled={uploadingProof}
                         leftIcon={<Icon as={FaTrash} />}
+                        size="md"
                       >
                         ลบหลักฐาน
                       </Button>
                     </HStack>
                   </VStack>
                 ) : (
-                  <Text color="gray.500">ไม่มีหลักฐานการชำระเงิน</Text>
+                  <Text color="gray.500" fontSize="md">ไม่มีหลักฐานการชำระเงิน</Text>
                 )}
               </Box>
             </div>
@@ -600,7 +631,8 @@ export default function BillDetail() {
             maxW="320px"
             fontSize={["md", "lg"]}
             onClick={handleExportPDF}
-            mb={2}
+            mt={4}
+            size="lg"
           >
             ดาวน์โหลด PDF
           </Button>
@@ -649,4 +681,4 @@ export default function BillDetail() {
       </AlertDialog>
     </>
   );
-} 
+}

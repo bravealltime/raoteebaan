@@ -92,6 +92,10 @@ export default function MeterReadingModal({ isOpen, onClose, onSave, rooms, prev
         waterImageUrl: uploadedWaterImageUrls[roomId] || undefined,
       })),
     };
+    // Debug log for uploaded image URLs and data to save
+    console.log('DEBUG: uploadedElecImageUrls', uploadedElecImageUrls);
+    console.log('DEBUG: uploadedWaterImageUrls', uploadedWaterImageUrls);
+    console.log('DEBUG: dataToSave', dataToSave);
     onSave(dataToSave);
     onClose();
   };
@@ -198,6 +202,26 @@ export default function MeterReadingModal({ isOpen, onClose, onSave, rooms, prev
             </SimpleGrid>
           </VStack>
         </ModalBody>
+        {/* Debug section for uploaded image URLs and dataToSave */}
+        <Box bg="gray.100" p={2} mt={2} borderRadius="md" fontSize="xs">
+          <Text fontWeight="bold">[DEBUG] uploadedElecImageUrls:</Text>
+          <pre>{JSON.stringify(uploadedElecImageUrls, null, 2)}</pre>
+          <Text fontWeight="bold">[DEBUG] uploadedWaterImageUrls:</Text>
+          <pre>{JSON.stringify(uploadedWaterImageUrls, null, 2)}</pre>
+          <Text fontWeight="bold">[DEBUG] dataToSave (จะส่งไปบันทึก):</Text>
+          <pre>{JSON.stringify({
+            rates,
+            recordDate,
+            dueDate,
+            readings: Object.entries(readings).map(([roomId, values]) => ({
+              roomId,
+              electricity: values.electricity || '',
+              water: values.water || '',
+              electricityImageUrl: uploadedElecImageUrls[roomId] || undefined,
+              waterImageUrl: uploadedWaterImageUrls[roomId] || undefined,
+            })),
+          }, null, 2)}</pre>
+        </Box>
         <ModalFooter>
           <Button variant="ghost" mr={3} onClick={onClose}>ยกเลิก</Button>
           <Button colorScheme="blue" onClick={handleSave}>บันทึกข้อมูล</Button>
