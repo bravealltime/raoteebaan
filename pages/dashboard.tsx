@@ -1,4 +1,4 @@
-import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Image, InputGroup, InputRightElement } from "@chakra-ui/react";
+import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Image, InputGroup, InputRightElement, Container, VStack, Icon } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db, auth } from "../lib/firebase";
 import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, Query } from "firebase/firestore";
@@ -6,7 +6,7 @@ import RoomCard from "../components/RoomCard";
 import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
 import AppHeader from "../components/AppHeader";
-import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaEye, FaCheckCircle, FaSearch } from "react-icons/fa";
+import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaEye, FaCheckCircle, FaSearch, FaBed, FaFileInvoiceDollar } from "react-icons/fa";
 import { saveAs } from "file-saver";
 import Papa from "papaparse";
 import EditRoomModal from "../components/EditRoomModal";
@@ -709,114 +709,74 @@ export default function Dashboard() {
       onProofModalClose={onProofModalClose}
       proofImageUrl={proofImageUrl}
     >
-      <Box maxW="1400px" mx="auto" px={4} py={8}>
-        {/* Summary Cards */}
-        <Flex
-          gap={4}
-          mb={8}
-          flexWrap="wrap"
-          maxW="1432px"
-          mx="auto"
-          px={6}
-        >
-          <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
-            <Text color="gray.500">ห้องทั้งหมด</Text>
-            <Text fontWeight="bold" fontSize="2xl">{totalRooms}</Text>
-          </Box>
-          <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
-            <Text color="gray.500">ห้องมีผู้เช่า</Text>
-            <Text fontWeight="bold" fontSize="2xl">{availableRooms}</Text>
-          </Box>
-          <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
-            <Text color="gray.500">ห้องว่าง</Text>
-            <Text fontWeight="bold" fontSize="2xl">{vacantRooms}</Text>
-          </Box>
-          <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
-            <Text color="gray.500">กล่องข้อความ</Text>
-            <Text fontWeight="bold" fontSize="2xl">{inboxCount}</Text>
-          </Box>
-          <Box bg="white" borderRadius="xl" p={4} minW="180px" boxShadow="sm">
-            <Text color="gray.500">พัสดุ</Text>
-            <Text fontWeight="bold" fontSize="2xl">{parcelCount}</Text>
-          </Box>
-          <Button
-            bg="white"
-            borderRadius="xl"
-            p={4}
-            minW="180px"
-            boxShadow="sm"
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            justifyContent="center"
-            onClick={() => setFilterType('review')}
-            _hover={{ bg: 'gray.50' }}
-            _active={{ bg: 'gray.100' }}
-            h="auto"
-          >
-            <Text color="gray.700" fontWeight="bold" fontSize="xl" mb={2}>รายการรอตรวจสอบ</Text>
-            <Text fontWeight="bold" fontSize="4xl" color="yellow.500">{paymentsUnderReview}</Text>
-          </Button>
-        </Flex>
-        {/* Main Grid */}
-        <Flex gap={8} align="flex-start">
-          {/* Dynamic Section based on filterType */}
-          <Box
-            maxW="1432px"
-            mx="auto"
-            bg="white"
-            borderRadius="2xl"
-            px={6}
-            py={6}
-            boxShadow="md"
-            mb={8}
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-          >
-            <Flex align="center" justify="space-between" mb={2} w="100%">
-              <Box>
-                <Text fontWeight="bold" fontSize="lg">
+      <Container maxW="container.xl" py={8}>
+        <VStack spacing={8} align="stretch">
+          {/* Summary Cards */}
+          <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={6}>
+            <SummaryCard icon={FaHome} label="ห้องทั้งหมด" value={totalRooms} />
+            <SummaryCard icon={FaBed} label="ห้องมีผู้เช่า" value={availableRooms} />
+            <SummaryCard icon={FaBed} label="ห้องว่าง" value={vacantRooms} color="green.500" />
+            <SummaryCard icon={FaInbox} label="กล่องข้อความ" value={inboxCount} />
+            <SummaryCard icon={FaBox} label="พัสดุ" value={parcelCount} />
+            <SummaryCard icon={FaFileInvoiceDollar} label="รอตรวจสอบ" value={paymentsUnderReview} color="yellow.500" />
+          </SimpleGrid>
+
+          {/* Main Content */}
+          <Box bg="white" borderRadius="2xl" p={6} boxShadow="md">
+            <Flex direction={{ base: "column", md: "row" }} justify="space-between" align="center" mb={6}>
+              <VStack align="flex-start" spacing={1} mb={{ base: 4, md: 0 }}>
+                <Heading as="h2" size="lg">
                   {filterType === 'review' ? 'รายการรอตรวจสอบ' : 
                    filterType === 'unpaid' ? 'ค้างชำระ' :
                    filterType === 'vacant' ? 'ห้องว่าง' : 'ห้องทั้งหมด'}
-                </Text>
-                <Text color="gray.400" fontSize="sm">
+                </Heading>
+                <Text color="gray.500" fontSize="sm">
                   {filterType === 'review' ? 'รายการที่มีการส่งสลิปเข้ามาให้ตรวจสอบ' :
                    filterType === 'unpaid' ? 'รายการห้องที่ยังไม่ได้ชำระเงิน' :
                    filterType === 'vacant' ? 'รายการห้องว่าง' : 'รายการห้องทั้งหมด'}
                 </Text>
-              </Box>
-              <Button variant="ghost" size="sm" borderRadius="full" p={1} minW={0}>
-                {/* filter icon placeholder */}
-                <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><path d="M3 5h14M6 10h8M9 15h2" stroke="#BDBDBD" strokeWidth="2" strokeLinecap="round"/></svg>
-              </Button>
+              </VStack>
+              <Flex gap={2}>
+                <Menu>
+                  <MenuButton as={Button} rightIcon={<FaFilter />} variant="outline" colorScheme="gray">
+                    ตัวกรอง
+                  </MenuButton>
+                  <MenuList>
+                    <MenuItem onClick={() => setFilterType('all')}>ทั้งหมด</MenuItem>
+                    <MenuItem onClick={() => setFilterType('unpaid')}>ค้างชำระ</MenuItem>
+                    <MenuItem onClick={() => setFilterType('vacant')}>ห้องว่าง</MenuItem>
+                    <MenuItem onClick={() => setFilterType('review')}>รอตรวจสอบ</MenuItem>
+                  </MenuList>
+                </Menu>
+                <InputGroup maxW={{ base: "100%", md: "320px" }}>
+                  <Input
+                    placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    borderRadius="lg"
+                  />
+                  <InputRightElement>
+                    <IconButton
+                      aria-label="ค้นหา"
+                      icon={<FaSearch />}
+                      size="sm"
+                      isRound
+                    />
+                  </InputRightElement>
+                </InputGroup>
+              </Flex>
             </Flex>
-            <InputGroup maxW="320px" mb={4} alignSelf="flex-start">
-              <Input
-                placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                bg="gray.50"
-                borderRadius="xl"
-              />
-              <InputRightElement width="3rem">
-                <IconButton
-                  aria-label="ค้นหา"
-                  icon={<FaSearch />}
-                  size="sm"
-                  borderRadius="xl"
-                  onClick={() => {
-                    // Search is already handled by onChange, this is just for visual feedback
-                    console.log("Search triggered for:", search);
-                  }}
-                />
-              </InputRightElement>
-            </InputGroup>
-            <RoomPaymentCardList rooms={roomPaymentCards} gridProps={{ columns: 4, spacing: 4, w: '100%', justifyContent: 'center' }} />
+            
+            {loading ? (
+              <Center h="200px">
+                <Spinner size="xl" />
+              </Center>
+            ) : (
+              <RoomPaymentCardList rooms={roomPaymentCards} gridProps={{ columns: { base: 1, md: 2, lg: 3, xl: 4 }, spacing: 6 }} />
+            )}
           </Box>
-        </Flex>
-      </Box>
+        </VStack>
+      </Container>
 
       <Modal isOpen={isProofModalOpen} onClose={onProofModalClose} isCentered size="xl">
         <ModalOverlay />
@@ -865,4 +825,14 @@ export default function Dashboard() {
       )}
     </MainLayout>
   );
-} 
+}
+
+const SummaryCard = ({ icon, label, value, color = "gray.700" }) => (
+  <Flex align="center" bg="white" borderRadius="xl" p={4} boxShadow="sm">
+    <Icon as={icon} w={8} h={8} color={color} />
+    <Box ml={4}>
+      <Text color="gray.500">{label}</Text>
+      <Text fontWeight="bold" fontSize="2xl">{value}</Text>
+    </Box>
+  </Flex>
+); 
