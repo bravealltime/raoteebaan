@@ -287,7 +287,7 @@ export default function HistoryRoom() {
 
   return (
     <>
-      <AppHeader user={user} />
+      <AppHeader currentUser={currentUser} />
       <Box minH="100vh" bgGradient="linear(to-br, brand.50, brand.100)" p={[2, 8]} color="gray.800">
         <Flex align="center" mb={8}>
           <Button leftIcon={<FaArrowLeft />} variant="ghost" colorScheme="blue" borderRadius="xl" fontFamily="Kanit" size="md" onClick={() => router.back()}>กลับหน้าหลัก</Button>

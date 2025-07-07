@@ -367,7 +367,7 @@ export default function BillDetail() {
     <>
       <Script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.5.0/qrcode.min.js" strategy="afterInteractive" />
       <Script src="/scripts/promptpay.js" strategy="afterInteractive" />
-      <AppHeader user={user} />
+      <AppHeader currentUser={currentUser} />
       <Flex minH="100vh" align="center" justify="center" bgGradient="linear(to-br, brand.50, brand.100)" p={[1, 2, 4]}>
         <Box w="full" display="flex" flexDirection="column" alignItems="center">
           <Button

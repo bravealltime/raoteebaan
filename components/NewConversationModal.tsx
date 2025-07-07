@@ -85,7 +85,14 @@ const NewConversationModal = ({
           const userList = await Promise.all(
             querySnapshot.docs.map(async (doc) => {
               const userData = doc.data();
-              const user: User = { uid: doc.id, ...userData, photoURL: userData.avatar || userData.photoURL };
+              const user: User = {
+                uid: doc.id,
+                name: userData.name || '',
+                email: userData.email || '',
+                role: userData.role || 'user',
+                ...userData,
+                photoURL: userData.avatar || userData.photoURL
+              };
               const hasUnreadMessages = await checkUnreadMessages(
                 currentUser.uid,
                 user.uid

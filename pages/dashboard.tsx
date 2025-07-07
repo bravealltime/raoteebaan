@@ -22,6 +22,7 @@ interface Room {
   id: string;
   status: "occupied" | "vacant";
   tenantName: string;
+  tenantId?: string; // Add tenantId here
   area: number;
   latestTotal: number;
   electricity: number;
@@ -161,6 +162,7 @@ export default function Dashboard() {
           id: doc.id,
           status: d.status || "occupied",
             tenantName: d.tenantName || "-",
+            tenantId: d.tenantId || undefined, // Add this line
             area: d.area || 0,
             latestTotal: d.latestTotal || 0,
             electricity: d.electricity || 0,
@@ -628,13 +630,15 @@ export default function Dashboard() {
     const total = bill?.total || room.latestTotal || 0;
     
     // Determine status based on filterType and room data
-    let status: "pending" | "unpaid" | "review" = "unpaid";
+    let status: "pending" | "unpaid" | "review" | "paid" = "unpaid";
     if (filterType === 'review' && room.proofUrl) {
       status = "review";
     } else if (room.billStatus === 'pending') {
       status = "pending";
     } else if (room.billStatus === 'unpaid') {
       status = "unpaid";
+    } else if (room.billStatus === 'paid') {
+      status = "paid";
     }
 
     return {
@@ -644,9 +648,7 @@ export default function Dashboard() {
       electricity: bill?.electricityTotal || room.electricity || 0,
       water: bill?.waterTotal || room.water || 0,
       rent: bill?.rent || room.rent || 0,
-      onNotify: () => {
-        toast({ title: `แจ้งเตือนห้อง ${room.id}`, status: "info" });
-      },
+      
       onReview: status === "review" ? () => {
         if (room.proofUrl) {
           setProofImageUrl(room.proofUrl);
@@ -704,7 +706,36 @@ export default function Dashboard() {
       tenantName: room.tenantName,
       dueDate: bill?.dueDate ? (typeof bill.dueDate === 'object' ? bill.dueDate.toDate?.()?.toLocaleDateString('th-TH') : bill.dueDate) : "ไม่ระบุ",
       lastReading: bill?.date ? (typeof bill.date === 'object' ? bill.date.toDate?.()?.toLocaleDateString('th-TH') : bill.date) : "ไม่ระบุ",
-      roomType: "ห้องพัก"
+      roomType: "ห้องพัก",
+      onNotify: async () => {
+        if (!room.tenantId) {
+          toast({ title: "ไม่พบข้อมูลผู้เช่าสำหรับห้องนี้", status: "warning" });
+          return;
+        }
+        try {
+          const response = await fetch('/api/send-notification', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tenantId: room.tenantId,
+              roomId: room.id,
+              message: `ห้อง ${room.id} ของคุณมียอดค้างชำระ กรุณาตรวจสอบบิลและชำระเงินโดยเร็วที่สุด`,
+            }),
+          });
+
+          if (response.ok) {
+            toast({ title: `ส่งแจ้งเตือนห้อง ${room.id} สำเร็จ`, status: "success" });
+          } else {
+            const errorData = await response.json();
+            toast({ title: `ส่งแจ้งเตือนห้อง ${room.id} ไม่สำเร็จ`, description: errorData.message, status: "error" });
+          }
+        } catch (error) {
+          console.error("Error sending notification:", error);
+          toast({ title: `ส่งแจ้งเตือนห้อง ${room.id} ไม่สำเร็จ`, description: "เกิดข้อผิดพลาดในการเชื่อมต่อ", status: "error" });
+        }
+      },
     };
   });
 

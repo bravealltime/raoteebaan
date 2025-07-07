@@ -451,7 +451,7 @@ const Inbox = () => {
 
       await batch.commit();
 
-      setSelectedConversation(null); // Deselect the conversation
+      setSelectedConversationId(null); // Deselect the conversation
       setConversations(prev => prev.filter(convo => convo.id !== selectedConversation.id)); // Remove from local state
 
       toast({

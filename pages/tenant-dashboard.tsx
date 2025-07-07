@@ -1,9 +1,9 @@
-import { Box, Heading, Text, Flex, Avatar, VStack, HStack, Divider, Badge, Card, CardHeader, CardBody, SimpleGrid, Icon, Stat, StatLabel, StatNumber, StatHelpText, useToast, Button, Spinner, Center } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Avatar, VStack, HStack, Divider, Badge, Card, CardHeader, CardBody, SimpleGrid, Icon, Stat, StatLabel, StatNumber, StatHelpText, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure } from "@chakra-ui/react";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
+import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc } from "firebase/firestore";
 import MainLayout from "../components/MainLayout";
 import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaWater, FaBolt, FaMoneyBillWave } from "react-icons/fa";
 
@@ -51,6 +51,9 @@ export default function TenantDashboard() {
   const [billHistory, setBillHistory] = useState<BillHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
+  const { isOpen: isAlertOpen, onOpen: onAlertOpen, onClose: onAlertClose } = useDisclosure();
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const [alertRoomId, setAlertRoomId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -113,6 +116,31 @@ export default function TenantDashboard() {
 
     return () => unsubscribe();
   }, [router]);
+
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    const q = query(
+      collection(db, "notifications"),
+      where("tenantId", "==", currentUser.uid),
+      where("isRead", "==", false)
+    );
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      snapshot.docChanges().forEach(async (change) => {
+        if (change.type === "added") {
+          const notification = change.doc.data();
+          setAlertRoomId(notification.roomId);
+          onAlertOpen();
+
+          // Mark as read
+          await updateDoc(doc(db, "notifications", change.doc.id), { isRead: true });
+        }
+      });
+    });
+
+    return () => unsubscribe();
+  }, [currentUser, onAlertOpen]);
 
   const fetchRoomData = async (roomId: string) => {
     try {
@@ -429,6 +457,35 @@ export default function TenantDashboard() {
           </CardBody>
         </Card>
       </Box>
+      <AlertDialog
+        isOpen={isAlertOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onAlertClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              แจ้งเตือนค้างชำระ
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              ห้อง {alertRoomId} ของคุณมียอดค้างชำระ กรุณาตรวจสอบบิลและชำระเงินโดยเร็วที่สุด
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onAlertClose}>
+                ปิด
+              </Button>
+              <Button colorScheme="blue" onClick={() => {
+                onAlertClose();
+                router.push(`/bill/${alertRoomId}`);
+              }} ml={3}>
+                ดูบิล
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </MainLayout>
   );
 }

@@ -1,11 +1,12 @@
 import { Box, Flex, Text, Badge, Button, Avatar, HStack, VStack, SimpleGrid, ButtonGroup, IconButton } from "@chakra-ui/react";
 import { FaDoorOpen, FaUser, FaCalendarAlt, FaExclamationTriangle, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { useState, useMemo } from "react";
+import { useRouter } from "next/router";
 
 // Export interfaces for external use
 export interface RoomPaymentCardProps {
   id: string;
-  status: "pending" | "unpaid" | "review";
+  status: "pending" | "unpaid" | "review" | "paid";
   total: number;
   electricity: number;
   water: number;
@@ -28,8 +29,9 @@ export interface RoomPaymentCardListProps {
 
 const statusMap = {
   pending: { label: "รอชำระ", color: "orange.500", bg: "orange.50" },
-  unpaid: { label: "ค้างชำระ", color: "red.500", bg: "red.50" },
+  unpaid: { label: "ค้างชำงระ", color: "red.500", bg: "red.50" },
   review: { label: "รอตรวจสอบ", color: "yellow.600", bg: "yellow.50" },
+  paid: { label: "ชำระแล้ว", color: "green.500", bg: "green.50" },
 };
 
 export function RoomPaymentCard({ 
@@ -48,6 +50,7 @@ export function RoomPaymentCard({
   lastReading = "ไม่ระบุ",
   roomType = "ห้องพัก"
 }: RoomPaymentCardProps) {
+  const router = useRouter();
   const statusInfo = statusMap[status] || statusMap['unpaid'];
   
   // Ensure all numeric values are numbers with defaults
@@ -190,6 +193,20 @@ export function RoomPaymentCard({
             </Button>
           </Flex>
         </Flex>
+      ) : status === 'paid' ? (
+        <Button
+          colorScheme="green"
+          variant="solid"
+          borderRadius="lg"
+          w="full"
+          fontWeight="bold"
+          size="lg"
+          fontSize="lg"
+          py={6}
+          isDisabled
+        >
+          ชำระแล้ว
+        </Button>
       ) : (
         <Button
           colorScheme={status === 'pending' ? 'orange' : 'red'}
