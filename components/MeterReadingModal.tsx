@@ -1,8 +1,10 @@
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, 
-  Button, FormControl, FormLabel, Input, VStack, HStack, Text, SimpleGrid, Box
+  Button, FormControl, FormLabel, Input, VStack, HStack, Text, SimpleGrid, Box, IconButton, Spinner
 } from "@chakra-ui/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { FaCamera } from "react-icons/fa";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 interface MeterReadingModalProps {
   isOpen: boolean;
@@ -17,6 +19,44 @@ export default function MeterReadingModal({ isOpen, onClose, onSave, rooms, prev
   const [rates, setRates] = useState({ electricity: 8, water: 15 });
   const [recordDate, setRecordDate] = useState(new Date().toISOString().split('T')[0]);
   const [dueDate, setDueDate] = useState('');
+  const [uploadingElecImage, setUploadingElecImage] = useState<Record<string, boolean>>({});
+  const [uploadedElecImageUrls, setUploadedElecImageUrls] = useState<Record<string, string>>({});
+  const elecImageInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [uploadingWaterImage, setUploadingWaterImage] = useState<Record<string, boolean>>({});
+  const [uploadedWaterImageUrls, setUploadedWaterImageUrls] = useState<Record<string, string>>({});
+  const waterImageInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, roomId: string, type: 'electricity' | 'water') => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (type === 'electricity') {
+      setUploadingElecImage(prev => ({ ...prev, [roomId]: true }));
+    } else {
+      setUploadingWaterImage(prev => ({ ...prev, [roomId]: true }));
+    }
+
+    try {
+      const storageRef = ref(getStorage(), `meter_readings/${roomId}/${type}/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      if (type === 'electricity') {
+        setUploadedElecImageUrls(prev => ({ ...prev, [roomId]: downloadURL }));
+      } else {
+        setUploadedWaterImageUrls(prev => ({ ...prev, [roomId]: downloadURL }));
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      // Optionally show a toast notification for error
+    } finally {
+      if (type === 'electricity') {
+        setUploadingElecImage(prev => ({ ...prev, [roomId]: false }));
+      } else {
+        setUploadingWaterImage(prev => ({ ...prev, [roomId]: false }));
+      }
+    }
+  };
 
   useEffect(() => {
     // Reset state when modal opens
@@ -48,6 +88,8 @@ export default function MeterReadingModal({ isOpen, onClose, onSave, rooms, prev
         roomId,
         electricity: values.electricity || '',
         water: values.water || '',
+        electricityImageUrl: uploadedElecImageUrls[roomId] || undefined,
+        waterImageUrl: uploadedWaterImageUrls[roomId] || undefined,
       })),
     };
     onSave(dataToSave);
@@ -98,6 +140,27 @@ export default function MeterReadingModal({ isOpen, onClose, onSave, rooms, prev
                         size="sm"
                         onChange={e => handleReadingChange(room.id, 'electricity', e.target.value)} 
                       />
+                      <Button
+                        leftIcon={uploadingElecImage[room.id] ? <Spinner size="sm" /> : <FaCamera />}
+                        size="xs"
+                        colorScheme="teal"
+                        variant="outline"
+                        onClick={() => elecImageInputRefs.current[room.id]?.click()}
+                        isLoading={uploadingElecImage[room.id]}
+                        isDisabled={uploadingElecImage[room.id]}
+                        mt={1}
+                        w="full"
+                      >
+                        {uploadedElecImageUrls[room.id] ? "อัปโหลดแล้ว" : "รูปมิเตอร์ไฟ"}
+                      </Button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        ref={el => { elecImageInputRefs.current[room.id] = el; }}
+                        onChange={e => handleImageUpload(e, room.id, 'electricity')}
+                        style={{ display: 'none' }}
+                      />
                     </FormControl>
                     <FormControl>
                       <FormLabel fontSize="xs">มิเตอร์น้ำ (ก่อนหน้า: {previousReadings[room.id]?.water || 0})</FormLabel>
@@ -106,6 +169,27 @@ export default function MeterReadingModal({ isOpen, onClose, onSave, rooms, prev
                         type="number" 
                         size="sm"
                         onChange={e => handleReadingChange(room.id, 'water', e.target.value)} 
+                      />
+                      <Button
+                        leftIcon={uploadingWaterImage[room.id] ? <Spinner size="sm" /> : <FaCamera />}
+                        size="xs"
+                        colorScheme="teal"
+                        variant="outline"
+                        onClick={() => waterImageInputRefs.current[room.id]?.click()}
+                        isLoading={uploadingWaterImage[room.id]}
+                        isDisabled={uploadingWaterImage[room.id]}
+                        mt={1}
+                        w="full"
+                      >
+                        {uploadedWaterImageUrls[room.id] ? "อัปโหลดแล้ว" : "รูปมิเตอร์น้ำ"}
+                      </Button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        ref={el => { waterImageInputRefs.current[room.id] = el; }}
+                        onChange={e => handleImageUpload(e, room.id, 'water')}
+                        style={{ display: 'none' }}
                       />
                     </FormControl>
                   </HStack>

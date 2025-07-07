@@ -146,6 +146,9 @@ export default function BillDetail() {
             overdueDays: overdueDays,
             billStatus: d.status || "unpaid",
             proofUrl: d.proofUrl || null, // Fetch existing proof URL
+            meterImageUrl: d.meterImageUrl || null, // Fetch meter image URL
+            electricityImageUrl: d.electricityImageUrl || null,
+            waterImageUrl: d.waterImageUrl || null,
           };
 
           console.log('[DEBUG] mapped bill for setBill:', finalBill);
@@ -486,6 +489,20 @@ export default function BillDetail() {
                   <li>ช่องทางการชำระเงิน: โอนบัญชีธนาคาร/พร้อมเพย์/เงินสด</li>
                   <li>แจ้งสลิปหรือหลักฐานการชำระเงินกับผู้ดูแล</li>
                 </ul>
+              </Box>
+              <Box mt={6} p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50">
+                <Heading size="md" mb={4} color="blue.700">รูปภาพมิเตอร์ไฟฟ้า</Heading>
+                {bill.electricityImageUrl ? (
+                  <Image src={bill.electricityImageUrl} alt="Electricity Meter" maxW="300px" borderRadius="md" mb={2} />
+                ) : (
+                  <Text color="gray.500">ไม่มีรูปภาพมิเตอร์ไฟฟ้า</Text>
+                )}
+                <Heading size="md" mb={4} color="blue.700" mt={6}>รูปภาพมิเตอร์น้ำ</Heading>
+                {bill.waterImageUrl ? (
+                  <Image src={bill.waterImageUrl} alt="Water Meter" maxW="300px" borderRadius="md" mb={2} />
+                ) : (
+                  <Text color="gray.500">ไม่มีรูปภาพมิเตอร์น้ำ</Text>
+                )}
               </Box>
               <Box mt={6} p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50">
                 <Heading size="md" mb={4} color="blue.700">อัปโหลดหลักฐานการชำระเงิน</Heading>

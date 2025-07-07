@@ -401,11 +401,11 @@ export default function Rooms() {
           return;
         }
 
-        const elecUnits = newElec - prevElec;
-        const waterUnits = newWater - prevWater;
+        const electricityUnit = newElec - prevElec;
+        const waterUnit = newWater - prevWater;
 
-        const elecTotal = elecUnits * rates.electricity;
-        const waterTotal = waterUnits * rates.water;
+        const elecTotal = electricityUnit * rates.electricity;
+        const waterTotal = waterUnit * rates.water;
         
         const rent = roomData.rent || 0;
         const service = roomData.service || 0;
@@ -423,19 +423,21 @@ export default function Rooms() {
           electricityMeterCurrent: newElec,
           electricityMeterPrev: prevElec,
           electricityRate: rates.electricity,
-          electricityUnit: elecUnits,
-          electricityTotal: elecTotal,
+          electricityUnit,
+          electricityTotal,
 
           waterMeterCurrent: newWater,
           waterMeterPrev: prevWater,
           waterRate: rates.water,
-          waterUnit: waterUnits,
-          waterTotal: waterTotal,
+          waterUnit,
+          waterTotal,
 
           rent,
           service,
           extraServices: roomData.extraServices || [],
           total,
+          electricityImageUrl: reading.electricityImageUrl || undefined, // Add electricity image URL here
+          waterImageUrl: reading.waterImageUrl || undefined, // Add water image URL here
         };
 
         await addDoc(collection(db, "bills"), newBill);
