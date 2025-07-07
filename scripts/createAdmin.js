@@ -14,11 +14,11 @@ admin.auth().createUser({
 }).then(userRecord => {
   return admin.auth().setCustomUserClaims(userRecord.uid, { admin: true });
 }).then(() => {
-  console.log("Admin user created or updated.");
+  
   process.exit(0);
 }).catch(error => {
   if (error.code === 'auth/email-already-exists') {
-    console.log("Admin user already exists.");
+    
     process.exit(0);
   } else {
     console.error(error);

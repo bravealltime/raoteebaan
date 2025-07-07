@@ -113,14 +113,6 @@ export default function Rooms() {
         photoURL: firestoreData.avatar || user.photoURL || undefined, // Ensure photoURL is taken from Firestore first, then Auth
         roomNumber: firestoreData.roomNumber || undefined,
       });
-      console.log("Index Page - Current User Data:", {
-        uid: user.uid,
-        name: firestoreData.name || user.displayName || '',
-        email: firestoreData.email || user.email || '',
-        role: userRole,
-        photoURL: firestoreData.avatar || user.photoURL || undefined,
-        roomNumber: firestoreData.roomNumber || undefined,
-      });
       setLoading(false)
     });
     return () => unsub();
@@ -367,7 +359,7 @@ export default function Rooms() {
     let successCount = 0;
 
     // Debug log for readings array
-    console.log('[DEBUG] handleSaveMeterReadings: readings', readings);
+    
 
     const toastId = toast({
       title: "กำลังบันทึกข้อมูล...",
@@ -379,7 +371,7 @@ export default function Rooms() {
     try {
       const billPromises = readings.map(async (reading: any) => {
         // Debug log for each reading
-        console.log('[DEBUG] handleSaveMeterReadings: reading', reading);
+        
         const roomDocRef = doc(db, "rooms", reading.roomId);
         const roomSnap = await getDoc(roomDocRef);
         if (!roomSnap.exists()) {
@@ -446,7 +438,7 @@ export default function Rooms() {
         };
 
         // Debug log for newBill
-        console.log('[DEBUG] handleSaveMeterReadings: newBill', newBill);
+        
 
         await addDoc(collection(db, "bills"), newBill);
 
@@ -533,14 +525,14 @@ export default function Rooms() {
     });
 
     try {
-      console.log("Starting handleConfirmUploadSlip...");
+      
       // 1. Send slip to Discord via webhook
       const webhookUrl = process.env.NEXT_PUBLIC_DISCORD_WEBHOOK_URL;
       if (!webhookUrl) {
         console.error("Discord webhook URL is not configured.");
         throw new Error("Discord webhook URL is not configured.");
       }
-      console.log("Webhook URL found.");
+      
 
       const formData = new FormData();
       formData.append("file", file);
@@ -561,7 +553,7 @@ export default function Rooms() {
         ],
       }));
 
-      console.log("Sending to Discord...");
+      
       const response = await fetch(webhookUrl, {
         method: "POST",
         body: formData,
@@ -572,20 +564,20 @@ export default function Rooms() {
         console.error(`Discord API error: ${response.statusText}, Response: ${errorText}`);
         throw new Error(`Discord API error: ${response.statusText}`);
       }
-      console.log("Discord response received.");
+      
 
       const discordResponse = await response.json();
       const slipUrl = discordResponse.attachments?.[0]?.url;
-      console.log("Discord Response JSON:", discordResponse);
-      console.log("Extracted Slip URL:", slipUrl);
+      
+      
 
       if (!slipUrl) {
         throw new Error("Could not get slip URL from Discord response.");
       }
-      console.log("Slip URL obtained.");
+      
 
       // 2. Update Firestore bill status with the Discord URL
-      console.log("Querying latest bill...");
+      
       const latestBillQuery = query(
         collection(db, "bills"),
         where("roomId", "==", selectedRoomForSlip.id),
@@ -598,7 +590,7 @@ export default function Rooms() {
         console.warn("No bill found for this room. Cannot update status.");
         throw new Error("No bill found for this room. Cannot update status.");
       }
-      console.log("Bill found. Updating Firestore...");
+      
       const billDocRef = billSnap.docs[0].ref;
       await updateDoc(billDocRef, {
         paidAmount: amount,
@@ -609,7 +601,7 @@ export default function Rooms() {
       await updateDoc(doc(db, "rooms", selectedRoomForSlip.id), {
         billStatus: "pending",
       });
-      console.log("Firestore updated successfully.");
+      
 
       toast.update(toastId, {
         title: "Upload Successful",

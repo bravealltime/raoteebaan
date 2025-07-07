@@ -98,13 +98,6 @@ export default function OwnerDashboard() {
         photoURL: firestoreData.avatar || u.photoURL || undefined,
         ownerId: firestoreData.ownerId || undefined,
       });
-      console.log("Dashboard Page - Current User Data:", {
-        uid: u.uid,
-        name: firestoreData.name || u.displayName || '',
-        email: firestoreData.email || u.email || '',
-        role: userRole,
-        photoURL: firestoreData.avatar || u.photoURL || undefined,
-      });
         if (userRole !== "owner") {
           router.replace("/"); // Redirect non-owners to home or login
           return;
@@ -151,7 +144,7 @@ export default function OwnerDashboard() {
           billStatus = d.billStatus || "paid";
         }
 
-        console.log(`[DEBUG] Data for Room ${doc.id}:`, { roomData: d, latestBillId, proofUrl, finalBillStatus: billStatus });
+        
 
         return {
           id: doc.id,

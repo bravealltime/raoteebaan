@@ -54,7 +54,7 @@ export default function BillDetail() {
     const fetchBill = async () => {
       setLoading(true);
       try {
-        console.log('[DEBUG] roomId:', roomId);
+        
         const q = query(
           collection(db, "bills"),
           where("roomId", "==", String(roomId)),
@@ -62,22 +62,22 @@ export default function BillDetail() {
           limit(1)
         );
         const snap = await getDocs(q);
-        console.log(`[DEBUG] Query for roomId ${roomId} returned ${snap.docs.length} documents.`);
+        
         if (snap.empty) {
-          console.log(`[DEBUG] No bill found for roomId: ${roomId}`);
+          
         }
         let roomData: any = null;
         const roomSnap = await getDoc(doc(db, "rooms", String(roomId)));
         if (roomSnap.exists()) {
           roomData = roomSnap.data();
-          console.log(`[DEBUG] Room data for ${roomId}:`, roomData);
+          
         } else {
-          console.log(`[DEBUG] No room data found for roomId: ${roomId}`);
+          
         }
 
         if (!snap.empty) {
           const d = snap.docs[0].data();
-          console.log('[DEBUG] bill doc from Firestore:', d);
+          
 
           // Helper to convert Firestore Timestamp or ISO string to JS Date
           const toDate = (firebaseDate: any): Date | null => {
@@ -151,7 +151,7 @@ export default function BillDetail() {
             waterImageUrl: d.waterImageUrl || null,
           };
 
-          console.log('[DEBUG] mapped bill for setBill:', finalBill);
+          
           setBill(finalBill);
           setProofUrl(d.proofUrl || null); // Set proofUrl state
         } else {
@@ -181,7 +181,7 @@ export default function BillDetail() {
   useEffect(() => {
     const checkAndGenerateQR = () => {
       if (typeof window !== "undefined" && (window as any).ThaiQRCode && bill?.promptpay && bill?.total && !qr) {
-        console.log('Retrying QR generation...');
+        
         try {
           const qrData = (window as any).ThaiQRCode.generate(bill.promptpay, { amount: bill.total });
           setQr(qrData);
@@ -201,7 +201,7 @@ export default function BillDetail() {
   }, [bill?.promptpay, bill?.total, qr]);
 
   useEffect(() => {
-    console.log('window.qrcode:', typeof window !== "undefined" ? (window as any).qrcode : undefined);
+    
   }, []);
 
   const handleExportPDF = async () => {
@@ -222,8 +222,8 @@ export default function BillDetail() {
   const handleUploadProof = async () => {
     if (!proofFile || !bill) return;
 
-    console.log("handleUploadProof: bill object:", bill);
-    console.log("handleUploadProof: bill.id:", bill.id);
+    
+    
 
     setUploadingProof(true);
     try {

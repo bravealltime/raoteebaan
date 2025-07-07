@@ -55,7 +55,7 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
     }
   }, [role, router.pathname, router]);
 
-  console.log("[DEBUG] MainLayout props:", { isProofModalOpen, proofImageUrl });
+  
   return (
 
     <Box minH="100vh">

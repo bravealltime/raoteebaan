@@ -11,10 +11,10 @@ async function createAdmin() {
       displayName: "Admin",
     });
     await getAuth().setCustomUserClaims(user.uid, { admin: true });
-    console.log("Admin user created:", user.email);
+    
   } catch (e: any) {
     if (e.code === 'auth/email-already-exists') {
-      console.log("Admin user already exists.");
+      
     } else {
       console.error(e);
     }

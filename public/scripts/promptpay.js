@@ -107,7 +107,7 @@ const ThaiQRCode = {
     try {
       // Generate PromptPay payload
       const payload = this.generatePayload(target, options);
-      console.log('Generated payload:', payload);
+      
       
       // Check if QR library is available
       if (typeof qrcode === 'undefined') {

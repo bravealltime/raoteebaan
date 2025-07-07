@@ -51,7 +51,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
             { tenantId: userRecord.uid, tenantName: name, status: "occupied" },
             { merge: true }
           );
-          console.log(`Room ${roomId} updated with tenantId: ${userRecord.uid}`);
+          
         }
 
         await admin.firestore().collection('users').doc(userRecord.uid).set(userData);
