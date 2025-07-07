@@ -1,5 +1,6 @@
 import { Box, Flex, Text, Badge, Button, Divider, Icon, Tooltip, IconButton } from "@chakra-ui/react";
 import { FaChevronRight, FaDoorOpen, FaPlus, FaUser, FaCalendarAlt, FaFileInvoice, FaTrash, FaCog, FaUpload, FaCheckCircle, FaEye } from "react-icons/fa";
+import { motion } from "framer-motion";
 
 interface RoomCardProps {
   id: string;
@@ -33,13 +34,16 @@ const statusMap = {
   complete: { color: "green", label: "COMPLETE", bg: "green.100", text: "green.700" },
 };
 
+const MotionBox = motion(Box);
+
 export default function RoomCard({ id, status, tenantName, area, latestTotal, electricity, water, rent, service, overdueDays, dueDate, billStatus = "paid", role, onViewBill, onAddData, onDelete, onSettings, onUploadProof, onViewProof, onMarkAsPaid, onDeleteProof }: RoomCardProps) {
   const statusInfo = statusMap[billStatus] || statusMap.paid;
   return (
-    <Box
+    <MotionBox
       bg="white"
       borderRadius="2xl"
-      border="1.5px solid brand.50"
+      border="1.5px solid"
+      borderColor="brand.50"
       boxShadow="0 4px 24px 0 rgba(33,150,243,0.12)"
       p={4}
       minW="220px"
@@ -49,10 +53,11 @@ export default function RoomCard({ id, status, tenantName, area, latestTotal, el
       display="flex"
       flexDirection="column"
       gap={1}
-      transition="box-shadow 0.15s"
-      _hover={{ boxShadow: "0 8px 32px 0 rgba(33,150,243,0.18)" }}
       position="relative"
       m={0}
+      whileHover={{ scale: 1.03, boxShadow: "0 8px 32px 0 rgba(33,150,243,0.18)" }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.2 }}
     >
       <Icon as={FaFileInvoice} color="blue.100" boxSize={24} position="absolute" top={-2} right={-2} zIndex={0} opacity={0.18} pointerEvents="none" />
       <Flex align="center" gap={2} mb={1} zIndex={1}>
@@ -242,6 +247,6 @@ export default function RoomCard({ id, status, tenantName, area, latestTotal, el
           </>
         )}
       </Flex>
-    </Box>
+    </MotionBox>
   );
 } 

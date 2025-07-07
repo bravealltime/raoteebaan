@@ -891,7 +891,7 @@ export default function Rooms() {
             </MenuList>
           </Menu>
         </Flex>
-        <SimpleGrid minChildWidth="260px" spacing={0}>
+        <SimpleGrid minChildWidth="280px" spacing={6} mt={8}>
           {filteredRooms.map(room => {
             const electricity = roomBills[room.id]?.electricityTotal || room.electricity || 0;
             const water = roomBills[room.id]?.waterTotal || room.water || 0;
