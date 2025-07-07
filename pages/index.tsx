@@ -1,4 +1,4 @@
-import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox, Image, Table, Thead, Tbody, Tr, Th, Td, FormControl, FormLabel, InputGroup, InputRightElement, CloseButton, VStack, HStack } from "@chakra-ui/react";
+import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox, Image, Table, Thead, Tbody, Tr, Th, Td, FormControl, FormLabel, InputGroup, InputRightElement, CloseButton, VStack, HStack, Wrap, WrapItem, Spacer } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db, auth } from "../lib/firebase";
 import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, addDoc, updateDoc } from "firebase/firestore";
@@ -6,7 +6,7 @@ import RoomCard from "../components/RoomCard";
 import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
 import AppHeader from "../components/AppHeader";
-import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaTrash } from "react-icons/fa";
+import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaTrash, FaSearch } from "react-icons/fa";
 import { saveAs } from "file-saver";
 import Papa from "papaparse";
 import EditRoomModal from "../components/EditRoomModal";
@@ -832,70 +832,92 @@ export default function Rooms() {
           direction={{ base: "column", md: "row" }}
           align={{ base: "flex-start", md: "center" }}
           mb={{ base: 4, md: 6 }}
-          gap={{ base: 4, md: 3 }}
+          gap={{ base: 4, md: 4 }}
           flexWrap="wrap"
         >
-          <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4}>Rooms</Text>
+          <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4} mb={{ base: 2, md: 0 }}>Rooms</Text>
           {(role === 'admin' || role === 'owner') && (
-            <>
-              <Button
-                leftIcon={<FaPlus />}
-                colorScheme="blue"
-                variant="solid"
-                borderRadius="xl"
-                onClick={() => setIsAddRoomOpen(true)}
-              >
-                เพิ่มห้อง
-              </Button>
-              <Button
-                leftIcon={<FaUpload />}
-                colorScheme="teal"
-                variant="outline"
-                borderRadius="xl"
-                onClick={() => setIsImportOpen(true)}
-              >
-                นำเข้า CSV
-              </Button>
-              <Button
-                leftIcon={<FaFilePdf size={22} />}
-                colorScheme="purple"
-                size="lg"
-                borderRadius="xl"
-                fontWeight="bold"
-                variant="solid"
-                _hover={{ boxShadow: "md", transform: "scale(1.05)", bg: "purple.600", color: "white" }}
-                onClick={handleDownloadEquipmentAssessment}
-              >
-                ใบประเมินอุปกรณ์
-              </Button>
-              <Button
-                leftIcon={<FaPlus />}
-                colorScheme="green"
-                variant="solid"
-                borderRadius="xl"
-                onClick={handleOpenMeterModal}
-              >
-                เพิ่มข้อมูลทุกห้อง
-              </Button>
-            </>
+            <Wrap spacing={3} mb={{ base: 2, md: 0 }}>
+              <WrapItem>
+                <Button
+                  leftIcon={<FaPlus />}
+                  colorScheme="blue"
+                  variant="solid"
+                  borderRadius="lg"
+                  fontWeight="bold"
+                  size="md"
+                  onClick={() => setIsAddRoomOpen(true)}
+                >
+                  เพิ่มห้อง
+                </Button>
+              </WrapItem>
+              <WrapItem>
+                <Button
+                  leftIcon={<FaUpload />}
+                  colorScheme="teal"
+                  variant="outline"
+                  borderRadius="lg"
+                  fontWeight="bold"
+                  size="md"
+                  onClick={() => setIsImportOpen(true)}
+                >
+                  นำเข้า CSV
+                </Button>
+              </WrapItem>
+              <WrapItem>
+                <Button
+                  leftIcon={<FaFilePdf size={20} />}
+                  colorScheme="purple"
+                  borderRadius="lg"
+                  fontWeight="bold"
+                  size="md"
+                  variant="solid"
+                  onClick={handleDownloadEquipmentAssessment}
+                >
+                  ใบประเมินอุปกรณ์
+                </Button>
+              </WrapItem>
+              <WrapItem>
+                <Button
+                  leftIcon={<FaPlus />}
+                  colorScheme="green"
+                  borderRadius="lg"
+                  fontWeight="bold"
+                  size="md"
+                  variant="solid"
+                  onClick={handleOpenMeterModal}
+                >
+                  เพิ่มข้อมูลทุกห้อง
+                </Button>
+              </WrapItem>
+            </Wrap>
           )}
-          <Input
-            placeholder="Enter room NO."
-            maxW={{ base: "full", md: "220px" }}
-            bg="white"
-            borderRadius="xl"
-            mr={{ base: 0, md: 2 }}
-            value={searchRoom}
-            onChange={e => setSearchRoom(e.target.value)}
-          />
-          <Menu>
-            <MenuButton as={IconButton} aria-label="Filter" icon={<FaFilter />} variant="outline" borderRadius="xl" w={{ base: "full", md: "auto" }} />
-            <MenuList>
-              <MenuItem onClick={() => setFilterType('all')}>แสดงทั้งหมด</MenuItem>
-              <MenuItem onClick={() => setFilterType('unpaid')}>ห้องที่ยังไม่จ่าย</MenuItem>
-              <MenuItem onClick={() => setFilterType('vacant')}>ห้องว่าง</MenuItem>
-            </MenuList>
-          </Menu>
+          <Spacer />
+          <HStack spacing={3} w={{ base: "100%", md: "auto" }} align="center">
+            <InputGroup maxW={{ base: "full", md: "220px" }}>
+              <Input
+                placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
+                bg="white"
+                borderRadius="lg"
+                value={searchRoom}
+                onChange={e => setSearchRoom(e.target.value)}
+                size="md"
+              />
+              <InputRightElement pointerEvents="none">
+                <FaSearch color="#A0AEC0" />
+              </InputRightElement>
+            </InputGroup>
+            <Menu>
+              <MenuButton as={Button} leftIcon={<FaFilter />} colorScheme="gray" variant="outline" borderRadius="lg" size="md" fontWeight="bold">
+                กรอง
+              </MenuButton>
+              <MenuList>
+                <MenuItem onClick={() => setFilterType('all')}>แสดงทั้งหมด</MenuItem>
+                <MenuItem onClick={() => setFilterType('unpaid')}>ห้องที่ยังไม่จ่าย</MenuItem>
+                <MenuItem onClick={() => setFilterType('vacant')}>ห้องว่าง</MenuItem>
+              </MenuList>
+            </Menu>
+          </HStack>
         </Flex>
         <SimpleGrid minChildWidth="280px" spacing={6} mt={8}>
           {filteredRooms.map(room => {
