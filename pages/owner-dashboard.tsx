@@ -35,7 +35,7 @@ interface Room {
   latestBillId?: string;
 }
 
-export default function Dashboard() {
+export default function OwnerDashboard() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -105,17 +105,8 @@ export default function Dashboard() {
         role: userRole,
         photoURL: firestoreData.avatar || u.photoURL || undefined,
       });
-        if (role !== "admin" && role !== "owner") return null;
-        if (userRole === "owner") {
-          router.replace("/owner-dashboard");
-          return;
-        }
-        if (userRole === "employee") {
-          router.replace("/employee-dashboard");
-          return;
-        }
-        if (userRole === "tenant") {
-          router.replace("/tenant-dashboard");
+        if (userRole !== "owner") {
+          router.replace("/"); // Redirect non-owners to home or login
           return;
         }
     });
@@ -128,8 +119,12 @@ export default function Dashboard() {
       try {
         let roomsQuery: Query = collection(db, "rooms");
 
-        if (role === "owner" && currentUser?.uid) {
+        if (currentUser?.uid) {
           roomsQuery = query(roomsQuery, where("ownerId", "==", currentUser.uid));
+        } else {
+          // If currentUser is not available yet, wait for it
+          setLoading(false);
+          return;
         }
 
         const querySnapshot = await getDocs(roomsQuery);
@@ -184,16 +179,12 @@ export default function Dashboard() {
       }
     };
 
-    if (role === "admin") {
-      fetchRooms();
-    } else if (role === "owner" && currentUser?.uid) {
-      fetchRooms();
-    } else if (role === "employee") {
+    if (role === "owner") {
       fetchRooms();
     }
 
     const handleRouteChange = (url: string) => {
-      if (url === "/dashboard") {
+      if (url === "/owner-dashboard") {
         fetchRooms();
       }
     };
@@ -836,10 +827,7 @@ export default function Dashboard() {
         </ModalContent>
       </Modal>
 
-      <AddRoomModal isOpen={isOpen} onClose={onClose} onAdd={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} />
-      {editRoom && (
-        <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} />
-      )}
+      {/* Removed AddRoomModal and EditRoomModal as they are not relevant for owner dashboard */}
 
       <AlertDialog
         isOpen={isDialogOpen}
@@ -881,4 +869,4 @@ const SummaryCard: React.FC<{ icon: React.ElementType; label: string; value: str
       <Text fontWeight="bold" fontSize="2xl">{value}</Text>
     </Box>
   </Flex>
-); 
+);

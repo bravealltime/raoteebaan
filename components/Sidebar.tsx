@@ -53,6 +53,11 @@ export default function Sidebar({ role }: SidebarProps) {
       </>}
       {/* owner เห็นเฉพาะ 3 ปุ่ม */}
       {role === "owner" && <>
+        <Link href="/owner-dashboard" passHref legacyBehavior>
+          <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/owner-dashboard" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
+            Owner Dashboard
+          </Button>
+        </Link>
         <Link href="/" passHref legacyBehavior>
           <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
             Rooms
