@@ -731,10 +731,10 @@ export default function OwnerDashboard() {
       onProofModalClose={onProofModalClose}
       proofImageUrl={proofImageUrl}
     >
-      <Container maxW="container.xl" py={8}>
+      <Container maxW="container.xl" py={{ base: 4, md: 8 }}>
         <VStack spacing={8} align="stretch">
           {/* Summary Cards */}
-          <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={6}>
+          <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={{ base: 4, md: 6 }}>
             <SummaryCard icon={FaHome} label="ห้องทั้งหมด" value={totalRooms} />
             <SummaryCard icon={FaBed} label="ห้องมีผู้เช่า" value={availableRooms} />
             <SummaryCard icon={FaBed} label="ห้องว่าง" value={vacantRooms} color="green.500" />
@@ -744,8 +744,8 @@ export default function OwnerDashboard() {
           </SimpleGrid>
 
           {/* Main Content */}
-          <Box bg="white" borderRadius="2xl" p={6} boxShadow="md">
-            <Flex direction={{ base: "column", md: "row" }} justify="space-between" align="center" mb={6}>
+          <Box bg="white" borderRadius="2xl" p={{ base: 4, md: 6 }} boxShadow="md">
+            <Flex direction={{ base: "column", md: "row" }} justify="space-between" align={{ base: "flex-start", md: "center" }} mb={6}>
               <VStack align="flex-start" spacing={1} mb={{ base: 4, md: 0 }}>
                 <Heading as="h2" size="lg">
                   {filterType === 'review' ? 'รายการรอตรวจสอบ' : 
@@ -760,7 +760,7 @@ export default function OwnerDashboard() {
               </VStack>
               <Flex gap={2}>
                 <Menu>
-                  <MenuButton as={Button} leftIcon={<FaFilter />} colorScheme="purple" variant="solid" w="160px" px={4}>
+                  <MenuButton as={Button} leftIcon={<FaFilter />} colorScheme="purple" variant="solid" w={{ base: "full", md: "160px" }} px={4}>
                     <Text as="span" isTruncated>{filterLabels[filterType]}</Text>
                   </MenuButton>
                   <MenuList>
@@ -770,7 +770,7 @@ export default function OwnerDashboard() {
                     <MenuItem onClick={() => setFilterType('review')} fontWeight={filterType === 'review' ? 'bold' : 'normal'}>รอตรวจสอบ</MenuItem>
                   </MenuList>
                 </Menu>
-                <InputGroup maxW={{ base: "100%", md: "320px" }}>
+                <InputGroup maxW={{ base: "full", md: "320px" }}>
                   <Input
                     placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
                     value={search}
@@ -808,7 +808,7 @@ export default function OwnerDashboard() {
         </VStack>
       </Container>
 
-      <Modal isOpen={isProofModalOpen} onClose={onProofModalClose} isCentered size="xl">
+      <Modal isOpen={isProofModalOpen} onClose={onProofModalClose} isCentered size={{ base: "full", md: "xl" }}>
         <ModalOverlay />
         <ModalContent>
           <ModalCloseButton />
@@ -822,13 +822,19 @@ export default function OwnerDashboard() {
 
       {/* Removed AddRoomModal and EditRoomModal as they are not relevant for owner dashboard */}
 
+      <AddRoomModal isOpen={isOpen} onClose={onClose} onAdd={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} isCentered size={{ base: "full", md: "2xl" }} />
+      {editRoom && (
+        <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} isCentered size={{ base: "full", md: "2xl" }} />
+      )}
+
       <AlertDialog
         isOpen={isDialogOpen}
         leastDestructiveRef={cancelRef}
         onClose={() => setIsDialogOpen(false)}
+        isCentered
       >
         <AlertDialogOverlay>
-          <AlertDialogContent>
+          <AlertDialogContent m={{ base: 4, md: "auto" }}>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
               ลบห้อง
             </AlertDialogHeader>

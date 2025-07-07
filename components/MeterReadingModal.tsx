@@ -12,9 +12,11 @@ interface MeterReadingModalProps {
   onSave: (data: any) => void;
   rooms: { id: string; tenantName: string; status: string }[];
   previousReadings: Record<string, { electricity: number; water: number }>;
+  isCentered?: boolean;
+  size?: string | object;
 }
 
-export default function MeterReadingModal({ isOpen, onClose, onSave, rooms, previousReadings }: MeterReadingModalProps) {
+export default function MeterReadingModal({ isOpen, onClose, onSave, rooms, previousReadings, isCentered, size }: MeterReadingModalProps) {
   const [readings, setReadings] = useState<Record<string, { electricity: string; water: string }>>({});
   const [rates, setRates] = useState({ electricity: 8, water: 15 });
   const [recordDate, setRecordDate] = useState(new Date().toISOString().split('T')[0]);
@@ -99,7 +101,7 @@ export default function MeterReadingModal({ isOpen, onClose, onSave, rooms, prev
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="4xl" scrollBehavior="inside">
+    <Modal isOpen={isOpen} onClose={onClose} size={size} scrollBehavior="inside" isCentered={isCentered}>
       <ModalOverlay />
       <ModalContent>
         <ModalHeader>เพิ่มข้อมูลบิลทุกห้อง</ModalHeader>

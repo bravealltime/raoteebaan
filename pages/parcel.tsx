@@ -523,17 +523,17 @@ export default function Parcel() {
 
   return (
     <MainLayout role={role}>
-      <Box p={[4, 6]} maxW="1400px" mx="auto">
+      <Box p={{ base: 4, md: 6 }} maxW="1400px" mx="auto">
         {/* Header */}
         <Flex justify="space-between" align="center" mb={6}>
-          <Heading size="lg" color="blue.700" display="flex" alignItems="center" gap={2}>
+          <Heading size={{ base: "md", md: "lg" }} color="blue.700" display="flex" alignItems="center" gap={2}>
             <Icon as={FaBox} />
             จัดการพัสดุ
           </Heading>
         </Flex>
 
         {/* Stats Summary */}
-        <SimpleGrid columns={[2, 2, 4, 5]} spacing={4} mb={8}>
+        <SimpleGrid columns={{ base: 2, md: 2, lg: 4, xl: 5 }} spacing={{ base: 4, md: 6 }} mb={8}>
           <Stat bg="white" p={4} borderRadius="xl" boxShadow="sm">
             <StatLabel color="gray.600">ทั้งหมด</StatLabel>
             <StatNumber color="blue.600">{stats.total}</StatNumber>
@@ -563,13 +563,13 @@ export default function Parcel() {
 
         {/* Room Cards with Parcels */}
         <Box>
-          <Flex justify="space-between" align="center" mb={4}>
-            <Heading size="md" color="gray.700">
+          <Flex justify="space-between" align={{ base: "flex-start", md: "center" }} mb={4} direction={{ base: "column", md: "row" }}>
+            <Heading size="md" color="gray.700" mb={{ base: 4, md: 0 }}>
               {roomFilter === "all" ? `ห้องทั้งหมด (${filteredRooms.length})` : `ห้องที่มีพัสดุรอ (${filteredRooms.length})`}
             </Heading>
             
-            <HStack spacing={3}>
-              <InputGroup w="300px">
+            <HStack spacing={3} direction={{ base: "column", md: "row" }} w={{ base: "full", md: "auto" }}>
+              <InputGroup w={{ base: "full", md: "300px" }}>
                 <InputLeftElement pointerEvents="none">
                   <Icon as={FaSearch} color="gray.400" />
                 </InputLeftElement>
@@ -585,7 +585,7 @@ export default function Parcel() {
               <Select
                 value={roomFilter}
                 onChange={(e) => setRoomFilter(e.target.value as "all" | "with-parcels")}
-                w="250px"
+                w={{ base: "full", md: "250px" }}
                 bg="white"
                 borderColor="gray.300"
               >
@@ -683,7 +683,7 @@ export default function Parcel() {
         </Box>
 
         {/* Room Parcel Details Modal */}
-        <Modal isOpen={isOpen} onClose={onClose} size="4xl">
+        <Modal isOpen={isOpen} onClose={onClose} size={{ base: "full", md: "4xl" }} isCentered>
           <ModalOverlay />
           <ModalContent>
             <ModalHeader>
@@ -765,7 +765,7 @@ export default function Parcel() {
         </Modal>
 
         {/* Add Parcel Modal */}
-        <Modal isOpen={isAddOpen} onClose={onAddClose} size="lg">
+        <Modal isOpen={isAddOpen} onClose={onAddClose} size={{ base: "full", md: "lg" }} isCentered>
           <ModalOverlay />
           <ModalContent>
             <ModalHeader>

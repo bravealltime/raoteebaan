@@ -33,7 +33,7 @@ export default function Employee() {
   return (
     <MainLayout role={role}>
       <Flex flex={1} align="center" justify="center" p={4}>
-        <Box bg="white" borderRadius="2xl" boxShadow="xl" p={[8, 12]} textAlign="center" maxW="sm" w="full">
+        <Box bg="white" borderRadius="2xl" boxShadow="xl" p={{ base: 8, md: 12 }} textAlign="center" maxW={{ base: "sm", md: "md" }} w="full">
           <Box as={FaUserFriends} color="blue.400" fontSize="5xl" mb={4} />
           <Heading fontSize="2xl" color="blue.600" mb={2}>Employee</Heading>
           <Text color="gray.600" fontSize="lg">Coming soon...</Text>

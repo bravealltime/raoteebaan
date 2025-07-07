@@ -49,9 +49,11 @@ interface EditRoomModalProps {
   onClose: () => void;
   onSave: (room: Partial<RoomData>) => void;
   initialRoom: RoomData;
+  isCentered?: boolean;
+  size?: string | object;
 }
 
-export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom }: EditRoomModalProps) {
+export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, isCentered, size }: EditRoomModalProps) {
   if (!initialRoom) return null;
 
   const [room, setRoom] = useState<RoomData>(initialRoom);
@@ -142,7 +144,7 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom }: 
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} isCentered size="xl">
+    <Modal isOpen={isOpen} onClose={onClose} isCentered={isCentered} size={size}>
       <ModalOverlay />
       <ModalContent borderRadius="2xl" p={2} maxH="95vh" overflowY="auto" minW={{ base: '95vw', md: '520px' }}>
         <ModalHeader display="flex" alignItems="center" gap={2} color="blue.600" fontWeight="bold">

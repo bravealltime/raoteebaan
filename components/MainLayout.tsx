@@ -60,7 +60,7 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
 
     <Box minH="100vh">
       <AppHeader currentUser={currentUser} />
-      <Flex minH="100vh" p={0}>
+      <Flex minH="100vh" p={{ base: 4, md: 8 }}>
         {showSidebar && <Sidebar role={role} />}
         <AnimatePresence mode="wait">
           <motion.div

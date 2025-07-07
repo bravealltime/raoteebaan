@@ -10,9 +10,11 @@ interface AddRoomModalProps {
   lastElecMeter?: number;
   userRole?: string | null;
   ownerId?: string; // Add ownerId to props
+  isCentered?: boolean;
+  size?: string | object;
 }
 
-export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, lastElecMeter, userRole, ownerId }: AddRoomModalProps) {
+export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, lastElecMeter, userRole, ownerId, isCentered, size }: AddRoomModalProps) {
   const [roomId, setRoomId] = useState("");
   const [tenantName, setTenantName] = useState("");
   const [tenantEmail, setTenantEmail] = useState(""); // Add state for tenant email
@@ -97,7 +99,7 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} isCentered size="2xl">
+    <Modal isOpen={isOpen} onClose={onClose} isCentered={isCentered} size={size}>
       <ModalOverlay />
       <ModalContent borderRadius="2xl" p={4} maxH="98vh" maxW="1200px" minH="700px" overflowY="visible" bg="white">
         <ModalHeader fontWeight="bold" color="blue.600" fontSize="2xl">เพิ่มห้องใหม่</ModalHeader>

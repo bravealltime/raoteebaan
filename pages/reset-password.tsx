@@ -136,7 +136,7 @@ export default function ResetPassword() {
 
   return (
     <Center minH="100vh" bgGradient="linear(to-br, brand.50, brand.100)">
-      <Container maxW="md">
+      <Container maxW={{ base: "90%", md: "md" }}>
         <Box bg="white" borderRadius="2xl" p={8} boxShadow="xl" border="1.5px solid #e3f2fd">
           <VStack spacing={6}>
             <VStack spacing={2}>

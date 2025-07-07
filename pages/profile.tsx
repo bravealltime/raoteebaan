@@ -201,7 +201,7 @@ export default function Profile() {
 
   return (
     <Flex minH="100vh" align="center" justify="center" bgGradient="linear(to-br, brand.50, brand.100)">
-      <Box bg="white" borderRadius="2xl" boxShadow="2xl" p={[4, 8]} maxW="400px" w="full" position="relative">
+      <Box bg="white" borderRadius="2xl" boxShadow="2xl" p={{ base: 4, md: 8 }} maxW={{ base: "90%", md: "400px" }} w="full" position="relative">
         <IconButton
           icon={<FaArrowLeft />}
           aria-label="ย้อนกลับ"

@@ -376,7 +376,7 @@ export default function AdminUsers() {
 
   return (
     <MainLayout role={role}>
-      <Box flex={1} p={[2, 4, 8]}>
+      <Box flex={1} p={{ base: 4, md: 8 }}>
         <Heading
           color="blue.600"
           fontSize="2xl"
@@ -387,7 +387,7 @@ export default function AdminUsers() {
         >
           <FaUserShield /> Admin Panel
         </Heading>
-        <SimpleGrid columns={[1, 2, 4]} spacing={4} mb={6}>
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={{ base: 4, md: 6 }} mb={6}>
           <Box
             bg="white"
             borderRadius="xl"
@@ -475,14 +475,15 @@ export default function AdminUsers() {
           boxShadow="xl"
           border="1.5px solid brand.50"
         >
-          <Flex mb={4} gap={2} align="center" flexWrap="wrap">
+          <Flex mb={4} gap={2} align="center" flexWrap="wrap" direction={{ base: "column", md: "row" }}>
             <Button
               leftIcon={<FaUserFriends />}
               colorScheme="blue"
               variant="solid"
               borderRadius="xl"
               fontWeight="bold"
-              mr={2}
+              mr={{ base: 0, md: 2 }}
+              w={{ base: "full", md: "auto" }}
             >
               จัดการผู้ใช้
             </Button>
@@ -491,8 +492,9 @@ export default function AdminUsers() {
               variant="ghost"
               borderRadius="xl"
               fontWeight="bold"
-              mr={2}
+              mr={{ base: 0, md: 2 }}
               onClick={() => setIsManagePermissionsOpen(true)}
+              w={{ base: "full", md: "auto" }}
             >
               จัดการสิทธิ์
             </Button>
@@ -501,21 +503,22 @@ export default function AdminUsers() {
               variant="ghost"
               borderRadius="xl"
               fontWeight="bold"
+              w={{ base: "full", md: "auto" }}
             >
               รายงาน
             </Button>
             <Input
               placeholder="ค้นหาผู้ใช้..."
-              maxW="220px"
+              maxW={{ base: "full", md: "220px" }}
               bg="gray.50"
               borderRadius="xl"
               color="gray.800"
-              mr={2}
+              mr={{ base: 0, md: 2 }}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
             <Select
-              maxW="160px"
+              maxW={{ base: "full", md: "160px" }}
               bg="gray.50"
               borderRadius="xl"
               color="gray.800"
@@ -534,8 +537,9 @@ export default function AdminUsers() {
               colorScheme="green"
               borderRadius="xl"
               fontWeight="bold"
-              ml="auto"
+              ml={{ base: 0, md: "auto" }}
               onClick={() => setIsAddOpen(true)}
+              w={{ base: "full", md: "auto" }}
             >
               เพิ่มผู้ใช้
             </Button>
@@ -712,10 +716,10 @@ export default function AdminUsers() {
         isOpen={isAddOpen}
         onClose={() => setIsAddOpen(false)}
         isCentered
-        size="md"
+        size={{ base: "full", md: "md" }}
       >
         <ModalOverlay />
-        <ModalContent borderRadius="2xl" p={2}>
+        <ModalContent borderRadius="2xl" p={2} m={{ base: 4, md: "auto" }}>
           <ModalHeader fontWeight="bold" color="blue.600">
             เพิ่มผู้ใช้ใหม่
           </ModalHeader>
@@ -814,10 +818,10 @@ export default function AdminUsers() {
         isOpen={showResetLink}
         onClose={closeResetLinkModal}
         isCentered
-        size="lg"
+        size={{ base: "full", md: "lg" }}
       >
         <ModalOverlay />
-        <ModalContent borderRadius="2xl" p={2}>
+        <ModalContent borderRadius="2xl" p={2} m={{ base: 4, md: "auto" }}>
           <ModalHeader
             fontWeight="bold"
             color="green.600"
@@ -885,10 +889,10 @@ export default function AdminUsers() {
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
         isCentered
-        size="md"
+        size={{ base: "full", md: "md" }}
       >
         <ModalOverlay />
-        <ModalContent borderRadius="2xl" p={2}>
+        <ModalContent borderRadius="2xl" p={2} m={{ base: 4, md: "auto" }}>
           <ModalHeader fontWeight="bold" color="blue.600">
             แก้ไขผู้ใช้
           </ModalHeader>
@@ -979,10 +983,10 @@ export default function AdminUsers() {
         isOpen={isConfirmBanOpen}
         onClose={() => setIsConfirmBanOpen(false)}
         isCentered
-        size="sm"
+        size={{ base: "full", md: "sm" }}
       >
         <ModalOverlay />
-        <ModalContent borderRadius="2xl" p={2}>
+        <ModalContent borderRadius="2xl" p={2} m={{ base: 4, md: "auto" }}>
           <ModalHeader fontWeight="bold" color="orange.600">
             ยืนยันการระงับผู้ใช้
           </ModalHeader>
@@ -1020,10 +1024,10 @@ export default function AdminUsers() {
         isOpen={isConfirmDeleteOpen}
         onClose={() => setIsConfirmDeleteOpen(false)}
         isCentered
-        size="sm"
+        size={{ base: "full", md: "sm" }}
       >
         <ModalOverlay />
-        <ModalContent borderRadius="2xl" p={2}>
+        <ModalContent borderRadius="2xl" p={2} m={{ base: 4, md: "auto" }}>
           <ModalHeader fontWeight="bold" color="red.600">
             ยืนยันการลบผู้ใช้
           </ModalHeader>
@@ -1061,10 +1065,10 @@ export default function AdminUsers() {
         isOpen={isManagePermissionsOpen}
         onClose={() => setIsManagePermissionsOpen(false)}
         isCentered
-        size="xl"
+        size={{ base: "full", md: "xl" }}
       >
         <ModalOverlay />
-        <ModalContent borderRadius="2xl" p={2}>
+        <ModalContent borderRadius="2xl" p={2} m={{ base: 4, md: "auto" }}>
           <ModalHeader
             fontWeight="bold"
             color="blue.600"

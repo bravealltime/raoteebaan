@@ -72,7 +72,7 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { auth, db, rtdb } from "../lib/firebase";
 import MainLayout from "../components/MainLayout";
-import { FaPaperPlane, FaPlus, FaTrash, FaImage, FaArrowLeft } from "react-icons/fa";
+import { FaPaperPlane, FaPlus, FaTrash, FaImage, FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import NewConversationModal from "../components/NewConversationModal";
 
@@ -125,6 +125,7 @@ const Inbox = () => {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true); // New state for sidebar expansion
   const { isOpen: isAlertDialogOpen, onOpen: onAlertDialogOpen, onClose: onAlertDialogClose } = useDisclosure();
   const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
@@ -570,16 +571,18 @@ const Inbox = () => {
     <MainLayout role={currentUser?.role} currentUser={currentUser} showSidebar={false}>
       <Flex h="calc(100vh - 80px)">
         <VStack
-          w="350px"
+          w={isSidebarExpanded ? "350px" : "80px"}
+          minW={isSidebarExpanded ? "350px" : "80px"}
           bg="gray.50"
           borderRight="1px solid"
           borderColor="gray.200"
-          p={4}
+          p={{ base: 2, md: 4 }}
           spacing={4}
           align="stretch"
+          transition="width 0.2s ease-in-out, min-width 0.2s ease-in-out"
         >
           <Flex justify="space-between" align="center" mb={2}>
-            <HStack>
+            <HStack spacing={2} flex={1} overflow="hidden">
               <IconButton
                 aria-label="Go back"
                 icon={<FaArrowLeft />}
@@ -587,23 +590,35 @@ const Inbox = () => {
                 size="sm"
                 variant="ghost"
                 onClick={() => router.back()}
-                mr={2}
               />
-              <Heading size="lg">Inbox</Heading>
-              {unreadMessageCount > 0 && (
+              {isSidebarExpanded && (
+                <Heading size="lg" whiteSpace="nowrap">Inbox</Heading>
+              )}
+              {isSidebarExpanded && unreadMessageCount > 0 && (
                 <Badge colorScheme="red" borderRadius="full" px={2} py={0.5} fontSize="sm">
                   {unreadMessageCount}
                 </Badge>
               )}
             </HStack>
             <IconButton
-              aria-label="New Conversation"
-              icon={<FaPlus />}
+              aria-label="Toggle Sidebar"
+              icon={isSidebarExpanded ? <FaArrowLeft /> : <FaArrowRight />}
               isRound
               size="sm"
               variant="ghost"
-              onClick={onOpen}
+              onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+              ml={2}
             />
+            {isSidebarExpanded && (
+              <IconButton
+                aria-label="New Conversation"
+                icon={<FaPlus />}
+                isRound
+                size="sm"
+                variant="ghost"
+                onClick={onOpen}
+              />
+            )}
           </Flex>
           <VStack as="nav" spacing={1} align="stretch" overflowY="auto">
             {conversations.length > 0 ? (
@@ -627,6 +642,7 @@ const Inbox = () => {
                     _hover={{ bg: isSelected ? "blue.600" : (isUnread ? "blue.100" : "gray.200") }}
                     onClick={() => setSelectedConversationId(convo.id)}
                     transition="background 0.2s ease-in-out"
+                    justifyContent={isSidebarExpanded ? "flex-start" : "center"}
                   >
                     <Avatar name={otherUser?.name} src={otherUser?.photoURL}>
                       
@@ -639,29 +655,33 @@ const Inbox = () => {
                         right="0"
                       />
                     </Avatar>
-                    <VStack align="start" spacing={0} flex={1}>
-                      <Text fontWeight={isUnread ? "extrabold" : "bold"}>{otherUser?.name}</Text>
-                      {otherUser?.roomNumber && (
-                        <Text fontSize="xs" color={isSelected ? "gray.300" : "gray.500"}>
-                          Room: {otherUser.roomNumber}
+                    {isSidebarExpanded && (
+                      <VStack align="start" spacing={0} flex={1}>
+                        <Text fontWeight={isUnread ? "extrabold" : "bold"}>{otherUser?.name}</Text>
+                        {otherUser?.roomNumber && (
+                          <Text fontSize="xs" color={isSelected ? "gray.300" : "gray.500"}>
+                            Room: {otherUser.roomNumber}
+                          </Text>
+                        )}
+                        <Text
+                          fontSize="sm"
+                          color={isSelected ? "gray.200" : "gray.500"}
+                          noOfLines={1}
+                          fontWeight={isUnread ? "bold" : "normal"}
+                        >
+                          {convo.lastMessage?.text}
                         </Text>
-                      )}
-                      <Text
-                        fontSize="sm"
-                        color={isSelected ? "gray.200" : "gray.500"}
-                        noOfLines={1}
-                        fontWeight={isUnread ? "bold" : "normal"}
-                      >
-                        {convo.lastMessage?.text}
-                      </Text>
-                    </VStack>
-                    <Badge colorScheme={getRoleColorScheme(otherUser?.role || "")}>
-                      {otherUser?.role === "admin" ? "🛡️ ผู้ดูแลระบบ" : 
-                       otherUser?.role === "juristic" ? "🏢 นิติ" : 
-                       otherUser?.role === "technician" ? "🛠️ ช่าง" : 
-                       otherUser?.role === "owner" ? "🏠 เจ้าของห้อง" : 
-                       "👤 ลูกบ้าน"}
-                    </Badge>
+                      </VStack>
+                    )}
+                    {isSidebarExpanded && (
+                      <Badge colorScheme={getRoleColorScheme(otherUser?.role || "")}>
+                        {otherUser?.role === "admin" ? "🛡️ ผู้ดูแลระบบ" : 
+                         otherUser?.role === "juristic" ? "🏢 นิติ" : 
+                         otherUser?.role === "technician" ? "🛠️ ช่าง" : 
+                         otherUser?.role === "owner" ? "🏠 เจ้าของห้อง" : 
+                         "👤 ลูกบ้าน"}
+                      </Badge>
+                    )}
                   </HStack>
                 );
               })
@@ -677,7 +697,7 @@ const Inbox = () => {
           {selectedConversation ? (
             <>
               <HStack
-                p={4}
+                p={{ base: 2, md: 4 }}
                 borderBottom="1px solid"
                 borderColor="gray.200"
                 bg="gray.50"

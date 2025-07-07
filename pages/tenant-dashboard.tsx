@@ -257,23 +257,23 @@ export default function TenantDashboard() {
 
   return (
     <MainLayout role={role} currentUser={currentUser} showSidebar={false}>
-      <Box p={[2, 6]} bgGradient="linear(to-b, gray.50, white)" minH="100vh">
-        <Heading size="lg" mb={8} color="brand.700" letterSpacing="wide">
+      <Box p={{ base: 4, md: 6 }} bgGradient="linear(to-b, gray.50, white)" minH="100vh">
+        <Heading size={{ base: "md", md: "lg" }} mb={8} color="brand.700" letterSpacing="wide">
           แดชบอร์ดผู้เช่า
         </Heading>
 
         {/* Personal Information Card */}
-        <Card mb={8} boxShadow="2xl" borderRadius="2xl" bg="white" px={[2, 8]} py={6}>
+        <Card mb={8} boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 4, md: 8 }} py={6}>
           <CardHeader pb={2}>
             <Heading size="md" color="brand.600" letterSpacing="wide">
               <Icon as={FaUser} mr={2} /> ข้อมูลส่วนตัว
             </Heading>
           </CardHeader>
           <CardBody>
-            <Flex direction={['column', 'row']} align="center" gap={10}>
+            <Flex direction={{ base: "column", md: "row" }} align="center" gap={10}>
               <Avatar size="2xl" src={userData?.avatar} name={userData?.name} boxShadow="lg" border="4px solid #fff" />
               <VStack align="flex-start" spacing={0} flex={1} fontSize="lg" w="100%">
-                <SimpleGrid columns={[1, 2]} spacingY={1} spacingX={8} w="100%">
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacingY={1} spacingX={8} w="100%">
                   <Box>
                     <Text fontWeight="bold" color="gray.600" fontSize="md">ชื่อ</Text>
                     <Text color="gray.800" fontSize="lg">{userData?.name}</Text>
@@ -308,14 +308,14 @@ export default function TenantDashboard() {
 
         {/* Room Information Card */}
         {roomData && (
-          <Card mb={8} boxShadow="2xl" borderRadius="2xl" bg="white" px={[2, 8]} py={6}>
-            <CardHeader pb={2}>
-              <Heading size="md" color="brand.600" letterSpacing="wide">
-                <Icon as={FaHome} mr={2} /> ข้อมูลห้องพัก
-              </Heading>
-            </CardHeader>
-            <CardBody>
-              <SimpleGrid columns={[1, 2, 3]} spacing={6}>
+          <Card mb={8} boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 4, md: 8 }} py={6}>
+          <CardHeader pb={2}>
+            <Heading size="md" color="brand.600" letterSpacing="wide">
+              <Icon as={FaHome} mr={2} /> ข้อมูลห้องพัก
+            </Heading>
+          </CardHeader>
+          <CardBody>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
                 <Box>
                   <Text fontWeight="bold" color="gray.600" fontSize="md">หมายเลขห้อง</Text>
                   <Text color="gray.800" fontSize="xl">{roomData.id}</Text>
@@ -348,7 +348,7 @@ export default function TenantDashboard() {
         )}
 
         {/* Bill History Card */}
-        <Card boxShadow="2xl" borderRadius="2xl" bg="white" px={[2, 8]} py={6}>
+        <Card boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 4, md: 8 }} py={{ base: 4, md: 6 }}>
           <CardHeader pb={2}>
             <Flex justify="space-between" align="center">
               <Heading size="md" color="brand.600" letterSpacing="wide">
@@ -401,14 +401,14 @@ export default function TenantDashboard() {
         </Card>
 
         {/* Quick Actions */}
-        <Card mt={10} boxShadow="2xl" borderRadius="2xl" bg="white" px={[2, 8]} py={6}>
+        <Card mt={10} boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 4, md: 8 }} py={{ base: 4, md: 6 }}>
           <CardHeader pb={2}>
             <Heading size="md" color="brand.600" letterSpacing="wide">
               เมนูด่วน
             </Heading>
           </CardHeader>
           <CardBody>
-            <SimpleGrid columns={[1, 2, 4]} spacing={6}>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
               <Button
                 leftIcon={<FaFileInvoice size={22} />}
                 colorScheme="blue"
@@ -461,9 +461,10 @@ export default function TenantDashboard() {
         isOpen={isAlertOpen}
         leastDestructiveRef={cancelRef}
         onClose={onAlertClose}
+        isCentered
       >
         <AlertDialogOverlay>
-          <AlertDialogContent>
+          <AlertDialogContent m={{ base: 4, md: "auto" }}>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
               แจ้งเตือนค้างชำระ
             </AlertDialogHeader>

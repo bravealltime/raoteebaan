@@ -827,8 +827,14 @@ export default function Rooms() {
       photoURL: currentUser?.photoURL || undefined,
       roomNumber: currentUser?.roomNumber || undefined,
     }}>
-      <Box flex={1} p={[2, 4, 8]}>
-        <Flex align="center" mb={6} gap={3} flexWrap="wrap">
+      <Box flex={1} p={{ base: 4, md: 8, lg: 10 }}>
+        <Flex
+          direction={{ base: "column", md: "row" }}
+          align={{ base: "flex-start", md: "center" }}
+          mb={{ base: 4, md: 6 }}
+          gap={{ base: 4, md: 3 }}
+          flexWrap="wrap"
+        >
           <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4}>Rooms</Text>
           {(role === 'admin' || role === 'owner') && (
             <>
@@ -875,15 +881,15 @@ export default function Rooms() {
           )}
           <Input
             placeholder="Enter room NO."
-            maxW="220px"
+            maxW={{ base: "full", md: "220px" }}
             bg="white"
             borderRadius="xl"
-            mr={2}
+            mr={{ base: 0, md: 2 }}
             value={searchRoom}
             onChange={e => setSearchRoom(e.target.value)}
           />
           <Menu>
-            <MenuButton as={IconButton} aria-label="Filter" icon={<FaFilter />} variant="outline" borderRadius="xl" />
+            <MenuButton as={IconButton} aria-label="Filter" icon={<FaFilter />} variant="outline" borderRadius="xl" w={{ base: "full", md: "auto" }} />
             <MenuList>
               <MenuItem onClick={() => setFilterType('all')}>แสดงทั้งหมด</MenuItem>
               <MenuItem onClick={() => setFilterType('unpaid')}>ห้องที่ยังไม่จ่าย</MenuItem>
@@ -932,11 +938,13 @@ export default function Rooms() {
           onClose={() => setIsUploadSlipModalOpen(false)}
           onConfirm={handleConfirmUploadSlip}
           roomName={selectedRoomForSlip.id}
+          isCentered
+          size={{ base: "full", md: "xl" }}
         />
       )}
 
       {/* Slip View Modal */}
-      <Modal isOpen={isSlipViewModalOpen} onClose={() => setIsSlipViewModalOpen(false)} size="xl">
+      <Modal isOpen={isSlipViewModalOpen} onClose={() => setIsSlipViewModalOpen(false)} size={{ base: "full", md: "xl" }} isCentered>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Payment Slip</ModalHeader>
@@ -950,22 +958,25 @@ export default function Rooms() {
         </ModalContent>
       </Modal>
 
-      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} userRole={role} ownerId={userId || undefined} />
+      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} userRole={role} ownerId={userId || undefined} isCentered size={{ base: "full", md: "2xl" }} />
 
       <EditRoomModal
         isOpen={!!editRoom}
         initialRoom={editRoom}
         onClose={() => setEditRoom(null)}
         onSave={room => handleSaveEditRoom({ ...editRoom, ...room })}
+        isCentered
+        size={{ base: "full", md: "2xl" }}
       />
 
       <AlertDialog
         isOpen={isDialogOpen}
         leastDestructiveRef={cancelRef}
         onClose={() => setIsDialogOpen(false)}
+        isCentered
       >
         <AlertDialogOverlay />
-        <AlertDialogContent>
+        <AlertDialogContent m={{ base: 4, md: "auto" }}>
           <AlertDialogHeader fontSize="lg" fontWeight="bold">
             ยืนยันการลบห้อง
           </AlertDialogHeader>
@@ -989,9 +1000,11 @@ export default function Rooms() {
         onSave={handleSaveMeterReadings}
         rooms={filteredRooms}
         previousReadings={previousReadings}
+        isCentered
+        size={{ base: "full", md: "4xl" }}
       />
 
-      <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)} isCentered size="xl" scrollBehavior="inside">
+      <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)} isCentered size={{ base: "full", md: "xl" }} scrollBehavior="inside">
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>ใบประเมินอุปกรณ์</ModalHeader>
