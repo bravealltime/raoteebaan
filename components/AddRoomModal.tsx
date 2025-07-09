@@ -42,14 +42,15 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
       setElecPrev(lastElecMeter !== undefined ? lastElecMeter : 0);
       setRecordDate(new Date()); // Initialize with current date
       setDueDate(new Date());     // Initialize with current date
-    n    }
+    }
   }, [isOpen, lastWaterMeter, lastElecMeter]);
 
   const handleRoomIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setRoomId(value);
     // Firestore document IDs must not contain forward slashes or other reserved characters.
-    if (/[/\\.#$[]]/.test(value)) {
+    const invalidChars = ['/', '.', '#', '$', '[', ']'];
+    if (invalidChars.some(char => value.includes(char))) {
       setIsRoomIdInvalid(true);
     } else {
       setIsRoomIdInvalid(false);
@@ -280,4 +281,4 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
       </motion.div>
     </Modal>
   );
-} 
+}
