@@ -13,7 +13,8 @@ import {
   addDoc,
   deleteDoc,
   Timestamp,
-  onSnapshot
+  onSnapshot,
+  deleteField
 } from "firebase/firestore";
 import { 
   Box, 
@@ -386,6 +387,8 @@ export default function Parcel() {
       const updateData: any = { status: newStatus };
       if (newStatus === "delivered") {
         updateData.deliveredDate = Timestamp.now();
+      } else if (newStatus === "received") {
+        updateData.deliveredDate = deleteField();
       }
 
       await updateDoc(doc(db, "parcels", parcelId), updateData);
@@ -530,6 +533,25 @@ export default function Parcel() {
             <Icon as={FaBox} />
             จัดการพัสดุ
           </Heading>
+          {["admin", "owner"].includes(role) && (
+              <Button
+                leftIcon={<FaPlus />}
+                colorScheme="blue"
+                onClick={() => {
+                  setNewParcel({
+                    roomId: "",
+                    recipient: "",
+                    sender: "",
+                    description: "",
+                    trackingNumber: "",
+                    notes: ""
+                  });
+                  onAddOpen();
+                }}
+              >
+                เพิ่มพัสดุใหม่
+              </Button>
+            )}
         </Flex>
 
         {/* Stats Summary */}
@@ -711,6 +733,7 @@ export default function Parcel() {
                       <Th>รายละเอียด</Th>
                       <Th>วันที่รับ</Th>
                       <Th>สถานะ</Th>
+                      <Th>การกระทำ</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -754,6 +777,35 @@ export default function Parcel() {
                           <Badge colorScheme={getStatusColor(parcel.status)}>
                             {getStatusLabel(parcel.status)}
                           </Badge>
+                        </Td>
+                        <Td>
+                          <HStack spacing={2}>
+                            {parcel.status !== "delivered" && (
+                              <Button
+                                size="xs"
+                                colorScheme="green"
+                                onClick={() => handleUpdateParcelStatus(parcel.id, "delivered")}
+                              >
+                                ส่งมอบแล้ว
+                              </Button>
+                            )}
+                            {parcel.status === "delivered" && (
+                              <Button
+                                size="xs"
+                                colorScheme="orange"
+                                onClick={() => handleUpdateParcelStatus(parcel.id, "received")}
+                              >
+                                ย้อนกลับ
+                              </Button>
+                            )}
+                            <IconButton
+                              size="xs"
+                              colorScheme="red"
+                              aria-label="Delete parcel"
+                              icon={<FaTrash />}
+                              onClick={() => handleDeleteParcel(parcel.id)}
+                            />
+                          </HStack>
                         </Td>
                       </Tr>
                     ))}
