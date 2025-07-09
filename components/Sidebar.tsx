@@ -1,102 +1,117 @@
-import { Box, Button } from "@chakra-ui/react";
+import { Box, Button, Text, VStack } from "@chakra-ui/react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { FaHome, FaInbox, FaBox, FaUserFriends } from "react-icons/fa";
+import { FaHome, FaInbox, FaBox, FaUserFriends, FaTachometerAlt } from "react-icons/fa";
+import { motion } from "framer-motion";
 
 interface SidebarProps {
   role: string | null;
 }
 
-export default function Sidebar({ role }: SidebarProps) {
+const NavItem = ({ href, icon, children }) => {
   const router = useRouter();
+  const isActive = router.pathname === href;
+
   return (
-    <Box
-      w={["70px", "220px"]}
-      minH="calc(100vh - 64px)"
-      bg="white"
-      borderRight="1.5px solid brand.50"
-      boxShadow="0 2px 16px 0 rgba(33,150,243,0.06)"
-      px={[1, 4]}
-      py={6}
-      display="flex"
-      flexDirection="column"
-      gap={4}
-      zIndex={2}
-    >
-      {/* admin เห็นทุกปุ่ม */}
-      {role === "admin" && <>
-        <Link href="/dashboard" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/dashboard" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
-            Dashboard
-          </Button>
-        </Link>
-        <Link href="/" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
-            Rooms
-          </Button>
-        </Link>
-        <Link href="/inbox" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaInbox />} colorScheme="gray" variant={router.pathname === "/inbox" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
-            Inbox
-          </Button>
-        </Link>
-        <Link href="/parcel" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaBox />} colorScheme="gray" variant={router.pathname === "/parcel" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
-            Parcel
-          </Button>
-        </Link>
-        <Link href="/employee" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaUserFriends />} colorScheme="gray" variant={router.pathname === "/employee" ? "solid" : "ghost"} borderRadius="xl" mb={8} w="full" justifyContent="flex-start">
-            Employee
-          </Button>
-        </Link>
-      </>}
-      {/* owner เห็นเฉพาะ 3 ปุ่ม */}
-      {role === "owner" && <>
-        <Link href="/owner-dashboard" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/owner-dashboard" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
-            Owner Dashboard
-          </Button>
-        </Link>
-        <Link href="/" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
-            Rooms
-          </Button>
-        </Link>
-        <Link href="/inbox" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaInbox />} colorScheme="gray" variant={router.pathname === "/inbox" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
-            Inbox
-          </Button>
-        </Link>
-        <Link href="/parcel" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaBox />} colorScheme="gray" variant={router.pathname === "/parcel" ? "solid" : "ghost"} borderRadius="xl" mb={8} w="full" justifyContent="flex-start">
-            Parcel
-          </Button>
-        </Link>
-      </>}
-      {/* user (tenant) sees Rooms, Inbox, and Parcel */}
-      {role === "user" && <>
-        <Link href="/" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaHome />} colorScheme="blue" variant={router.pathname === "/" ? "solid" : "ghost"} borderRadius="xl" fontWeight="bold" mb={2} w="full" justifyContent="flex-start">
-            My Room
-          </Button>
-        </Link>
-        <Link href="/tenant-dashboard" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaUserFriends/>} colorScheme="gray" variant={router.pathname === "/tenant-dashboard" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
-            Tenant Dashboard
-          </Button>
-        </Link>
-        <Link href="/inbox" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaInbox />} colorScheme="gray" variant={router.pathname === "/inbox" ? "solid" : "ghost"} borderRadius="xl" mb={2} w="full" justifyContent="flex-start">
-            Inbox
-          </Button>
-        </Link>
-        <Link href="/parcel" passHref legacyBehavior>
-          <Button as="a" leftIcon={<FaBox />} colorScheme="gray" variant={router.pathname === "/parcel" ? "solid" : "ghost"} borderRadius="xl" mb={8} w="full" justifyContent="flex-start">
-            Parcel
-          </Button>
-        </Link>
-      </>}
-    </Box>
+    <Link href={href} passHref legacyBehavior>
+      <motion.a
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        style={{ textDecoration: "none", width: "100%" }}
+      >
+        <Button
+          as="div"
+          leftIcon={icon}
+          colorScheme={isActive ? "blue" : "gray"}
+          variant={isActive ? "solid" : "ghost"}
+          borderRadius="lg"
+          fontWeight="bold"
+          w="full"
+          justifyContent="flex-start"
+          px={4}
+          py={6}
+          bg={isActive ? "blue.500" : "transparent"}
+          color={isActive ? "white" : "gray.600"}
+          _hover={{
+            bg: isActive ? "blue.600" : "blue.50",
+          }}
+        >
+          <Text display={["none", "block"]} ml={2}>{children}</Text>
+        </Button>
+      </motion.a>
+    </Link>
   );
-} 
+};
+
+const sidebarVariants = {
+  hidden: { x: -220 },
+  visible: {
+    x: 0,
+    transition: {
+      duration: 0.5,
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { x: -20, opacity: 0 },
+  visible: { x: 0, opacity: 1 },
+};
+
+export default function Sidebar({ role }: SidebarProps) {
+  const adminNavItems = [
+    { href: "/dashboard", icon: <FaTachometerAlt />, label: "Dashboard" },
+    { href: "/", icon: <FaHome />, label: "Rooms" },
+    { href: "/inbox", icon: <FaInbox />, label: "Inbox" },
+    { href: "/parcel", icon: <FaBox />, label: "Parcel" },
+    { href: "/admin-users", icon: <FaUserFriends />, label: "Users" },
+  ];
+
+  const ownerNavItems = [
+    { href: "/owner-dashboard", icon: <FaTachometerAlt />, label: "Dashboard" },
+    { href: "/", icon: <FaHome />, label: "Rooms" },
+    { href: "/inbox", icon: <FaInbox />, label: "Inbox" },
+    { href: "/parcel", icon: <FaBox />, label: "Parcel" },
+  ];
+
+  const userNavItems = [
+    { href: "/tenant-dashboard", icon: <FaTachometerAlt />, label: "Dashboard" },
+    { href: "/", icon: <FaHome />, label: "My Room" },
+    { href: "/inbox", icon: <FaInbox />, label: "Inbox" },
+    { href: "/parcel", icon: <FaBox />, label: "Parcel" },
+  ];
+
+  let navItems = [];
+  if (role === "admin") {
+    navItems = adminNavItems;
+  } else if (role === "owner") {
+    navItems = ownerNavItems;
+  } else if (role === "user") {
+    navItems = userNavItems;
+  }
+
+  return (
+    <motion.div variants={sidebarVariants} initial="hidden" animate="visible">
+      <Box
+        w={["80px", "240px"]}
+        minH="calc(100vh - 64px)"
+        bg="white"
+        borderRight="1px solid #E2E8F0"
+        px={[2, 4]}
+        py={6}
+        as={VStack}
+        spacing={3}
+        align="stretch"
+      >
+        {navItems.map((item) => (
+          <motion.div key={item.href} variants={itemVariants}>
+            <NavItem href={item.href} icon={item.icon}>
+              {item.label}
+            </NavItem>
+          </motion.div>
+        ))}
+      </Box>
+    </motion.div>
+  );
+}

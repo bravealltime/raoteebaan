@@ -1,4 +1,4 @@
-import { Flex, Box, Modal, ModalOverlay, ModalContent, ModalCloseButton, ModalBody, Image } from "@chakra-ui/react";
+import { Flex, Box, Modal, ModalOverlay, ModalContent, ModalCloseButton, ModalBody, Image, Text } from "@chakra-ui/react";
 import AppHeader from "./AppHeader";
 import Sidebar from "./Sidebar";
 import { AnimatePresence, motion } from "framer-motion";
@@ -17,6 +17,31 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, role, currentUser, showSidebar = true, isProofModalOpen, onProofModalClose, proofImageUrl }: MainLayoutProps) {
   const router = useRouter();
+
+  const SimpleHeader = () => (
+    <Flex
+      as="header"
+      w="full"
+      px={[2, 4, 8]}
+      py={[2, 3]}
+      align="center"
+      bg="whiteAlpha.800"
+      borderRadius="2xl"
+      boxShadow="0 4px 24px 0 rgba(33, 150, 243, 0.10)"
+      mt={[2, 4]}
+      mb={[4, 8]}
+      maxW="100vw"
+      minH="64px"
+      position="relative"
+      zIndex={10}
+      style={{ backdropFilter: "blur(12px)" }}
+      border="1.5px solid brand.50"
+    >
+      <Text fontWeight="extrabold" fontSize={["lg", "2xl"]} color="blue.500" mr={6} letterSpacing={1}>
+        TeeRao
+      </Text>
+    </Flex>
+  );
 
   useEffect(() => {
     const tenantAllowedPaths = [
@@ -59,7 +84,11 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
   return (
 
     <Box minH="100vh">
-      <AppHeader currentUser={currentUser} />
+      {currentUser && currentUser.name ? (
+        <AppHeader currentUser={currentUser} />
+      ) : (
+        <SimpleHeader />
+      )}
       <Flex minH="100vh" p={{ base: 4, md: 8 }}>
         {showSidebar && <Sidebar role={role} />}
         <AnimatePresence mode="wait">

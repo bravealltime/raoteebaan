@@ -138,7 +138,8 @@ export default function Parcel() {
       setCurrentUser({
         uid: u.uid,
         ...userData,
-        role: userRole
+        role: userRole,
+        photoURL: userData?.avatar || u.photoURL || undefined,
       });
       setRole(userRole);
       
@@ -552,7 +553,7 @@ export default function Parcel() {
   const filteredRooms = getFilteredRooms();
 
   return (
-    <MainLayout role={role}>
+    <MainLayout role={role} currentUser={currentUser}>
       <Box p={{ base: 4, md: 6 }} maxW="1400px" mx="auto">
         {/* Header */}
         <Flex justify="space-between" align="center" mb={6}>

@@ -110,7 +110,7 @@ export default function AdminUsers() {
       const snap = await getDoc(doc(db, "users", u.uid));
       const userRole = snap.exists() ? snap.data().role : "user";
       setRole(userRole);
-      setCurrentUser({ uid: u.uid, ...snap.data() });
+      setCurrentUser({ uid: u.uid, ...snap.data(), photoURL: snap.data()?.avatar || u.photoURL || undefined });
       if (userRole !== "admin") {
         if (userRole === "owner") {
           router.replace("/");

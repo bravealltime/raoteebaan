@@ -6,6 +6,7 @@ import RoomCard from "../components/RoomCard";
 import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
 import AppHeader from "../components/AppHeader";
+import { motion } from "framer-motion";
 import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaTrash, FaSearch } from "react-icons/fa";
 import { saveAs } from "file-saver";
 import Papa from "papaparse";
@@ -816,6 +817,21 @@ export default function Rooms() {
     return matchSearch && matchFilter;
   });
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 },
+  };
+
   if (loading) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
 
   return (
@@ -919,39 +935,47 @@ export default function Rooms() {
             </Menu>
           </HStack>
         </Flex>
-        <SimpleGrid minChildWidth="280px" spacing={6} mt={8}>
-          {filteredRooms.map(room => {
-            const electricity = roomBills[room.id]?.electricityTotal || room.electricity || 0;
-            const water = roomBills[room.id]?.waterTotal || room.water || 0;
-            const rent = room.rent || 0;
-            const baseService = room.service || 0;
-            const extraServicesTotal = Array.isArray(room.extraServices)
-              ? room.extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0)
-              : 0;
-            const service = baseService + extraServicesTotal;
-            const latestTotal = electricity + water + rent + service;
-            return (
-              <RoomCard
-                key={room.id}
-                {...room}
-                role={role}
-                latestTotal={latestTotal}
-                electricity={electricity}
-                water={water}
-                rent={rent}
-                service={service}
-                onDelete={() => handleDelete(room.id)}
-                onViewBill={() => handleViewBill(room.id)}
-                onAddData={() => handleAddData(room.id)}
-                onSettings={() => handleSettings(room.id)}
-                onUploadProof={() => handleOpenUploadSlipModal(room)}
-                onViewProof={() => handleViewProof(room)}
-                onMarkAsPaid={() => handleMarkAsPaid(room.id)}
-                onDeleteProof={() => handleDeleteProof(room.id)}
-              />
-            );
-          })}
-        </SimpleGrid>
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          <SimpleGrid minChildWidth="280px" spacing={6} mt={8}>
+            {filteredRooms.map(room => {
+              const electricity = roomBills[room.id]?.electricityTotal || room.electricity || 0;
+              const water = roomBills[room.id]?.waterTotal || room.water || 0;
+              const rent = room.rent || 0;
+              const baseService = room.service || 0;
+              const extraServicesTotal = Array.isArray(room.extraServices)
+                ? room.extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0)
+                : 0;
+              const service = baseService + extraServicesTotal;
+              const latestTotal = electricity + water + rent + service;
+              return (
+                <motion.div variants={itemVariants}>
+                  <RoomCard
+                    key={room.id}
+                    {...room}
+                    role={role}
+                    latestTotal={latestTotal}
+                    electricity={electricity}
+                    water={water}
+                    rent={rent}
+                    service={service}
+                    onDelete={() => handleDelete(room.id)}
+                    onViewBill={() => handleViewBill(room.id)}
+                    onAddData={() => handleAddData(room.id)}
+                    onSettings={() => handleSettings(room.id)}
+                    onUploadProof={() => handleOpenUploadSlipModal(room)}
+                    onViewProof={() => handleViewProof(room)}
+                    onMarkAsPaid={() => handleMarkAsPaid(room.id)}
+                    onDeleteProof={() => handleDeleteProof(room.id)}
+                  />
+                </motion.div>
+              );
+            })}
+          </SimpleGrid>
+        </motion.div>
       </Box>
 
       {selectedRoomForSlip && (
