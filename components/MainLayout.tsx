@@ -1,9 +1,12 @@
-import { Flex, Box, Modal, ModalOverlay, ModalContent, ModalCloseButton, ModalBody, Image, Text } from "@chakra-ui/react";
+import { Flex, Box, Modal, ModalOverlay, ModalContent, ModalCloseButton, ModalBody, Image, Text, useToast } from "@chakra-ui/react";
 import AppHeader from "./AppHeader";
 import Sidebar from "./Sidebar";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { Conversation } from "../types/chat";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -17,6 +20,62 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, role, currentUser, showSidebar = true, isProofModalOpen, onProofModalClose, proofImageUrl }: MainLayoutProps) {
   const router = useRouter();
+  const toast = useToast();
+  const notificationSoundRef = useRef<HTMLAudioElement>(null);
+  const prevConversationsRef = useRef<Conversation[]>([]);
+  const isInitialLoad = useRef(true);
+
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const q = query(
+      collection(db, "conversations"),
+      where("participants", "array-contains", currentUser.uid),
+      orderBy("updatedAt", "desc")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const convos: Conversation[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Conversation));
+
+      if (isInitialLoad.current) {
+        prevConversationsRef.current = convos;
+        isInitialLoad.current = false;
+        return;
+      }
+
+      const selectedConversationId = router.query.conversationId;
+
+      convos.forEach(newConvo => {
+        const oldConvo = prevConversationsRef.current.find(c => c.id === newConvo.id);
+        if (newConvo.lastMessage && newConvo.lastMessage.text &&
+            (!oldConvo || JSON.stringify(newConvo.lastMessage) !== JSON.stringify(oldConvo.lastMessage)) &&
+            newConvo.lastMessage.senderId !== currentUser?.uid &&
+            newConvo.id !== selectedConversationId) {
+          
+          const playPromise = notificationSoundRef.current?.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(error => {
+              console.error("Audio play failed:", error);
+              toast({
+                title: "ไม่สามารถเล่นเสียงแจ้งเตือน",
+                description: "เบราว์เซอร์อาจบล็อกเสียงอัตโนมัติ คลิกบนหน้าจอเพื่อเปิดใช้งาน",
+                status: "info",
+                duration: 5000,
+                isClosable: true,
+              });
+            });
+          }
+        }
+      });
+
+      prevConversationsRef.current = convos;
+    });
+
+    return () => {
+      unsubscribe();
+      isInitialLoad.current = true;
+    }
+  }, [currentUser, router.query.conversationId, toast]);
 
   const SimpleHeader = () => (
     <Flex
@@ -52,7 +111,6 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
       '/history/[roomId]', // Dynamic route
     ];
 
-    // Check if the current path matches any of the dynamic routes
     const isDynamicTenantPath = (path: string) => {
       return tenantAllowedPaths.some(allowedPath => {
         if (allowedPath.includes('[') && allowedPath.includes(']')) {
@@ -64,25 +122,20 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
     };
 
     if (role === 'user') {
-      // If user is a tenant, check if they are on an allowed path
       if (!tenantAllowedPaths.includes(router.pathname) && !isDynamicTenantPath(router.pathname)) {
         router.replace('/tenant-dashboard');
       }
     } else if (router.pathname === '/tenant-dashboard' && role !== null) {
-      // If a non-tenant user tries to access tenant-dashboard, redirect them
-      // Assuming 'admin' or 'owner' would go to '/dashboard'
-      // If no specific dashboard, redirect to login or a generic home
       if (role === 'admin' || role === 'owner') {
         router.replace('/dashboard');
       } else {
-        router.replace('/login'); // Or a more appropriate default page
+        router.replace('/login');
       }
     }
   }, [role, router.pathname, router]);
 
   
   return (
-
     <Box minH="100vh">
       {currentUser && currentUser.name ? (
         <AppHeader currentUser={currentUser} />
@@ -105,7 +158,6 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
         </AnimatePresence>
       </Flex>
 
-      {/* Proof Image Modal */}
       <Modal isOpen={isProofModalOpen || false} onClose={onProofModalClose || (() => {})} isCentered size="xl">
         <ModalOverlay />
         <ModalContent>
@@ -117,6 +169,7 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
           </ModalBody>
         </ModalContent>
       </Modal>
+      <audio ref={notificationSoundRef} src="/sounds/notification.mp3" preload="auto" />
     </Box>
   );
-} 
+}

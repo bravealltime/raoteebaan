@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   Circle,
-  Divider,
   Flex,
   HStack,
   Input,
@@ -33,19 +32,6 @@ import {
   ModalBody,
 } from "@chakra-ui/react";
 import { onAuthStateChanged } from "firebase/auth";
-
-// Utility function to escape HTML characters
-function escapeHtml(text: string): string {
-  const map: { [key: string]: string } = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;',
-  };
-  return text.replace(/[&<>'"]/g, function(m) { return map[m]; });
-}
-
 import {
   addDoc,
   collection,
@@ -58,8 +44,8 @@ import {
   where,
   getDocs,
   setDoc,
-  deleteDoc,
   writeBatch,
+  Timestamp,
 } from "firebase/firestore";
 import {
   ref as dbRef,
@@ -75,31 +61,18 @@ import MainLayout from "../components/MainLayout";
 import { FaPaperPlane, FaPlus, FaTrash, FaImage, FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import NewConversationModal from "../components/NewConversationModal";
+import { User, Conversation, Message } from "../types/chat";
 
-interface User {
-  uid: string;
-  name: string;
-  email: string;
-  role: string;
-  photoURL?: string;
-  roomNumber?: string;
-}
-
-interface Conversation {
-  id: string;
-  participants?: User[]; // Make participants optional
-  lastMessage?: { text: string; senderId: string; isRead?: boolean; receiverId?: string; };
-  updatedAt: any;
-}
-
-interface Message {
-  id: string;
-  senderId: string;
-  text?: string;
-  imageUrl?: string;
-  timestamp: any;
-  isRead?: boolean; // Added to track read status
-  receiverId?: string; // Added to track receiver
+// Utility function to escape HTML characters
+function escapeHtml(text: string): string {
+  const map: { [key: string]: string } = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  };
+  return text.replace(/[&<>'"]/g, function(m) { return map[m]; });
 }
 
 const Inbox = () => {
@@ -107,7 +80,6 @@ const Inbox = () => {
   const toast = useToast();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const prevConversationsRef = useRef<Conversation[]>([]);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const selectedConversation = useMemo(() => {
     return conversations.find(convo => convo.id === selectedConversationId);
@@ -121,11 +93,10 @@ const Inbox = () => {
   const [otherUserTyping, setOtherUserTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const notificationSoundRef = useRef<HTMLAudioElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true); // New state for sidebar expansion
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
   const { isOpen: isAlertDialogOpen, onOpen: onAlertDialogOpen, onClose: onAlertDialogClose } = useDisclosure();
   const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
@@ -142,7 +113,7 @@ const Inbox = () => {
             name: firestoreData.name || user.displayName || '',
             email: firestoreData.email || user.email || '',
             role: firestoreData.role || '',
-            photoURL: firestoreData.avatar || user.photoURL || undefined, // Ensure photoURL is taken from Firestore first, then Auth
+            photoURL: firestoreData.avatar || user.photoURL || undefined,
             roomNumber: firestoreData.roomNumber || undefined,
           } as User);
         } else {
@@ -224,31 +195,6 @@ const Inbox = () => {
         })
       );
 
-      // Notification sound logic
-      convos.forEach(newConvo => {
-        const oldConvo = prevConversationsRef.current.find(c => c.id === newConvo.id);
-
-        if (newConvo.lastMessage && newConvo.lastMessage.text &&
-            (!oldConvo || !oldConvo.lastMessage || newConvo.lastMessage.text !== oldConvo.lastMessage.text || newConvo.lastMessage.senderId !== oldConvo.lastMessage.senderId) &&
-            newConvo.lastMessage.senderId !== currentUser?.uid &&
-            newConvo.id !== selectedConversationId) {
-          const playPromise = notificationSoundRef.current?.play();
-          if (playPromise !== undefined) {
-            playPromise.catch(error => {
-              console.error("Audio play failed:", error);
-              toast({
-                title: "ไม่สามารถเล่นเสียงแจ้งเตือน",
-                description: "เบราว์เซอร์อาจบล็อกเสียงอัตโนมัติ คลิกบนหน้าจอเพื่อเปิดใช้งาน",
-                status: "info",
-                duration: 5000,
-                isClosable: true,
-              });
-            });
-          }
-        }
-      });
-
-      prevConversationsRef.current = convos; // Update ref for next comparison
       setConversations(convos);
 
       // Calculate unread message count
@@ -260,7 +206,6 @@ const Inbox = () => {
       }
       setUnreadMessageCount(unreadCount);
 
-      
       setLoading(false);
     });
 
@@ -290,7 +235,6 @@ const Inbox = () => {
 
       setMessages(msgs);
       
-
       // Mark messages as read
       const batch = writeBatch(db);
       let messagesToMarkAsRead = 0;
@@ -303,12 +247,11 @@ const Inbox = () => {
       });
       if (messagesToMarkAsRead > 0) {
         await batch.commit();
-        
       }
     });
 
     return () => unsubscribe();
-  }, [selectedConversationId]);
+  }, [selectedConversationId, currentUser?.uid]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -324,11 +267,10 @@ const Inbox = () => {
     if (!currentUser || !selectedConversationId) return;
     const typingRef = dbRef(rtdb, `typingStatus/${selectedConversationId}/${currentUser.uid}`);
     set(typingRef, typing);
-    
   }, [currentUser, selectedConversationId, rtdb]);
 
   useEffect(() => {
-    if (!currentUser || !selectedConversationId || !selectedConversation) return; // Add check for selectedConversation
+    if (!currentUser || !selectedConversationId || !selectedConversation) return;
 
     const otherParticipant = getOtherParticipant(selectedConversation);
     if (!otherParticipant) return;
@@ -337,12 +279,11 @@ const Inbox = () => {
 
     const unsubscribeTyping = onValue(otherUserTypingRef, (snapshot) => {
       setOtherUserTyping(snapshot.val() || false);
-      
     });
 
     return () => {
       unsubscribeTyping();
-      setMyTypingStatus(false); // Clear my typing status when conversation changes or unmounts
+      setMyTypingStatus(false);
     };
   }, [currentUser, selectedConversationId, rtdb, setMyTypingStatus, selectedConversation]);
 
@@ -358,11 +299,11 @@ const Inbox = () => {
     if ((newMessage.trim() === "" && !imageUrl) || !selectedConversation || !currentUser)
       return;
 
-    setMyTypingStatus(false); // Clear typing status on message send
+    setMyTypingStatus(false);
 
     const messageData: Partial<Message> = {
       senderId: currentUser.uid,
-      timestamp: serverTimestamp(),
+      timestamp: serverTimestamp() as Timestamp,
     };
 
     if (newMessage.trim() !== "") {
@@ -409,9 +350,7 @@ const Inbox = () => {
       return;
     }
 
-    
-
-    setIsImageUploading(true); // Indicate loading for image upload
+    setIsImageUploading(true);
     try {
       const storage = getStorage();
       const imageRef = storageRef(storage, `chat_images/${selectedConversation.id}/${currentUser.uid}/${file.name}_${Date.now()}`);
@@ -419,7 +358,7 @@ const Inbox = () => {
       const imageUrl = await getDownloadURL(snapshot.ref);
 
       await handleSendMessage(imageUrl);
-      e.target.value = ""; // Clear the file input
+      e.target.value = "";
     } catch (error) {
       console.error("Error uploading image:", error);
       toast({
@@ -437,26 +376,24 @@ const Inbox = () => {
   const onConfirmDelete = async () => {
     if (!selectedConversation) return;
 
-    onAlertDialogClose(); // Close the alert dialog
+    onAlertDialogClose();
 
     try {
       const batch = writeBatch(db);
 
-      // Delete all messages in the subcollection
       const messagesRef = collection(db, "conversations", selectedConversation.id, "messages");
       const messageSnapshots = await getDocs(messagesRef);
       messageSnapshots.forEach((msgDoc) => {
         batch.delete(msgDoc.ref);
       });
 
-      // Delete the conversation document
       const conversationRef = doc(db, "conversations", selectedConversation.id);
       batch.delete(conversationRef);
 
       await batch.commit();
 
-      setSelectedConversationId(null); // Deselect the conversation
-      setConversations(prev => prev.filter(convo => convo.id !== selectedConversation.id)); // Remove from local state
+      setSelectedConversationId(null);
+      setConversations(prev => prev.filter(convo => convo.id !== selectedConversation.id));
 
       toast({
         title: "Conversation Deleted",
@@ -494,28 +431,25 @@ const Inbox = () => {
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
       setMyTypingStatus(false);
-    }, 1500); // 1.5 seconds debounce
+    }, 1500);
   }, [isTyping, setMyTypingStatus]);
 
   const handleSelectUser = async (user: User) => {
     if (!currentUser) return;
 
-    // Check if a conversation with this user already exists
     const existingConversation = conversations.find((convo) =>
       convo.participants.some((p) => p.uid === user.uid)
     );
 
     if (existingConversation) {
       setSelectedConversationId(existingConversation.id);
-      onClose(); // Close the modal
+      onClose();
       return;
     }
 
-    // Create a new conversation
     try {
       const newConversationRef = doc(collection(db, "conversations"));
       
-      // Store participant UIDs in Firestore, not the whole objects
       const newConversationData = {
         participants: [currentUser.uid, user.uid],
         lastMessage: "",
@@ -524,8 +458,6 @@ const Inbox = () => {
 
       await setDoc(newConversationRef, newConversationData);
 
-      // The real-time listener will automatically add the new conversation to the list.
-      // We just need to close the modal.
       onClose();
 
     } catch (error) {
@@ -545,7 +477,6 @@ const Inbox = () => {
       return undefined;
     }
 
-    // Ensure participants is always an array. If conversation.participants is undefined or null, it will default to an empty array.
     const participants: User[] = conversation.participants || [];
 
     return participants.find((p) => p.uid !== currentUser.uid);
@@ -634,7 +565,7 @@ const Inbox = () => {
           <VStack as="nav" spacing={1} align="stretch" overflowY="auto">
             {conversations.length > 0 ? (
               conversations.map((convo) => {
-                if (!convo) return null; // Add this check
+                if (!convo) return null;
                 const otherUser = getOtherParticipant(convo);
                 const isOnline = otherUser
                   ? onlineStatus[otherUser.uid]?.state === "online"
@@ -715,7 +646,6 @@ const Inbox = () => {
               >
                 {selectedConversation ? (
                   <>
-                    {/* Calculate otherParticipant once for the header */}
                     {(() => {
                       const otherParticipantInHeader = getOtherParticipant(selectedConversation);
                       return (
@@ -906,7 +836,6 @@ const Inbox = () => {
         currentUser={currentUser}
         onSelectUser={handleSelectUser}
       />
-      <audio ref={notificationSoundRef} src="/sounds/notification.mp3" preload="auto" />
 
       <AlertDialog
         isOpen={isAlertDialogOpen}
