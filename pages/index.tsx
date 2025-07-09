@@ -65,6 +65,7 @@ export default function Rooms() {
   const [lastElecMeter, setLastElecMeter] = useState<number | undefined>(undefined);
   const [roomBills, setRoomBills] = useState<Record<string, any>>({});
   const [previousReadings, setPreviousReadings] = useState<Record<string, { electricity: number; water: number }>>({});
+  const [usersMap, setUsersMap] = useState<Record<string, any>>({});
   
   const [searchRoom, setSearchRoom] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
@@ -162,6 +163,13 @@ export default function Rooms() {
       });
 
       setRooms(roomsData);
+
+      const usersSnapshot = await getDocs(collection(db, "users"));
+      const usersDataMap: Record<string, any> = {};
+      usersSnapshot.forEach((doc) => {
+        usersDataMap[doc.id] = doc.data();
+      });
+      setUsersMap(usersDataMap);
 
       const billPromises = roomsData.map(async (room) => {
         const q = query(
@@ -304,12 +312,25 @@ export default function Rooms() {
     const room = rooms.find(r => r.id === id);
     if (room) setEditRoom(room);
   };
-  const handleSaveEditRoom = async (editedRoom: Partial<Room>) => {
+  const handleSaveEditRoom = async (editedRoom: Partial<Room> & { createNewTenant?: boolean }) => {
     try {
       const originalRoom = rooms.find(r => r.id === editedRoom.id);
+      if (!originalRoom) {
+        throw new Error("Room not found!");
+      }
 
-      // If email is being added or changed
-      if (editedRoom.tenantEmail && editedRoom.tenantEmail !== originalRoom?.tenantEmail) {
+      let finalTenantId = editedRoom.tenantId;
+      let finalTenantName = editedRoom.tenantName;
+      let finalTenantEmail = editedRoom.tenantEmail;
+      let finalStatus = editedRoom.status;
+      let finalBillStatus = editedRoom.billStatus;
+
+      // --- Handle New Tenant Creation --- //
+      if (editedRoom.createNewTenant) {
+        if (!editedRoom.tenantName || !editedRoom.tenantEmail) {
+          throw new Error("กรุณากรอกชื่อและอีเมลสำหรับผู้เช่าใหม่");
+        }
+
         const idToken = await auth.currentUser?.getIdToken();
         if (!idToken) {
           throw new Error("Authentication token not found. Please log in again.");
@@ -331,20 +352,41 @@ export default function Rooms() {
         const data = await res.json();
 
         if (!res.ok || !data.success) {
-          throw new Error(data.error || 'Failed to create or link user');
+          if (res.status === 400 && data.error.includes('อีเมลนี้มีผู้ใช้งานแล้ว')) {
+            // If email already exists, link the existing user
+            finalTenantId = data.user?.uid; // Assuming data.user.uid is returned even on email exists error
+            toast({ title: "ผู้เช่ามีบัญชีอยู่แล้ว", description: "กำลังเชื่อมโยงบัญชี...", status: "info" });
+          } else {
+            throw new Error(data.error || 'Failed to create or link user');
+          }
+        } else {
+          finalTenantId = data.user.uid;
+          toast({ title: "สร้างบัญชีผู้เช่าสำเร็จ", description: `รหัสผ่านถูกส่งไปที่ ${editedRoom.tenantEmail}`, status: "success" });
         }
+        // For a newly created/linked tenant, set status to occupied and bill status to unpaid
+        finalStatus = "occupied";
+        finalBillStatus = "unpaid";
+      }
 
-        const newTenantId = data.user.uid;
-        editedRoom.tenantId = newTenantId;
+      // --- Prepare Batch Write --- //
+      const batch = writeBatch(db);
 
-        const batch = writeBatch(db);
+      // 1. Handle previous tenant (if any) - clear their room link
+      if (originalRoom.tenantId && originalRoom.tenantId !== finalTenantId) {
+        const oldTenantUserRef = doc(db, "users", originalRoom.tenantId);
+        batch.update(oldTenantUserRef, { 
+          roomId: null,
+          roomNumber: null 
+        });
+      }
 
-        // Find and clear the tenant from their old room, if any
-        const oldRoomQuery = query(collection(db, "rooms"), where("tenantId", "==", newTenantId));
+      // 2. Handle new tenant assignment - clear their old room link and update their user document
+      if (finalTenantId && finalTenantId !== originalRoom.tenantId) {
+        // Clear the new tenant from their old room (if any)
+        const oldRoomQuery = query(collection(db, "rooms"), where("tenantId", "==", finalTenantId));
         const oldRoomSnap = await getDocs(oldRoomQuery);
-
         oldRoomSnap.forEach(doc => {
-          if (doc.id !== editedRoom.id) { // Ensure we don't clear the room we are assigning the tenant to
+          if (doc.id !== editedRoom.id) { // Don't clear the room we are assigning to
             batch.update(doc.ref, {
               status: "vacant",
               tenantId: null,
@@ -355,30 +397,30 @@ export default function Rooms() {
           }
         });
 
-        // Update the new room with the tenant
-        batch.set(doc(db, "rooms", editedRoom.id!), { 
-          ...editedRoom,
-          status: 'occupied' // Ensure status is set to occupied
-        }, { merge: true });
-
-        // Update the user document with the new room ID
-        const userRef = doc(db, "users", newTenantId);
+        // Update the new tenant's user document with the new room ID
+        const userRef = doc(db, "users", finalTenantId);
         batch.update(userRef, { 
           roomId: editedRoom.id,
           roomNumber: editedRoom.id 
         });
-
-        await batch.commit();
-
-        toast({ title: "บันทึกข้อมูลและย้ายผู้เช่าสำเร็จ", status: "success" });
-
-      } else {
-        // If email is not changed, just save the other data without batch operations
-        await setDoc(doc(db, "rooms", editedRoom.id!), { ...editedRoom }, { merge: true });
-        toast({ title: "บันทึกข้อมูลห้องสำเร็จ", status: "success" });
       }
 
-      await fetchData();
+      // 3. Update the current room with all final changes
+      const roomRef = doc(db, "rooms", editedRoom.id!)
+      batch.set(roomRef, {
+        ...editedRoom,
+        tenantId: finalTenantId,
+        tenantName: finalTenantName,
+        tenantEmail: finalTenantEmail,
+        status: finalStatus,
+        billStatus: finalBillStatus,
+        createNewTenant: false, // Ensure this flag is not saved to Firestore
+      }, { merge: true });
+
+      await batch.commit();
+      toast({ title: "บันทึกข้อมูลห้องสำเร็จ", status: "success" });
+
+      await fetchData(); // Refresh data to show changes
 
     } catch (e: any) {
       toast({ title: "บันทึกข้อมูลห้องไม่สำเร็จ", description: e.message, status: "error" });
@@ -1240,11 +1282,13 @@ export default function Rooms() {
                 : 0;
               const service = baseService + extraServicesTotal;
               const latestTotal = electricity + water + rent + service;
+
               return (
                 <motion.div variants={itemVariants}>
                   <RoomCard
                     key={room.id}
                     {...room}
+                    tenantName={room.tenantName}
                     role={role}
                     latestTotal={latestTotal}
                     electricity={electricity}
@@ -1300,6 +1344,7 @@ export default function Rooms() {
         initialRoom={editRoom}
         onClose={() => setEditRoom(null)}
         onSave={room => handleSaveEditRoom({ ...editRoom, ...room })}
+        users={Object.values(usersMap).filter(user => user.role === 'user' || user.role === 'tenant')}
         isCentered
         size={{ base: "full", md: "2xl" }}
       />

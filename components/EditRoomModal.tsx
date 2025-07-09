@@ -21,12 +21,19 @@ import {
   Flex,
   Select,
   Text,
-  useToast, // Import useToast
+  useToast,
+  Box,
 } from "@chakra-ui/react";
-import { FaCog, FaPaperPlane } from "react-icons/fa";
+import { FaCog, FaPaperPlane, FaUserPlus } from "react-icons/fa";
 import { motion } from "framer-motion";
 
-// Replicating the Room interface from pages/rooms.tsx to ensure all fields are handled.
+interface User {
+  uid: string;
+  name: string;
+  email: string;
+  role: string;
+}
+
 interface RoomData {
   id: string;
   status: "occupied" | "vacant";
@@ -42,7 +49,8 @@ interface RoomData {
   billStatus: string;
   tenantId?: string | null;
   tenantEmail?: string | null;
-  ownerId?: string; // Add ownerId
+  ownerId?: string;
+  createNewTenant?: boolean; // Flag to indicate new tenant creation
 }
 
 interface EditRoomModalProps {
@@ -50,25 +58,52 @@ interface EditRoomModalProps {
   onClose: () => void;
   onSave: (room: Partial<RoomData>) => void;
   initialRoom: RoomData;
+  users: User[];
   isCentered?: boolean;
   size?: string | object;
 }
 
-export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, isCentered, size }: EditRoomModalProps) {
+export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, users, isCentered, size }: EditRoomModalProps) {
   if (!initialRoom) return null;
 
   const [room, setRoom] = useState<RoomData>(initialRoom);
-  const toast = useToast(); // Initialize toast
+  const [createNewTenant, setCreateNewTenant] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
-    // Deep copy to avoid modifying the original object directly
+    // When modal opens or initialRoom changes, reset state
     setRoom(JSON.parse(JSON.stringify(initialRoom)));
+    setCreateNewTenant(false); // Default to selecting existing tenant
   }, [initialRoom, isOpen]);
 
-  const handleChange = (field: keyof RoomData, value: any) => {
+  const handleTenantChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const selectedTenantId = e.target.value;
+    if (selectedTenantId) {
+      const selectedTenant = users.find(user => user.uid === selectedTenantId);
+      if (selectedTenant) {
+        setRoom(prev => ({
+          ...prev,
+          tenantId: selectedTenant.uid,
+          tenantName: selectedTenant.name,
+          tenantEmail: selectedTenant.email,
+          status: "occupied",
+        }));
+      }
+    } else {
+      setRoom(prev => ({
+        ...prev,
+        tenantId: null,
+        tenantName: "",
+        tenantEmail: "",
+        status: "vacant",
+      }));
+    }
+  };
+
+  const handleInputChange = (field: keyof RoomData, value: any) => {
     setRoom(prev => ({ ...prev, [field]: value }));
   };
-  
+
   const handleNumericChange = (field: keyof RoomData, value: string) => {
     const num = Number(value);
     if (!isNaN(num)) {
@@ -76,6 +111,30 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, is
     }
   };
 
+  const handleSave = () => {
+    const finalRoomData = { ...room, createNewTenant };
+    if (createNewTenant && (!finalRoomData.tenantName || !finalRoomData.tenantEmail)) {
+        toast({ title: "ข้อมูลไม่ครบถ้วน", description: "กรุณากรอกชื่อและอีเมลสำหรับผู้เช่าใหม่", status: "warning" });
+        return;
+    }
+    onSave(finalRoomData);
+    onClose();
+  };
+
+  const handleToggleCreateNew = (isChecked: boolean) => {
+    setCreateNewTenant(isChecked);
+    // When switching to create new, clear previous selection
+    if (isChecked) {
+      setRoom(prev => ({
+        ...prev,
+        tenantId: null,
+        tenantName: "",
+        tenantEmail: "",
+      }));
+    }
+  };
+
+  // ... other handlers like handleAddService, handleSendResetPassword etc. remain the same
   const handleAddService = () => {
     const services = room.extraServices ? [...room.extraServices] : [];
     services.push({ label: "", value: 0 });
@@ -95,16 +154,11 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, is
     setRoom(prev => ({ ...prev, extraServices: services }));
   };
 
-  const handleSave = () => {
-    onSave(room);
-    onClose(); // Close modal after saving
-  };
-
   const handleSendResetPassword = async () => {
     if (!room.tenantEmail) {
       toast({
         title: "ไม่พบอีเมล",
-        description: "กรุณาเพิ่มอีเมลของผู้เช่าก่อน",
+        description: "กรุณาเลือกหรือกรอกอีเมลผู้เช่าก่อน",
         status: "warning",
         duration: 5000,
         isClosable: true,
@@ -175,14 +229,14 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, is
                 </FormControl>
                 <FormControl display="flex" alignItems="center" mt={2}>
                   <FormLabel htmlFor="status-toggle" mb="0" fontSize="sm">สถานะห้อง</FormLabel>
-                  <Switch id="status-toggle" colorScheme="green" isChecked={room.status === "occupied"} onChange={e => handleChange('status', e.target.checked ? "occupied" : "vacant")} />
+                  <Switch id="status-toggle" colorScheme="green" isChecked={room.status === "occupied"} onChange={e => handleInputChange('status', e.target.checked ? "occupied" : "vacant")} />
                   <Text ml={3} color={room.status === "occupied" ? 'green.600' : 'gray.600'} fontWeight="medium">
                     {room.status === "occupied" ? "มีคนอยู่" : "ว่าง"}
                   </Text>
                 </FormControl>
                  <FormControl>
                   <FormLabel fontSize="sm">สถานะบิล</FormLabel>
-                  <Select value={room.billStatus} onChange={e => handleChange('billStatus', e.target.value)}>
+                  <Select value={room.billStatus} onChange={e => handleInputChange('billStatus', e.target.value)}>
                     <option value="paid">ชำระแล้ว (Paid)</option>
                     <option value="unpaid">ยังไม่ชำระ (Unpaid)</option>
                     <option value="pending">รอตรวจสอบ (Pending)</option>
@@ -190,14 +244,38 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, is
                 </FormControl>
 
                 <Text fontWeight="bold" color="blue.500" mt={4}>ข้อมูลผู้เช่า</Text>
-                <FormControl>
-                  <FormLabel fontSize="sm">ชื่อผู้เช่า</FormLabel>
-                  <Input placeholder="เช่น สมชาย ใจดี" value={room.tenantName} onChange={e => handleChange('tenantName', e.target.value)} />
+                <FormControl display="flex" alignItems="center" justifyContent="space-between" bg="gray.50" p={2} borderRadius="md">
+                  <FormLabel htmlFor="create-new-tenant-toggle" mb="0" fontSize="sm" fontWeight="bold" color="teal.600">
+                    <Icon as={FaUserPlus} mr={2} />
+                    สร้างผู้เช่าใหม่?
+                  </FormLabel>
+                  <Switch id="create-new-tenant-toggle" colorScheme="teal" isChecked={createNewTenant} onChange={(e) => handleToggleCreateNew(e.target.checked)} />
                 </FormControl>
-                <FormControl>
-                  <FormLabel fontSize="sm">อีเมลผู้เช่า</FormLabel>
-                  <Input placeholder="เช่น tenant@example.com" value={room.tenantEmail || ''} onChange={e => handleChange('tenantEmail', e.target.value)} />
-                </FormControl>
+
+                <Box opacity={createNewTenant ? 0.4 : 1} transition="opacity 0.2s">
+                  <FormControl isDisabled={createNewTenant}>
+                    <FormLabel fontSize="sm">เลือกผู้เช่าที่มีอยู่</FormLabel>
+                    <Select placeholder="-- ห้องว่าง --" value={room.tenantId || ''} onChange={handleTenantChange}>
+                      {users.map(user => (
+                        <option key={user.uid} value={user.uid}>{user.name} ({user.email})</option>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Box>
+
+                <Box opacity={!createNewTenant ? 0.4 : 1} transition="opacity 0.2s">
+                    <VStack spacing={3} align="stretch">
+                        <FormControl isDisabled={!createNewTenant}>
+                            <FormLabel fontSize="sm">ชื่อผู้เช่าใหม่</FormLabel>
+                            <Input placeholder="เช่น สมหญิง รักดี" value={room.tenantName || ''} onChange={e => handleInputChange('tenantName', e.target.value)} />
+                        </FormControl>
+                        <FormControl isDisabled={!createNewTenant}>
+                            <FormLabel fontSize="sm">อีเมลผู้เช่าใหม่</FormLabel>
+                            <Input placeholder="new.tenant@example.com" value={room.tenantEmail || ''} onChange={e => handleInputChange('tenantEmail', e.target.value)} />
+                        </FormControl>
+                    </VStack>
+                </Box>
+
                  <Button 
                   leftIcon={<FaPaperPlane />}
                   colorScheme="purple"
