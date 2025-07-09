@@ -1,11 +1,11 @@
-import { Box, Heading, Text, Flex, Avatar, VStack, HStack, Divider, Badge, Card, CardHeader, CardBody, SimpleGrid, Icon, Stat, StatLabel, StatNumber, StatHelpText, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure, Table, Thead, Tbody, Tr, Th, Td, TableContainer } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc } from "firebase/firestore";
 import MainLayout from "../components/MainLayout";
-import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaWater, FaBolt, FaMoneyBillWave } from "react-icons/fa";
+import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice } from "react-icons/fa";
 
 interface UserData {
   name: string;
@@ -59,51 +59,49 @@ export default function TenantDashboard() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setCurrentUser(user);
-        // Subscribe to user data changes
         const userDocRef = doc(db, "users", user.uid);
-        const unsubscribeUser = onSnapshot(userDocRef, (doc) => {
-          if (doc.exists()) {
-            const data = doc.data();
-            setUserData({
-              name: data.name || user.displayName || "Unknown",
-              email: data.email || user.email || "",
-              avatar: data.avatar || user.photoURL || "",
-              role: data.role || "user",
-              status: data.status || "active",
-              roomId: data.roomId, // This is where roomId is set
-              tenantId: data.tenantId,
-              phoneNumber: data.phoneNumber,
-              joinedDate: data.joinedDate || user.metadata?.creationTime?.split("T")[0],
-            });
-            setRole(data.role || "user");
-            const userId = user.uid;
-            
-            let roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", userId));
-            const roomsSnapshot = getDocs(roomsQuery).then((snapshot) => {
-                
-                if (!snapshot.empty) {
-                    const roomData = snapshot.docs[0].data();
-                    setRoomData({
-                    id: snapshot.docs[0].id,
-                    tenantName: roomData.tenantName || "",
-                    area: roomData.area || 0,
-                    rent: roomData.rent || 0,
-                    service: roomData.service || 0,
-                    electricity: roomData.electricity || 0,
-                    water: roomData.water || 0,
-                    latestTotal: roomData.latestTotal || 0,
-                    billStatus: roomData.billStatus || "pending",
-                    overdueDays: roomData.overdueDays || 0,
-                    });
-                } else {
-                    setRoomData(null);
-                }
+        const unsubscribeUser = onSnapshot(userDocRef, async (userDoc) => {
+          if (userDoc.exists()) {
+            const currentUserData = userDoc.data();
+            const userDataPayload: UserData = {
+              name: currentUserData.name || user.displayName || "Unknown",
+              email: currentUserData.email || user.email || "",
+              avatar: currentUserData.avatar || user.photoURL || "",
+              role: currentUserData.role || "user",
+              status: currentUserData.status || "active",
+              roomId: currentUserData.roomId,
+              tenantId: user.uid,
+              phoneNumber: currentUserData.phoneNumber,
+              joinedDate: currentUserData.createdAt?.toDate().toLocaleDateString("th-TH"),
+            };
+            setUserData(userDataPayload);
+            setRole(currentUserData.role || "user");
 
-            });
+            // Query for the room using the user's ID as the tenantId
+            const roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", user.uid), limit(1));
+            const roomsSnapshot = await getDocs(roomsQuery);
 
-
-            // If user has a roomId, fetch room data
-            
+            if (!roomsSnapshot.empty) {
+              const roomDoc = roomsSnapshot.docs[0];
+              const currentRoomData = roomDoc.data();
+              setRoomData({
+                id: roomDoc.id,
+                tenantName: currentRoomData.tenantName || "",
+                area: currentRoomData.area || 0,
+                rent: currentRoomData.rent || 0,
+                service: currentRoomData.service || 0,
+                electricity: currentRoomData.electricity || 0,
+                water: currentRoomData.water || 0,
+                latestTotal: currentRoomData.latestTotal || 0,
+                billStatus: currentRoomData.billStatus || "pending",
+                overdueDays: currentRoomData.overdueDays || 0,
+              });
+              // Now fetch history with the correct room id
+              fetchBillHistory(roomDoc.id);
+            } else {
+              setRoomData(null);
+              setBillHistory([]);
+            }
           }
           setLoading(false);
         });
@@ -132,8 +130,6 @@ export default function TenantDashboard() {
           const notification = change.doc.data();
           setAlertRoomId(notification.roomId);
           onAlertOpen();
-
-          // Mark as read
           await updateDoc(doc(db, "notifications", change.doc.id), { isRead: true });
         }
       });
@@ -142,33 +138,36 @@ export default function TenantDashboard() {
     return () => unsubscribe();
   }, [currentUser, onAlertOpen]);
 
-  const fetchRoomData = async (roomId: string) => {
+  const fetchBillHistory = async (roomId: string) => {
     try {
-      const roomDocRef = doc(db, "rooms", roomId);
-      const unsubscribeRoom = onSnapshot(roomDocRef, (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
-          setRoomData({
-            id: doc.id,
-            tenantName: data.tenantName || "",
-            area: data.area || 0,
-            rent: data.rent || 0,
-            service: data.service || 0,
-            electricity: data.electricity || 0,
-            water: data.water || 0,
-            latestTotal: data.latestTotal || 0,
-            billStatus: data.billStatus || "pending",
-            overdueDays: data.overdueDays || 0,
-          });
-        }
+      const billsQuery = query(
+        collection(db, "bills"),
+        where("roomId", "==", roomId),
+        where("status", "==", "paid"),
+        orderBy("paidAt", "desc"),
+        limit(12)
+      );
+      
+      const snapshot = await getDocs(billsQuery);
+      const bills = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          month: data.month || "",
+          year: data.year || new Date().getFullYear(),
+          totalAmount: data.total || 0,
+          status: "paid",
+          dueDate: data.dueDate?.toDate().toLocaleDateString('th-TH') || "-",
+          paidDate: data.paidAt?.toDate().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) || "-",
+        };
       });
       
-      return () => unsubscribeRoom();
+      setBillHistory(bills as BillHistory[]);
     } catch (error) {
-      console.error("Error fetching room data:", error);
+      console.error("Error fetching bill history:", error);
       toast({
-        title: "Error",
-        description: "Failed to load room data",
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถโหลดประวัติการชำระเงินได้",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -176,43 +175,11 @@ export default function TenantDashboard() {
     }
   };
 
-  const fetchBillHistory = async (roomId: string) => {
-    try {
-      const billsQuery = query(
-        collection(db, "bills"),
-        where("roomId", "==", roomId),
-        orderBy("year", "desc"),
-        orderBy("month", "desc"),
-        limit(6)
-      );
-      
-      const snapshot = await getDocs(billsQuery);
-      const bills: BillHistory[] = [];
-      
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        bills.push({
-          id: doc.id,
-          month: data.month || "",
-          year: data.year || new Date().getFullYear(),
-          totalAmount: data.totalAmount || 0,
-          status: data.status || "pending",
-          dueDate: data.dueDate || "",
-          paidDate: data.paidDate,
-        });
-      });
-      
-      setBillHistory(bills);
-    } catch (error) {
-      console.error("Error fetching bill history:", error);
-    }
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case "paid":
         return "green";
-      case "overdue":
+      case "unpaid":
         return "red";
       case "pending":
         return "yellow";
@@ -225,10 +192,10 @@ export default function TenantDashboard() {
     switch (status) {
       case "paid":
         return "ชำระแล้ว";
-      case "overdue":
-        return "เกินกำหนด";
+      case "unpaid":
+        return "ค้างชำระ";
       case "pending":
-        return "รอชำระ";
+        return "รอตรวจสอบ";
       default:
         return "ไม่ทราบสถานะ";
     }
@@ -244,7 +211,6 @@ export default function TenantDashboard() {
     );
   }
 
-  // Check if user is tenant
   if (role !== "user") {
     return (
       <MainLayout role={role} currentUser={currentUser}>
@@ -297,7 +263,7 @@ export default function TenantDashboard() {
                   {userData?.joinedDate && (
                     <Box>
                       <Text fontWeight="bold" color="gray.600" fontSize="md">วันที่เข้าร่วม</Text>
-                      <Text color="gray.800" fontSize="lg">{!isNaN(Date.parse(userData.joinedDate)) ? new Date(userData.joinedDate).toLocaleDateString("th-TH") : "-"}</Text>
+                      <Text color="gray.800" fontSize="lg">{userData.joinedDate}</Text>
                     </Box>
                   )}
                 </SimpleGrid>
@@ -307,7 +273,7 @@ export default function TenantDashboard() {
         </Card>
 
         {/* Room Information Card */}
-        {roomData && (
+        {roomData ? (
           <Card mb={8} boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 4, md: 8 }} py={6}>
           <CardHeader pb={2}>
             <Heading size="md" color="brand.600" letterSpacing="wide">
@@ -333,70 +299,86 @@ export default function TenantDashboard() {
                   <Text color="gray.800" fontSize="xl">{roomData.service.toLocaleString()} บาท</Text>
                 </Box>
                 <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="md">สถานะบิล</Text>
+                  <Text fontWeight="bold" color="gray.600" fontSize="md">สถานะบิลล่าสุด</Text>
                   <Badge fontSize="md" px={3} py={1} borderRadius="md" colorScheme={getStatusColor(roomData.billStatus)}>
                     {getStatusText(roomData.billStatus)}
                   </Badge>
                 </Box>
+                {roomData.billStatus === 'unpaid' && (
                 <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="md">ยอดรวมล่าสุด</Text>
-                  <Text color="gray.800" fontSize="xl">{roomData.latestTotal.toLocaleString()} บาท</Text>
+                  <Text fontWeight="bold" color="gray.600" fontSize="md">ยอดค้างชำระ</Text>
+                  <Text color="red.500" fontSize="xl" fontWeight="bold">{roomData.latestTotal.toLocaleString()} บาท</Text>
                 </Box>
+                )}
               </SimpleGrid>
             </CardBody>
+          </Card>
+        ) : (
+          <Card mb={8} boxShadow="2xl" borderRadius="2xl" bg="white" p={8}>
+            <Center>
+              <VStack>
+                <Icon as={FaHome} boxSize={12} color="gray.300" />
+                <Text color="gray.500">คุณยังไม่มีข้อมูลห้องพัก</Text>
+              </VStack>
+            </Center>
           </Card>
         )}
 
         {/* Bill History Card */}
-        <Card boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 4, md: 8 }} py={{ base: 4, md: 6 }}>
-          <CardHeader pb={2}>
+        <Card boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 2, md: 4 }} py={{ base: 4, md: 6 }}>
+          <CardHeader>
             <Flex justify="space-between" align="center">
               <Heading size="md" color="brand.600" letterSpacing="wide">
-                <Icon as={FaFileInvoice} mr={2} /> ประวัติการชำระเงิน
+                <Icon as={FaFileInvoice} mr={3} verticalAlign="middle" />
+                ประวัติการชำระเงิน
               </Heading>
-              {userData?.roomId && (
+              {roomData?.id && (
                 <Button
                   size="sm"
                   colorScheme="brand"
                   variant="outline"
-                  borderRadius="md"
-                  onClick={() => router.push(`/bill/${userData.roomId}`)}
+                  onClick={() => router.push(`/history/${roomData.id}`)}
                 >
-                  ดูบิลปัจจุบัน
+                  ดูประวัติทั้งหมด
                 </Button>
               )}
             </Flex>
           </CardHeader>
           <CardBody>
-            {billHistory.length > 0 ? (
-              <VStack spacing={4} align="stretch">
-                {billHistory.map((bill) => (
-                  <Box key={bill.id} p={4} border="1px" borderColor="gray.200" borderRadius="lg" bg="gray.50">
-                    <Flex justify="space-between" align="center" mb={2}>
-                      <Text fontWeight="bold" fontSize="lg" color="brand.700">
-                        {bill.month} {bill.year}
-                      </Text>
-                      <Badge fontSize="md" px={3} py={1} borderRadius="md" colorScheme={getStatusColor(bill.status)}>
-                        {getStatusText(bill.status)}
-                      </Badge>
-                    </Flex>
-                    <Divider my={2} />
-                    <SimpleGrid columns={[1, 2]} spacingY={1} spacingX={8}>
-                      <Text color="gray.700">ยอดรวม: <b>{bill.totalAmount.toLocaleString()} บาท</b></Text>
-                      <Text fontSize="sm" color="gray.500">
-                        {bill.status === "paid" && bill.paidDate
-                          ? `ชำระเมื่อ: ${!isNaN(Date.parse(bill.paidDate)) ? new Date(bill.paidDate).toLocaleDateString("th-TH") : "-"}`
-                          : `ครบกำหนด: ${!isNaN(Date.parse(bill.dueDate)) ? new Date(bill.dueDate).toLocaleDateString("th-TH") : "-"}`}
-                      </Text>
-                    </SimpleGrid>
-                  </Box>
-                ))}
-              </VStack>
-            ) : (
-              <Text color="gray.500" textAlign="center">
-                ไม่มีประวัติการชำระเงิน
-              </Text>
-            )}
+            <TableContainer>
+              <Table variant="simple" size="sm">
+                <Thead>
+                  <Tr>
+                    <Th>รอบบิล</Th>
+                    <Th>วันที่ชำระ</Th>
+                    <Th isNumeric>ยอดชำระ (บาท)</Th>
+                    <Th>สถานะ</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {billHistory.length > 0 ? (
+                    billHistory.map((bill) => (
+                      <Tr key={bill.id}>
+                        <Td>{bill.month} {bill.year}</Td>
+                        <Td>{bill.paidDate}</Td>
+                        <Td isNumeric>{bill.totalAmount.toLocaleString()}</Td>
+                        <Td>
+                          <Badge colorScheme="green" px={2} py={1} borderRadius="md">
+                            ชำระแล้ว
+                          </Badge>
+                        </Td>
+                      </Tr>
+                    ))
+                  ) : (
+                    <Tr>
+                      <Td colSpan={4} textAlign="center">
+                        <Text color="gray.500" py={8}>ยังไม่มีประวัติการชำระเงินที่ยืนยันแล้ว</Text>
+                      </Td>
+                    </Tr>
+                  )}
+                </Tbody>
+              </Table>
+            </TableContainer>
           </CardBody>
         </Card>
 
@@ -410,6 +392,30 @@ export default function TenantDashboard() {
           <CardBody>
             <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
               <Button
+                leftIcon={<FaCreditCard size={22} />}
+                colorScheme="green"
+                size="lg"
+                borderRadius="xl"
+                variant="solid"
+                isDisabled={!roomData || roomData.billStatus !== 'unpaid'}
+                _hover={{ boxShadow: "md", transform: "scale(1.05)" }}
+                onClick={() => roomData?.id && router.push(`/bill/${roomData.id}`)}
+              >
+                ชำระบิลล่าสุด
+              </Button>
+              <Button
+                leftIcon={<FaCalendarAlt size={22} />}
+                colorScheme="purple"
+                size="lg"
+                borderRadius="xl"
+                variant="solid"
+                isDisabled={!roomData}
+                _hover={{ boxShadow: "md", transform: "scale(1.05)" }}
+                onClick={() => roomData?.id && router.push(`/history/${roomData.id}`)}
+              >
+                ประวัติบิลทั้งหมด
+              </Button>
+              <Button
                 leftIcon={<FaFileInvoice size={22} />}
                 colorScheme="blue"
                 size="lg"
@@ -418,29 +424,7 @@ export default function TenantDashboard() {
                 _hover={{ boxShadow: "md", transform: "scale(1.05)" }}
                 onClick={() => router.push("/inbox")}
               >
-                ข้อความ
-              </Button>
-              <Button
-                leftIcon={<FaCreditCard size={22} />}
-                colorScheme="green"
-                size="lg"
-                borderRadius="xl"
-                variant="solid"
-                _hover={{ boxShadow: "md", transform: "scale(1.05)" }}
-                onClick={() => roomData?.id && router.push(`/bill/${roomData.id}`)}
-              >
-                ชำระเงิน
-              </Button>
-              <Button
-                leftIcon={<FaCalendarAlt size={22} />}
-                colorScheme="purple"
-                size="lg"
-                borderRadius="xl"
-                variant="solid"
-                _hover={{ boxShadow: "md", transform: "scale(1.05)" }}
-                onClick={() => roomData?.id && router.push(`/history/${roomData.id}`)}
-              >
-                ประวัติ
+                กล่องข้อความ
               </Button>
               <Button
                 leftIcon={<FaUser size={22} />}
@@ -451,7 +435,7 @@ export default function TenantDashboard() {
                 _hover={{ boxShadow: "md", transform: "scale(1.05)", bg: "gray.100" }}
                 onClick={() => router.push("/profile")}
               >
-                แก้ไขข้อมูล
+                โปรไฟล์ของฉัน
               </Button>
             </SimpleGrid>
           </CardBody>
@@ -466,11 +450,11 @@ export default function TenantDashboard() {
         <AlertDialogOverlay>
           <AlertDialogContent m={{ base: 4, md: "auto" }}>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              แจ้งเตือนค้างชำระ
+              แจ้งเตือนยอดค้างชำระ
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              ห้อง {alertRoomId} ของคุณมียอดค้างชำระ กรุณาตรวจสอบบิลและชำระเงินโดยเร็วที่สุด
+              ห้อง {alertRoomId} ของคุณมียอดค้างชำระ กรุณาตรวจสอบและชำระเงินโดยเร็วที่สุด
             </AlertDialogBody>
 
             <AlertDialogFooter>
@@ -481,7 +465,7 @@ export default function TenantDashboard() {
                 onAlertClose();
                 router.push(`/bill/${alertRoomId}`);
               }} ml={3}>
-                ดูบิล
+                ไปที่หน้าชำระเงิน
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

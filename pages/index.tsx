@@ -1,7 +1,7 @@
 import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox, Image, Table, Thead, Tbody, Tr, Th, Td, FormControl, FormLabel, InputGroup, InputRightElement, CloseButton, VStack, HStack, Wrap, WrapItem, Spacer } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db, auth } from "../lib/firebase";
-import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, addDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, addDoc, updateDoc, writeBatch } from "firebase/firestore";
 import RoomCard from "../components/RoomCard";
 import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
@@ -647,14 +647,28 @@ export default function Rooms() {
         throw new Error("No pending bill found for this room.");
       }
 
+      // Use a batch to ensure both updates succeed or fail together.
+      const batch = writeBatch(db);
+
       const billDocRef = billSnap.docs[0].ref;
-      await updateDoc(billDocRef, {
+      batch.update(billDocRef, {
         status: "paid",
+        paidAt: new Date(),
       });
 
-      await updateDoc(doc(db, "rooms", roomId), {
+      const roomDocRef = doc(db, "rooms", roomId);
+      batch.update(roomDocRef, {
         billStatus: "paid",
       });
+
+      await batch.commit();
+
+      // Update local state for immediate UI feedback
+      setRooms(prevRooms => 
+        prevRooms.map(room => 
+          room.id === roomId ? { ...room, billStatus: "paid" } : room
+        )
+      );
 
       toast.update(toastId, {
         title: "Marked as Paid",
@@ -662,7 +676,6 @@ export default function Rooms() {
         status: "success",
         duration: 5000,
       });
-      window.location.reload();
 
     } catch (error) {
       console.error("Error marking as paid:", error);
@@ -708,13 +721,18 @@ export default function Rooms() {
         billStatus: "unpaid",
       });
 
+      setRooms(prevRooms => 
+        prevRooms.map(room => 
+          room.id === roomId ? { ...room, billStatus: "unpaid" } : room
+        )
+      );
+
       toast.update(toastId, {
         title: "Proof Deleted",
         description: `Proof for Room ${roomId} has been deleted.`, 
         status: "success",
         duration: 5000,
       });
-      window.location.reload();
 
     } catch (error) {
       console.error("Error deleting proof:", error);
