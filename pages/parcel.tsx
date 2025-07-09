@@ -116,14 +116,14 @@ export default function Parcel() {
   const toast = useToast();
 
   // Add Parcel form state
-  const [newParcel, setNewParcel] = useState({
+  const [newParcels, setNewParcels] = useState([{
     roomId: "",
     recipient: "",
     sender: "",
     description: "",
     trackingNumber: "",
     notes: ""
-  });
+  }]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -314,64 +314,91 @@ export default function Parcel() {
   };
 
   const handleCreateParcelForRoom = (room: Room) => {
-    setNewParcel({
+    setNewParcels([{
       roomId: room.id,
       recipient: room.tenantName !== "-" ? room.tenantName : "",
       sender: "",
       description: "",
       trackingNumber: "",
       notes: ""
-    });
-    // Keep room details modal open and open add parcel modal
-    onAddOpen(); // Open add parcel modal
+    }]);
+    onAddOpen();
+  };
+
+  const handleParcelFormChange = (index, field, value) => {
+    const updatedParcels = [...newParcels];
+    updatedParcels[index][field] = value;
+    setNewParcels(updatedParcels);
+  };
+
+  const handleAddNewParcelForm = () => {
+    setNewParcels([...newParcels, {
+      roomId: "",
+      recipient: "",
+      sender: "",
+      description: "",
+      trackingNumber: "",
+      notes: ""
+    }]);
+  };
+
+  const handleRemoveParcelForm = (index) => {
+    const updatedParcels = [...newParcels];
+    updatedParcels.splice(index, 1);
+    setNewParcels(updatedParcels);
   };
 
   const handleAddParcel = async () => {
-    if (!newParcel.roomId || !newParcel.recipient || !newParcel.sender || !newParcel.description) {
-      toast({
-        title: "กรุณากรอกข้อมูลให้ครบถ้วน",
-        status: "warning",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
+    for (const newParcel of newParcels) {
+      if (!newParcel.roomId || !newParcel.recipient || !newParcel.sender || !newParcel.description) {
+        toast({
+          title: "กรุณากรอกข้อมูลให้ครบถ้วน",
+          description: `สำหรับพัสดุของผู้รับ: ${newParcel.recipient || 'N/A'}`,
+          status: "warning",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
     }
 
     try {
-      const selectedRoomData = rooms.find(room => room.id === newParcel.roomId);
-      
-      await addDoc(collection(db, "parcels"), {
-        roomId: newParcel.roomId,
-        roomNumber: newParcel.roomId,
-        tenantName: selectedRoomData?.tenantName || "-",
-        recipient: newParcel.recipient,
-        sender: newParcel.sender,
-        description: newParcel.description,
-        trackingNumber: newParcel.trackingNumber || "",
-        notes: newParcel.notes || "",
-        status: "received",
-        receivedDate: Timestamp.now(),
-        createdBy: currentUser.uid
-      });
+      for (const newParcel of newParcels) {
+        const selectedRoomData = rooms.find(room => room.id === newParcel.roomId);
+        
+        await addDoc(collection(db, "parcels"), {
+          roomId: newParcel.roomId,
+          roomNumber: newParcel.roomId,
+          tenantName: selectedRoomData?.tenantName || "-",
+          recipient: newParcel.recipient,
+          sender: newParcel.sender,
+          description: newParcel.description,
+          trackingNumber: newParcel.trackingNumber || "",
+          notes: newParcel.notes || "",
+          status: "received",
+          receivedDate: Timestamp.now(),
+          createdBy: currentUser.uid
+        });
+      }
 
       toast({
-        title: "เพิ่มพัสดุสำเร็จ",
+        title: "เพิ่มพัสดุทั้งหมดสำเร็จ",
         status: "success",
         duration: 3000,
         isClosable: true,
       });
 
-      setNewParcel({
+      setNewParcels([{
         roomId: "",
         recipient: "",
         sender: "",
         description: "",
         trackingNumber: "",
         notes: ""
-      });
+      }]);
       onAddClose();
     } catch (error) {
-      console.error("Error adding parcel:", error);
+      console.error("Error adding parcels:", error);
       toast({
         title: "เกิดข้อผิดพลาด",
         description: "ไม่สามารถเพิ่มพัสดุได้",
@@ -538,14 +565,14 @@ export default function Parcel() {
                 leftIcon={<FaPlus />}
                 colorScheme="blue"
                 onClick={() => {
-                  setNewParcel({
+                  setNewParcels([{
                     roomId: "",
                     recipient: "",
                     sender: "",
                     description: "",
                     trackingNumber: "",
                     notes: ""
-                  });
+                  }]);
                   onAddOpen();
                 }}
               >
@@ -817,95 +844,115 @@ export default function Parcel() {
         </Modal>
 
         {/* Add Parcel Modal */}
-        <Modal isOpen={isAddOpen} onClose={onAddClose} size={{ base: "full", md: "lg" }} isCentered>
+        <Modal isOpen={isAddOpen} onClose={onAddClose} size={{ base: "full", md: "4xl" }} isCentered>
           <ModalOverlay />
           <ModalContent>
             <ModalHeader>
               <Flex align="center" gap={2}>
                 <Icon as={FaPlus} color="blue.500" />
-                {newParcel.roomId ? `เพิ่มพัสดุสำหรับห้อง ${newParcel.roomId}` : "เพิ่มพัสดุใหม่"}
+                เพิ่มพัสดุใหม่
               </Flex>
             </ModalHeader>
             <ModalCloseButton />
             <ModalBody pb={6}>
-              <VStack spacing={4}>
-                <Box w="full">
-                  <Text mb={2} fontWeight="medium">ห้อง</Text>
-                  <Select
-                    placeholder="เลือกห้อง"
-                    value={newParcel.roomId}
-                    onChange={(e) => setNewParcel({ ...newParcel, roomId: e.target.value })}
-                    isDisabled={!!newParcel.roomId} // Disable if roomId is pre-filled
-                  >
-                    {rooms.filter(room => room.status === "occupied").map((room) => (
-                      <option key={room.id} value={room.id}>
-                        ห้อง {room.id} - {room.tenantName}
-                      </option>
-                    ))}
-                  </Select>
-                  {newParcel.roomId && (
-                    <Text fontSize="xs" color="blue.600" mt={1}>
-                      * ห้องถูกเลือกไว้แล้ว
-                    </Text>
-                  )}
-                </Box>
-
-                <Box w="full">
-                  <Text mb={2} fontWeight="medium">ชื่อผู้รับ</Text>
-                  <Input
-                    value={newParcel.recipient}
-                    onChange={(e) => setNewParcel({ ...newParcel, recipient: e.target.value })}
-                    placeholder="ชื่อผู้รับพัสดุ"
-                  />
-                </Box>
-
-                <Box w="full">
-                  <Text mb={2} fontWeight="medium">ผู้ส่ง/บริษัท</Text>
-                  <Input
-                    value={newParcel.sender}
-                    onChange={(e) => setNewParcel({ ...newParcel, sender: e.target.value })}
-                    placeholder="ชื่อผู้ส่งหรือบริษัท"
-                  />
-                </Box>
-
-                <Box w="full">
-                  <Text mb={2} fontWeight="medium">รายละเอียดพัสดุ</Text>
-                  <Input
-                    value={newParcel.description}
-                    onChange={(e) => setNewParcel({ ...newParcel, description: e.target.value })}
-                    placeholder="รายละเอียดสินค้าหรือพัสดุ"
-                  />
-                </Box>
-
-                <Box w="full">
-                  <Text mb={2} fontWeight="medium">หมายเลขติดตาม (ถ้ามี)</Text>
-                  <Input
-                    value={newParcel.trackingNumber}
-                    onChange={(e) => setNewParcel({ ...newParcel, trackingNumber: e.target.value })}
-                    placeholder="หมายเลขติดตาม"
-                  />
-                </Box>
-
-                <Box w="full">
-                  <Text mb={2} fontWeight="medium">หมายเหตุ (ถ้ามี)</Text>
-                  <Input
-                    value={newParcel.notes}
-                    onChange={(e) => setNewParcel({ ...newParcel, notes: e.target.value })}
-                    placeholder="หมายเหตุเพิ่มเติม"
-                  />
-                </Box>
-
-                <Divider />
-
-                <HStack w="full" spacing={3}>
-                  <Button variant="outline" onClick={onAddClose} flex={1}>
-                    ยกเลิก
-                  </Button>
-                  <Button colorScheme="blue" onClick={handleAddParcel} flex={1}>
-                    เพิ่มพัสดุ
-                  </Button>
-                </HStack>
+              <VStack spacing={6} maxH="60vh" overflowY="auto" p={1}>
+                {newParcels.map((parcel, index) => (
+                  <Box key={index} w="full" p={4} borderWidth={1} borderRadius="lg" position="relative">
+                    <VStack spacing={4}>
+                      <HStack w="full" justify="space-between">
+                        <Text fontWeight="bold" color="gray.600">พัสดุชิ้นที่ {index + 1}</Text>
+                        {newParcels.length > 1 && (
+                          <IconButton
+                            size="xs"
+                            colorScheme="red"
+                            aria-label="Remove parcel form"
+                            icon={<FaTrash />}
+                            onClick={() => handleRemoveParcelForm(index)}
+                          />
+                        )}
+                      </HStack>
+                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4} w="full">
+                        <Box>
+                          <Text mb={1} fontSize="sm" fontWeight="medium">ห้อง*</Text>
+                          <Select
+                            placeholder="เลือกห้อง"
+                            value={parcel.roomId}
+                            onChange={(e) => handleParcelFormChange(index, 'roomId', e.target.value)}
+                          >
+                            {rooms.filter(room => room.status === "occupied").map((room) => (
+                              <option key={room.id} value={room.id}>
+                                ห้อง {room.id} - {room.tenantName}
+                              </option>
+                            ))}
+                          </Select>
+                        </Box>
+                        <Box>
+                          <Text mb={1} fontSize="sm" fontWeight="medium">ชื่อผู้รับ*</Text>
+                          <Input
+                            value={parcel.recipient}
+                            onChange={(e) => handleParcelFormChange(index, 'recipient', e.target.value)}
+                            placeholder="ชื่อผู้รับพัสดุ"
+                          />
+                        </Box>
+                        <Box>
+                          <Text mb={1} fontSize="sm" fontWeight="medium">ผู้ส่ง/บริษัท*</Text>
+                          <Input
+                            value={parcel.sender}
+                            onChange={(e) => handleParcelFormChange(index, 'sender', e.target.value)}
+                            placeholder="ชื่อผู้ส่งหรือบริษัท"
+                          />
+                        </Box>
+                        <Box>
+                          <Text mb={1} fontSize="sm" fontWeight="medium">รายละเอียดพัสดุ*</Text>
+                          <Input
+                            value={parcel.description}
+                            onChange={(e) => handleParcelFormChange(index, 'description', e.target.value)}
+                            placeholder="รายละเอียดสินค้าหรือพัสดุ"
+                          />
+                        </Box>
+                        <Box>
+                          <Text mb={1} fontSize="sm" fontWeight="medium">หมายเลขติดตาม (ถ้ามี)</Text>
+                          <Input
+                            value={parcel.trackingNumber}
+                            onChange={(e) => handleParcelFormChange(index, 'trackingNumber', e.target.value)}
+                            placeholder="หมายเลขติดตาม"
+                          />
+                        </Box>
+                        <Box>
+                          <Text mb={1} fontSize="sm" fontWeight="medium">หมายเหตุ (ถ้ามี)</Text>
+                          <Input
+                            value={parcel.notes}
+                            onChange={(e) => handleParcelFormChange(index, 'notes', e.target.value)}
+                            placeholder="หมายเหตุเพิ่มเติม"
+                          />
+                        </Box>
+                      </Grid>
+                    </VStack>
+                  </Box>
+                ))}
               </VStack>
+
+              <Button
+                mt={4}
+                leftIcon={<FaPlus />}
+                onClick={handleAddNewParcelForm}
+                colorScheme="gray"
+                variant="dashed"
+                w="full"
+              >
+                เพิ่มรายการพัสดุอีก
+              </Button>
+
+              <Divider my={6} />
+
+              <HStack w="full" spacing={3}>
+                <Button variant="outline" onClick={onAddClose} flex={1}>
+                  ยกเลิก
+                </Button>
+                <Button colorScheme="blue" onClick={handleAddParcel} flex={1}>
+                  {`เพิ่มพัสดุทั้งหมด (${newParcels.length} ชิ้น)`}
+                </Button>
+              </HStack>
             </ModalBody>
           </ModalContent>
         </Modal>
