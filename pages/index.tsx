@@ -1,4 +1,4 @@
-import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox, Image, Table, Thead, Tbody, Tr, Th, Td, FormControl, FormLabel, InputGroup, InputRightElement, CloseButton, VStack, HStack, Wrap, WrapItem, Spacer, Icon } from "@chakra-ui/react";
+import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox, Image, Table, Thead, Tbody, Tr, Th, Td, FormControl, FormLabel, InputGroup, InputRightElement, CloseButton, VStack, HStack, Wrap, WrapItem, Spacer } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db, auth } from "../lib/firebase";
 import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, addDoc, updateDoc, writeBatch } from "firebase/firestore";
@@ -7,7 +7,7 @@ import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
 import AppHeader from "../components/AppHeader";
 import { motion } from "framer-motion";
-import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaTrash, FaSearch, FaExclamationCircle } from "react-icons/fa";
+import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaTrash, FaSearch } from "react-icons/fa";
 import { saveAs } from "file-saver";
 import Papa from "papaparse";
 import EditRoomModal from "../components/EditRoomModal";
@@ -65,7 +65,7 @@ export default function Rooms() {
   const [previousReadings, setPreviousReadings] = useState<Record<string, { electricity: number; water: number }>>({});
   
   const [searchRoom, setSearchRoom] = useState("");
-  const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant' | 'pending'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
   const [equipmentList, setEquipmentList] = useState([
     { name: "เตียง", status: "ครบ", condition: "ดี", notes: "" },
