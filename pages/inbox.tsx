@@ -231,9 +231,20 @@ const Inbox = () => {
         if (newConvo.lastMessage && newConvo.lastMessage.text &&
             (!oldConvo || !oldConvo.lastMessage || newConvo.lastMessage.text !== oldConvo.lastMessage.text || newConvo.lastMessage.senderId !== oldConvo.lastMessage.senderId) &&
             newConvo.lastMessage.senderId !== currentUser?.uid &&
-            newConvo.id !== selectedConversation?.id) {
-          notificationSoundRef.current?.play();
-          
+            newConvo.id !== selectedConversationId) {
+          const playPromise = notificationSoundRef.current?.play();
+          if (playPromise !== undefined) {
+            playPromise.catch(error => {
+              console.error("Audio play failed:", error);
+              toast({
+                title: "ไม่สามารถเล่นเสียงแจ้งเตือน",
+                description: "เบราว์เซอร์อาจบล็อกเสียงอัตโนมัติ คลิกบนหน้าจอเพื่อเปิดใช้งาน",
+                status: "info",
+                duration: 5000,
+                isClosable: true,
+              });
+            });
+          }
         }
       });
 
