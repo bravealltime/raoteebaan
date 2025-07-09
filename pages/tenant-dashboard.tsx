@@ -46,7 +46,7 @@ export default function TenantDashboard() {
   const router = useRouter();
   const toast = useToast();
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
+  
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [billHistory, setBillHistory] = useState<BillHistory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,64 +56,63 @@ export default function TenantDashboard() {
   const [alertRoomId, setAlertRoomId] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const authUnsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setCurrentUser(user);
+        setLoading(true);
+
         const userDocRef = doc(db, "users", user.uid);
-        const unsubscribeUser = onSnapshot(userDocRef, async (userDoc) => {
-          if (userDoc.exists()) {
-            const currentUserData = userDoc.data();
-            const userDataPayload: UserData = {
-              name: currentUserData.name || user.displayName || "Unknown",
-              email: currentUserData.email || user.email || "",
-              avatar: currentUserData.avatar || user.photoURL || "",
-              role: currentUserData.role || "user",
-              status: currentUserData.status || "active",
-              roomId: currentUserData.roomId,
-              tenantId: user.uid,
-              phoneNumber: currentUserData.phoneNumber,
-              joinedDate: currentUserData.createdAt?.toDate().toLocaleDateString("th-TH"),
-            };
-            setUserData(userDataPayload);
-            setRole(currentUserData.role || "user");
 
-            // Query for the room using the user's ID as the tenantId
-            const roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", user.uid), limit(1));
-            const roomsSnapshot = await getDocs(roomsQuery);
+        const userUnsubscribe = onSnapshot(userDocRef, (userDoc) => {
+          const firestoreData = userDoc.exists() ? userDoc.data() : {};
+          const combinedUser = {
+            uid: user.uid,
+            name: firestoreData.name || user.displayName || "",
+            email: user.email || "",
+            role: firestoreData.role || "user",
+            photoURL: firestoreData.avatar || user.photoURL || undefined,
+            roomId: firestoreData.roomId,
+          };
+          setCurrentUser(combinedUser);
+          setRole(combinedUser.role);
+        });
 
-            if (!roomsSnapshot.empty) {
-              const roomDoc = roomsSnapshot.docs[0];
-              const currentRoomData = roomDoc.data();
-              setRoomData({
-                id: roomDoc.id,
-                tenantName: currentRoomData.tenantName || "",
-                area: currentRoomData.area || 0,
-                rent: currentRoomData.rent || 0,
-                service: currentRoomData.service || 0,
-                electricity: currentRoomData.electricity || 0,
-                water: currentRoomData.water || 0,
-                latestTotal: currentRoomData.latestTotal || 0,
-                billStatus: currentRoomData.billStatus || "pending",
-                overdueDays: currentRoomData.overdueDays || 0,
-              });
-              // Now fetch history with the correct room id
-              fetchBillHistory(roomDoc.id);
-            } else {
-              setRoomData(null);
-              setBillHistory([]);
-            }
+        const roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", user.uid), limit(1));
+        const roomUnsubscribe = onSnapshot(roomsQuery, (snapshot) => {
+          if (!snapshot.empty) {
+            const roomDoc = snapshot.docs[0];
+            const currentRoomData = roomDoc.data();
+            setRoomData({
+              id: roomDoc.id,
+              tenantName: currentRoomData.tenantName || "",
+              area: currentRoomData.area || 0,
+              rent: currentRoomData.rent || 0,
+              service: currentRoomData.service || 0,
+              electricity: currentRoomData.electricity || 0,
+              water: currentRoomData.water || 0,
+              latestTotal: currentRoomData.latestTotal || 0,
+              billStatus: currentRoomData.billStatus || "pending",
+              overdueDays: currentRoomData.overdueDays || 0,
+            });
+            fetchBillHistory(roomDoc.id);
+          } else {
+            setRoomData(null);
+            setBillHistory([]);
           }
           setLoading(false);
         });
-        
-        return () => unsubscribeUser();
+
+        return () => {
+          userUnsubscribe();
+          roomUnsubscribe();
+        };
+
       } else {
         router.replace("/login");
       }
     });
 
-    return () => unsubscribe();
-  }, [router]);
+    return () => authUnsubscribe();
+  }, [router, toast]);
 
   useEffect(() => {
     if (!currentUser?.uid) return;
@@ -237,33 +236,33 @@ export default function TenantDashboard() {
           </CardHeader>
           <CardBody>
             <Flex direction={{ base: "column", md: "row" }} align="center" gap={10}>
-              <Avatar size="2xl" src={userData?.avatar} name={userData?.name} boxShadow="lg" border="4px solid #fff" />
+              <Avatar size="2xl" src={currentUser?.avatar} name={currentUser?.name} boxShadow="lg" border="4px solid #fff" />
               <VStack align="flex-start" spacing={0} flex={1} fontSize="lg" w="100%">
                 <SimpleGrid columns={{ base: 1, md: 2 }} spacingY={1} spacingX={8} w="100%">
                   <Box>
                     <Text fontWeight="bold" color="gray.600" fontSize="md">ชื่อ</Text>
-                    <Text color="gray.800" fontSize="lg">{userData?.name}</Text>
+                    <Text color="gray.800" fontSize="lg">{currentUser?.name}</Text>
                   </Box>
                   <Box>
                     <Text fontWeight="bold" color="gray.600" fontSize="md">อีเมล</Text>
-                    <Text color="gray.800" fontSize="lg">{userData?.email}</Text>
+                    <Text color="gray.800" fontSize="lg">{currentUser?.email}</Text>
                   </Box>
-                  {userData?.phoneNumber && (
+                  {currentUser?.phoneNumber && (
                     <Box>
                       <Text fontWeight="bold" color="gray.600" fontSize="md">เบอร์โทรศัพท์</Text>
-                      <Text color="gray.800" fontSize="lg">{userData.phoneNumber}</Text>
+                      <Text color="gray.800" fontSize="lg">{currentUser.phoneNumber}</Text>
                     </Box>
                   )}
                   <Box>
                     <Text fontWeight="bold" color="gray.600" fontSize="md">สถานะ</Text>
-                    <Badge fontSize="md" px={3} py={1} borderRadius="md" colorScheme={userData?.status === "active" ? "green" : "red"}>
-                      {userData?.status === "active" ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                    <Badge fontSize="md" px={3} py={1} borderRadius="md" colorScheme={currentUser?.status === "active" ? "green" : "red"}>
+                      {currentUser?.status === "active" ? "เปิดใช้งาน" : "ปิดใช้งาน"}
                     </Badge>
                   </Box>
-                  {userData?.joinedDate && (
+                  {currentUser?.joinedDate && (
                     <Box>
                       <Text fontWeight="bold" color="gray.600" fontSize="md">วันที่เข้าร่วม</Text>
-                      <Text color="gray.800" fontSize="lg">{userData.joinedDate}</Text>
+                      <Text color="gray.800" fontSize="lg">{currentUser.joinedDate}</Text>
                     </Box>
                   )}
                 </SimpleGrid>

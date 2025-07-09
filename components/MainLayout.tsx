@@ -137,7 +137,7 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
   
   return (
     <Box minH="100vh">
-      {currentUser && currentUser.name ? (
+      {currentUser ? (
         <AppHeader currentUser={currentUser} />
       ) : (
         <SimpleHeader />

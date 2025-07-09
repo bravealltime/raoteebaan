@@ -1,5 +1,5 @@
-import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox, Image, Table, Thead, Tbody, Tr, Th, Td, FormControl, FormLabel, InputGroup, InputRightElement, CloseButton, VStack, HStack, Wrap, WrapItem, Spacer } from "@chakra-ui/react";
-import { useEffect, useState, useRef, DragEvent } from "react";
+import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Tooltip, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox, Image, Table, Thead, Tbody, Tr, Th, Td, FormControl, FormLabel, InputGroup, InputRightElement, CloseButton, VStack, HStack, Wrap, WrapItem, Spacer } from "@chakra-ui/react";
+import { useEffect, useState, useRef, DragEvent, useCallback } from "react";
 import { db, auth } from "../lib/firebase";
 import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, addDoc, updateDoc, writeBatch } from "firebase/firestore";
 import RoomCard from "../components/RoomCard";
@@ -58,6 +58,8 @@ export default function Rooms() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<any[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
+  const [importElecRate, setImportElecRate] = useState(8);
+  const [importWaterRate, setImportWaterRate] = useState(20);
   const [editRoom, setEditRoom] = useState<Room | null>(null);
   const [lastWaterMeter, setLastWaterMeter] = useState<number | undefined>(undefined);
   const [lastElecMeter, setLastElecMeter] = useState<number | undefined>(undefined);
@@ -119,85 +121,85 @@ export default function Rooms() {
     return () => unsub();
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!userId || !role) return;
+  const fetchData = useCallback(async () => {
+    if (!userId || !role) return;
 
-      setLoading(true);
-      try {
-        let roomsQuery;
-        if (role === 'admin') {
-          roomsQuery = collection(db, "rooms");
-        } else if (role === 'owner') {
-          roomsQuery = query(collection(db, "rooms"), where("ownerId", "==", userId));
-        } else if (role === 'user') {
-          roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", userId));
-        } else {
-          setRooms([]);
-          setLoading(false);
-          return;
-        }
-
-        const roomsSnapshot = await getDocs(roomsQuery);
-        const roomsData: Room[] = roomsSnapshot.docs.map(doc => {
-          const d = doc.data() as Room;
-          return {
-            id: doc.id,
-            status: d.status || "occupied",
-            tenantName: d.tenantName || "-",
-            area: d.area || 0,
-            latestTotal: d.latestTotal || 0,
-            electricity: d.electricity || 0,
-            water: d.water || 0,
-            rent: d.rent || 0,
-            service: d.service || 0,
-            extraServices: d.extraServices || [],
-            overdueDays: d.overdueDays || 0,
-            billStatus: d.billStatus || "paid",
-            tenantId: d.tenantId || null,
-            tenantEmail: d.tenantEmail || null,
-            ownerId: d.ownerId,
-          };
-        });
-
-        setRooms(roomsData);
-
-        const billPromises = roomsData.map(async (room) => {
-          const q = query(
-            collection(db, "bills"),
-            where("roomId", "==", room.id),
-            orderBy("createdAt", "desc"),
-            limit(1)
-          );
-          const billSnap = await getDocs(q);
-          if (!billSnap.empty) {
-            return { roomId: room.id, bill: billSnap.docs[0].data() };
-          } else {
-            return { roomId: room.id, bill: null };
-          }
-        });
-
-        const fetchedBills = await Promise.all(billPromises);
-        const billsMap: Record<string, any> = {};
-        fetchedBills.forEach(({ roomId, bill }) => {
-          if (bill) {
-            billsMap[roomId] = bill;
-          }
-        });
-        setRoomBills(billsMap);
-
-      } catch (e) {
-        console.error(e);
-        toast({ title: "โหลดข้อมูลล้มเหลว", status: "error" });
+    setLoading(true);
+    try {
+      let roomsQuery;
+      if (role === 'admin') {
+        roomsQuery = collection(db, "rooms");
+      } else if (role === 'owner') {
+        roomsQuery = query(collection(db, "rooms"), where("ownerId", "==", userId));
+      } else if (role === 'user') {
+        roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", userId));
+      } else {
         setRooms([]);
-        setRoomBills({});
-      } finally {
         setLoading(false);
+        return;
       }
-    };
 
-    fetchData();
+      const roomsSnapshot = await getDocs(roomsQuery);
+      const roomsData: Room[] = roomsSnapshot.docs.map(doc => {
+        const d = doc.data() as Room;
+        return {
+          id: doc.id,
+          status: d.status || "occupied",
+          tenantName: d.tenantName || "-",
+          area: d.area || 0,
+          latestTotal: d.latestTotal || 0,
+          electricity: d.electricity || 0,
+          water: d.water || 0,
+          rent: d.rent || 0,
+          service: d.service || 0,
+          extraServices: d.extraServices || [],
+          overdueDays: d.overdueDays || 0,
+          billStatus: d.billStatus || "paid",
+          tenantId: d.tenantId || null,
+          tenantEmail: d.tenantEmail || null,
+          ownerId: d.ownerId,
+        };
+      });
+
+      setRooms(roomsData);
+
+      const billPromises = roomsData.map(async (room) => {
+        const q = query(
+          collection(db, "bills"),
+          where("roomId", "==", room.id),
+          orderBy("createdAt", "desc"),
+          limit(1)
+        );
+        const billSnap = await getDocs(q);
+        if (!billSnap.empty) {
+          return { roomId: room.id, bill: billSnap.docs[0].data() };
+        } else {
+          return { roomId: room.id, bill: null };
+        }
+      });
+
+      const fetchedBills = await Promise.all(billPromises);
+      const billsMap: Record<string, any> = {};
+      fetchedBills.forEach(({ roomId, bill }) => {
+        if (bill) {
+          billsMap[roomId] = bill;
+        }
+      });
+      setRoomBills(billsMap);
+
+    } catch (e) {
+      console.error(e);
+      toast({ title: "โหลดข้อมูลล้มเหลว", status: "error" });
+      setRooms([]);
+      setRoomBills({});
+    } finally {
+      setLoading(false);
+    }
   }, [userId, role, toast]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleDelete = (id: string) => {
     setDeleteId(id);
@@ -306,41 +308,83 @@ export default function Rooms() {
     try {
       const originalRoom = rooms.find(r => r.id === editedRoom.id);
 
+      // If email is being added or changed
       if (editedRoom.tenantEmail && editedRoom.tenantEmail !== originalRoom?.tenantEmail) {
+        const idToken = await auth.currentUser?.getIdToken();
+        if (!idToken) {
+          throw new Error("Authentication token not found. Please log in again.");
+        }
+
         const res = await fetch('/api/create-user', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            email: editedRoom.tenantEmail, 
-            name: editedRoom.tenantName, 
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({
+            email: editedRoom.tenantEmail,
+            name: editedRoom.tenantName,
+            role: 'user',
           }),
         });
 
         const data = await res.json();
 
-        if (!res.ok) {
-          if (res.status === 400 && data.error.includes('อีเมลนี้มีผู้ใช้งานแล้ว')) {
-             toast({ title: "ผู้เช่ามีบัญชีอยู่แล้ว", description: "กำลังเชื่อมโยงบัญชี...", status: "info" });
-          } else {
-            throw new Error(data.error || 'Failed to create or link user');
-          }
-        } else {
-            editedRoom.tenantId = data.user.uid;
-            toast({ title: "สร้างบัญชีผู้เช่าสำเร็จ", description: `รหัสผ่านถูกส่งไปที่ ${editedRoom.tenantEmail}`, status: "success" });
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Failed to create or link user');
         }
+
+        const newTenantId = data.user.uid;
+        editedRoom.tenantId = newTenantId;
+
+        const batch = writeBatch(db);
+
+        // Find and clear the tenant from their old room, if any
+        const oldRoomQuery = query(collection(db, "rooms"), where("tenantId", "==", newTenantId));
+        const oldRoomSnap = await getDocs(oldRoomQuery);
+
+        oldRoomSnap.forEach(doc => {
+          if (doc.id !== editedRoom.id) { // Ensure we don't clear the room we are assigning the tenant to
+            batch.update(doc.ref, {
+              status: "vacant",
+              tenantId: null,
+              tenantEmail: null,
+              tenantName: "",
+              billStatus: "vacant",
+            });
+          }
+        });
+
+        // Update the new room with the tenant
+        batch.set(doc(db, "rooms", editedRoom.id!), { 
+          ...editedRoom,
+          status: 'occupied' // Ensure status is set to occupied
+        }, { merge: true });
+
+        // Update the user document with the new room ID
+        const userRef = doc(db, "users", newTenantId);
+        batch.update(userRef, { 
+          roomId: editedRoom.id,
+          roomNumber: editedRoom.id 
+        });
+
+        await batch.commit();
+
+        toast({ title: "บันทึกข้อมูลและย้ายผู้เช่าสำเร็จ", status: "success" });
+
+      } else {
+        // If email is not changed, just save the other data without batch operations
+        await setDoc(doc(db, "rooms", editedRoom.id!), { ...editedRoom }, { merge: true });
+        toast({ title: "บันทึกข้อมูลห้องสำเร็จ", status: "success" });
       }
 
-      await setDoc(doc(db, "rooms", editedRoom.id!), {
-        ...editedRoom,
-      }, { merge: true });
-
-      setRooms(prev => prev.map(r => r.id === editedRoom.id ? { ...r, ...editedRoom } : r));
-      toast({ title: "บันทึกข้อมูลห้องสำเร็จ", status: "success" });
+      await fetchData();
 
     } catch (e: any) {
       toast({ title: "บันทึกข้อมูลห้องไม่สำเร็จ", description: e.message, status: "error" });
+    } finally {
+      setEditRoom(null);
     }
-    setEditRoom(null);
   };
 
   const handleOpenMeterModal = async () => {
@@ -499,6 +543,212 @@ export default function Rooms() {
         status: "error",
         duration: 5000,
       });
+    }
+  };
+
+  const handleImportCsv = async () => {
+    if (!importFile) {
+      toast({ title: "กรุณาเลือกไฟล์ CSV", status: "warning" });
+      return;
+    }
+    if (!importElecRate || !importWaterRate) {
+      toast({ title: "กรุณากรอกอัตราค่าไฟและค่าน้ำ", status: "warning" });
+      return;
+    }
+
+    setLoading(true);
+    const toastId = toast({
+      title: "กำลังนำเข้าข้อมูล...",
+      status: "info",
+      duration: null,
+      isClosable: true,
+    });
+
+    try {
+      Papa.parse(importFile, {
+        header: true,
+        skipEmptyLines: true,
+        complete: async (results) => {
+          const roomsToImport: Room[] = [];
+          const batch = writeBatch(db);
+          const errors: string[] = [];
+          let successCount = 0;
+
+          for (const row of results.data) {
+            const roomId = (row as any).id?.trim();
+            if (!roomId) {
+              continue; // Skip empty rows
+            }
+
+            const roomRef = doc(db, "rooms", roomId);
+            const roomSnap = await getDoc(roomRef);
+            if (roomSnap.exists()) {
+              errors.push(`ห้อง ${roomId} มีอยู่แล้วในระบบ จะข้ามการนำเข้า`);
+              continue;
+            }
+
+            const status = (row as any).status === "vacant" ? "vacant" : "occupied";
+            const tenantName = (row as any).tenantName || "";
+            
+            if (status === 'occupied' && !tenantName) {
+                errors.push(`ห้อง ${roomId}: ห้องมีคนอยู่แต่ไม่มีชื่อผู้เช่า จะข้ามการนำเข้า`);
+                continue;
+            }
+
+            const rent = Number((row as any).rent) || 0;
+            const service = Number((row as any).service) || 0;
+            const elecUnit = Number((row as any).electricity_unit) || 0;
+            const waterUnit = Number((row as any).water_unit) || 0;
+
+            const elecBill = elecUnit * importElecRate;
+            const waterBill = waterUnit * importWaterRate;
+            const latestTotal = elecBill + waterBill + rent + service;
+
+            const newRoomData: Room = {
+              id: roomId,
+              status: status,
+              tenantName: tenantName,
+              area: Number((row as any).area) || 0,
+              rent: rent,
+              service: service,
+              electricity: elecBill,
+              water: waterBill,
+              latestTotal: latestTotal,
+              overdueDays: 0,
+              billStatus: status === 'vacant' ? 'vacant' : 'unpaid',
+              tenantId: null,
+              tenantEmail: (row as any).tenantEmail || null,
+              ownerId: userId || undefined,
+              extraServices: [], // Removed from import
+            };
+
+            if (newRoomData.tenantEmail) {
+              const emailRegex = /\S+@\S+\.\S+/;
+              if (!emailRegex.test(newRoomData.tenantEmail)) {
+                errors.push(`ห้อง ${roomId}: รูปแบบอีเมลไม่ถูกต้อง (${newRoomData.tenantEmail})`);
+                newRoomData.tenantId = null;
+              } else {
+                try {
+                  const idToken = await auth.currentUser?.getIdToken();
+                  if (!idToken) {
+                    throw new Error("Authentication token not found. Please log in again.");
+                  }
+
+                  const res = await fetch('/api/create-user', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${idToken}`,
+                    },
+                    body: JSON.stringify({ email: newRoomData.tenantEmail, name: newRoomData.tenantName }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) {
+                    if (res.status === 400 && data.error.includes('Email already exists.')) {
+                      newRoomData.tenantId = data.user?.uid;
+                      toast({ title: `ผู้เช่า ${newRoomData.tenantName} (${newRoomData.tenantEmail}) มีบัญชีอยู่แล้ว`, description: "กำลังเชื่อมโยงบัญชี...", status: "info", duration: 3000 });
+                    } else {
+                      throw new Error(data.error || 'Failed to create user');
+                    }
+                  } else {
+                    newRoomData.tenantId = data.user.uid;
+                    toast({ title: `สร้างบัญชีผู้เช่า ${newRoomData.tenantName} สำเร็จ`, description: `รหัสผ่านถูกส่งไปที่ ${newRoomData.tenantEmail}`, status: "success", duration: 3000 });
+                  }
+                } catch (e: any) {
+                  errors.push(`ไม่สามารถสร้าง/เชื่อมโยงบัญชีผู้เช่าสำหรับห้อง ${roomId}: ${e.message}`);
+                  newRoomData.tenantId = null;
+                }
+              }
+            }
+            
+            batch.set(roomRef, newRoomData);
+
+            if (status === 'occupied') {
+              const billDate = (row as any).date ? new Date((row as any).date) : new Date();
+              const dueDate = (row as any).dueDate ? new Date((row as any).dueDate) : new Date(billDate.getTime() + 10 * 24 * 60 * 60 * 1000);
+
+              const newBill = {
+                roomId: roomId,
+                tenantId: newRoomData.tenantId,
+                tenantName: newRoomData.tenantName,
+                createdAt: new Date(),
+                date: billDate,
+                dueDate: dueDate,
+                status: "unpaid",
+                electricityMeterCurrent: elecUnit,
+                electricityMeterPrev: 0,
+                electricityRate: importElecRate,
+                electricityUnit: elecUnit,
+                electricityTotal: elecBill,
+                waterMeterCurrent: waterUnit,
+                waterMeterPrev: 0,
+                waterRate: importWaterRate,
+                waterUnit: waterUnit,
+                waterTotal: waterBill,
+                rent: rent,
+                service: service,
+                extraServices: [],
+                total: latestTotal,
+              };
+              const newBillRef = doc(collection(db, "bills"));
+              batch.set(newBillRef, newBill);
+            }
+            
+            roomsToImport.push(newRoomData);
+            successCount++;
+          }
+
+          if (successCount > 0) {
+            await batch.commit();
+            setRooms(prev => [...prev, ...roomsToImport]);
+            toast.update(toastId, {
+              title: "นำเข้าข้อมูลสำเร็จ!",
+              description: `นำเข้าห้องพัก ${successCount} ห้อง และสร้างบิลเริ่มต้นเรียบร้อยแล้ว ${errors.length > 0 ? `(มีข้อผิดพลาด/คำเตือน ${errors.length} รายการ)` : ''}`,
+              status: "success",
+              duration: 5000,
+            });
+          } else {
+             toast.update(toastId, {
+              title: "ไม่พบข้อมูลห้องที่สามารถนำเข้าได้",
+              description: errors.join('\n') || "ตรวจสอบไฟล์ CSV ของคุณ",
+              status: "warning",
+              duration: 5000,
+            });
+          }
+
+          if (errors.length > 0) {
+            toast({
+              title: "ข้อผิดพลาด/คำเตือนจากการนำเข้า",
+              description: errors.join('\n'),
+              status: "warning",
+              duration: 10000,
+              isClosable: true,
+            });
+          }
+
+          setIsImportOpen(false);
+          setImportFile(null);
+          setImportPreview([]);
+          setLoading(false);
+        },
+        error: (err: any) => {
+          toast.update(toastId, {
+            title: "เกิดข้อผิดพลาดในการอ่านไฟล์ CSV",
+            description: err.message,
+            status: "error",
+            duration: 5000,
+          });
+          setLoading(false);
+        },
+      });
+    } catch (e: any) {
+      toast.update(toastId, {
+        title: "เกิดข้อผิดพลาด",
+        description: e.message,
+        status: "error",
+        duration: 5000,
+      });
+      setLoading(false);
     }
   };
 
@@ -886,87 +1136,93 @@ export default function Rooms() {
         >
           <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4} mb={{ base: 2, md: 0 }}>Rooms</Text>
           {(role === 'admin' || role === 'owner') && (
-            <Wrap spacing={3} mb={{ base: 2, md: 0 }}>
-              <WrapItem>
-                <Button
-                  leftIcon={<FaPlus />}
-                  colorScheme="blue"
-                  variant="solid"
-                  borderRadius="lg"
-                  fontWeight="bold"
-                  size="md"
-                  onClick={() => setIsAddRoomOpen(true)}
-                >
-                  เพิ่มห้อง
-                </Button>
-              </WrapItem>
-              <WrapItem>
-                <Button
-                  leftIcon={<FaUpload />}
-                  colorScheme="teal"
-                  variant="outline"
-                  borderRadius="lg"
-                  fontWeight="bold"
-                  size="md"
-                  onClick={() => setIsImportOpen(true)}
-                >
-                  นำเข้า CSV
-                </Button>
-              </WrapItem>
-              <WrapItem>
-                <Button
-                  leftIcon={<FaFilePdf size={20} />}
-                  colorScheme="purple"
-                  borderRadius="lg"
-                  fontWeight="bold"
-                  size="md"
-                  variant="solid"
-                  onClick={handleDownloadEquipmentAssessment}
-                >
-                  ใบประเมินอุปกรณ์
-                </Button>
-              </WrapItem>
-              <WrapItem>
-                <Button
-                  leftIcon={<FaPlus />}
-                  colorScheme="green"
-                  borderRadius="lg"
-                  fontWeight="bold"
-                  size="md"
-                  variant="solid"
-                  onClick={handleOpenMeterModal}
-                >
-                  เพิ่มข้อมูลทุกห้อง
-                </Button>
-              </WrapItem>
-            </Wrap>
+            <Box mb={{ base: 4, md: 0 }} mr={{ md: 4 }}>
+              <Heading size="sm" mb={2} color="gray.600">การจัดการห้องพัก</Heading>
+              <Wrap spacing={3}>
+                <WrapItem>
+                  <Button
+                    leftIcon={<FaPlus />}
+                    colorScheme="blue"
+                    variant="solid"
+                    borderRadius="lg"
+                    fontWeight="bold"
+                    size="md"
+                    onClick={() => setIsAddRoomOpen(true)}
+                  >
+                    เพิ่มห้อง
+                  </Button>
+                </WrapItem>
+                <WrapItem>
+                  <Button
+                    leftIcon={<FaUpload />}
+                    colorScheme="teal"
+                    variant="outline"
+                    borderRadius="lg"
+                    fontWeight="bold"
+                    size="md"
+                    onClick={() => setIsImportOpen(true)}
+                  >
+                    นำเข้า CSV
+                  </Button>
+                </WrapItem>
+                <WrapItem>
+                  <Button
+                    leftIcon={<FaFilePdf size={20} />}
+                    colorScheme="purple"
+                    borderRadius="lg"
+                    fontWeight="bold"
+                    size="md"
+                    variant="solid"
+                    onClick={handleDownloadEquipmentAssessment}
+                  >
+                    ใบประเมินอุปกรณ์
+                  </Button>
+                </WrapItem>
+                <WrapItem>
+                  <Button
+                    leftIcon={<FaPlus />}
+                    colorScheme="green"
+                    borderRadius="lg"
+                    fontWeight="bold"
+                    size="md"
+                    variant="solid"
+                    onClick={handleOpenMeterModal}
+                  >
+                    เพิ่มข้อมูลทุกห้อง
+                  </Button>
+                </WrapItem>
+              </Wrap>
+            </Box>
           )}
           <Spacer />
-          <HStack spacing={3} w={{ base: "100%", md: "auto" }} align="center">
-            <InputGroup maxW={{ base: "full", md: "220px" }}>
-              <Input
-                placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
-                bg="white"
-                borderRadius="lg"
-                value={searchRoom}
-                onChange={e => setSearchRoom(e.target.value)}
-                size="md"
-              />
-              <InputRightElement pointerEvents="none">
-                <FaSearch color="#A0AEC0" />
-              </InputRightElement>
-            </InputGroup>
-            <Menu>
-              <MenuButton as={Button} leftIcon={<FaFilter />} colorScheme="gray" variant="outline" borderRadius="lg" size="md" fontWeight="bold">
-                กรอง
-              </MenuButton>
-              <MenuList>
-                <MenuItem onClick={() => setFilterType('all')}>แสดงทั้งหมด</MenuItem>
-                <MenuItem onClick={() => setFilterType('unpaid')}>ห้องที่ยังไม่จ่าย</MenuItem>
-                <MenuItem onClick={() => setFilterType('vacant')}>ห้องว่าง</MenuItem>
-              </MenuList>
-            </Menu>
-          </HStack>
+          <Box>
+            <Heading size="sm" mb={2} color="gray.600">ค้นหาและกรอง</Heading>
+            <HStack spacing={3} w={{ base: "100%", md: "auto" }} align="center">
+              <InputGroup maxW={{ base: "full", md: "220px" }}>
+                <Input
+                  placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
+                  bg="white"
+                  borderRadius="lg"
+                  value={searchRoom}
+                  onChange={e => setSearchRoom(e.target.value)}
+                  size="md"
+                />
+                <InputRightElement pointerEvents="none">
+                  <FaSearch color="#A0AEC0" />
+                </InputRightElement>
+              </InputGroup>
+              <Menu>
+                <MenuButton as={Button} leftIcon={<FaFilter />} colorScheme="gray" variant="outline" borderRadius="lg" size="md" fontWeight="bold">
+                  กรอง
+                </MenuButton>
+                <MenuList>
+                  <MenuItem onClick={() => setFilterType('all')}>แสดงทั้งหมด</MenuItem>
+                  <MenuItem onClick={() => setFilterType('unpaid')}>ห้องที่ยังไม่จ่าย</MenuItem>
+                  <MenuItem onClick={() => setFilterType('vacant')}>ห้องว่าง</MenuItem>
+                </MenuList>
+              </Menu>
+            </HStack>
+          </Box>
         </Flex>
         <motion.div
           variants={containerVariants}
@@ -1082,6 +1338,405 @@ export default function Rooms() {
         isCentered
         size={{ base: "full", md: "4xl" }}
       />
+
+      <Modal isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} isCentered size={{ base: "full", md: "xl" }}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>นำเข้าข้อมูลห้องพักจาก CSV</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text mb={4}>
+              ใช้ไฟล์ CSV เพื่อนำเข้าข้อมูลห้องพักพร้อมสร้างบิลใบแรกไปพร้อมกัน
+              โปรดใช้คอลัมน์ตามลำดับดังนี้:
+              <Text as="span" fontWeight="bold"> id, status, tenantName, area, rent, service, electricity_unit, water_unit, billStatus, date, dueDate</Text>
+            </Text>
+            <HStack mb={4} spacing={4}>
+              <FormControl isRequired>
+                <FormLabel>อัตราค่าไฟ (ต่อหน่วย)</FormLabel>
+                <Input 
+                  type="number" 
+                  value={importElecRate} 
+                  onChange={(e) => setImportElecRate(Number(e.target.value))}
+                  placeholder="เช่น 8"
+                />
+              </FormControl>
+              <FormControl isRequired>
+                <FormLabel>อัตราค่าน้ำ (ต่อหน่วย)</FormLabel>
+                <Input 
+                  type="number" 
+                  value={importWaterRate} 
+                  onChange={(e) => setImportWaterRate(Number(e.target.value))}
+                  placeholder="เช่น 20"
+                />
+              </FormControl>
+            </HStack>
+            <Button
+              leftIcon={<FaDownload />}
+              colorScheme="blue"
+              variant="outline"
+              mb={4}
+              onClick={() => {
+                const csvContent = `id,status,tenantName,area,rent,service,electricity_unit,water_unit,billStatus,date,dueDate
+101,occupied,นายสมศักดิ์ รีบจ่าย,30,3500,100,120,25,unpaid,2025-07-01,2025-07-10
+102,occupied,นางสาวมณี มีทรัพย์,28,3200,80,95,18,unpaid,2025-07-01,2025-07-10
+103,occupied,นายอดิศร ใจกล้า,32,3800,120,115,26,unpaid,2025-07-01,2025-07-10
+104,occupied,นายอาทิตย์ ตั้งใจ,25,3000,90,150,30,unpaid,2025-07-01,2025-07-10
+105,occupied,นางสาวนารีรัตน์ สดใส,30,3500,100,105,21,unpaid,2025-07-01,2025-07-10
+106,occupied,นางสมศรี สุขใจ,28,3200,85,88,15,unpaid,2025-07-01,2025-07-10
+107,occupied,นายก้องภพ รุ่งโรจน์,32,3800,125,145,29,unpaid,2025-07-01,2025-07-10
+108,occupied,นายวิรัช พากเพียร,25,3000,95,110,22,unpaid,2025-07-01,2025-07-10
+109,occupied,นางสาวอรุณี แจ่มใส,30,3500,105,130,28,unpaid,2025-07-01,2025-07-10
+110,occupied,นายเดชาพล ก้าวหน้า,28,3200,88,92,17,unpaid,2025-07-01,2025-07-10
+201,occupied,นายเกรียงไกร ใจดี,35,4000,150,200,40,unpaid,2025-07-01,2025-07-10
+202,occupied,นางสาวเบญจวรรณ งามตา,33,3800,130,155,31,unpaid,2025-07-01,2025-07-10
+203,occupied,นางสาวทิพวรรณ สว่าง,30,3500,110,140,25,unpaid,2025-07-01,2025-07-10
+204,occupied,นายธนพล มุ่งมั่น,28,3200,92,100,20,unpaid,2025-07-01,2025-07-10
+205,occupied,นายวีระ ชัยชนะ,35,4000,140,180,35,unpaid,2025-07-01,2025-07-10
+206,occupied,นางสาวศศิธร เพลินใจ,33,3800,135,160,32,unpaid,2025-07-01,2025-07-10
+207,occupied,นางสาวปรีดา ยินดี,30,3500,115,115,23,unpaid,2025-07-01,2025-07-10
+208,occupied,นายจักรพงศ์ สมหวัง,28,3200,98,99,19,unpaid,2025-07-01,2025-07-10
+209,occupied,นายสามารถ เก่งกาจ,35,4000,145,220,45,unpaid,2025-07-01,2025-07-10
+210,occupied,นางสาวจินตนา สุขสบาย,33,3800,138,160,33,unpaid,2025-07-01,2025-07-10
+301,occupied,นายเจริญ รุ่งเรือง,40,4500,180,250,50,unpaid,2025-07-01,2025-07-10
+302,occupied,นายมนตรี มีโชค,38,4200,160,190,38,unpaid,2025-07-01,2025-07-10
+303,occupied,นางสาวอมรรัตน์ พัฒนา,42,4800,190,280,55,unpaid,2025-07-01,2025-07-10
+304,occupied,นางสาวศิริพร รุ่งเรือง,37,4100,155,175,34,unpaid,2025-07-01,2025-07-10
+305,occupied,นายไพศาล เจริญสุข,40,4500,170,240,48,unpaid,2025-07-01,2025-07-10
+306,occupied,นายบัญชา นำทาง,38,4200,165,185,37,unpaid,2025-07-01,2025-07-10
+307,occupied,นางสาวพัชรี สีใส,42,4800,195,290,58,unpaid,2025-07-01,2025-07-10
+308,occupied,นางสาววารุณี ศรีงาม,37,4100,158,165,32,unpaid,2025-07-01,2025-07-10
+309,occupied,นายพรชัย สำเร็จ,40,4500,175,260,52,unpaid,2025-07-01,2025-07-10
+310,occupied,นายสุชาติ ชาตรี,38,4200,168,210,42,unpaid,2025-07-01,2025-07-10`;
+                const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                saveAs(blob, "rooms-template.csv");
+              }}
+            >
+              ดาวน์โหลดไฟล์ CSV ตัวอย่าง
+            </Button>
+
+            <Box
+              borderWidth="2px"
+              borderColor={isDragActive ? "blue.500" : "gray.300"}
+              borderStyle="dashed"
+              borderRadius="md"
+              p={6}
+              textAlign="center"
+              onDragOver={(e: DragEvent<HTMLDivElement>) => {
+                e.preventDefault();
+                setIsDragActive(true);
+              }}
+              onDragLeave={() => setIsDragActive(false)}
+              onDrop={(e: DragEvent<HTMLDivElement>) => {
+                e.preventDefault();
+                setIsDragActive(false);
+                const file = e.dataTransfer.files[0];
+                if (file && file.type === "text/csv") {
+                  setImportFile(file);
+                  Papa.parse(file, {
+                    header: true,
+                    preview: 5, // Show first 5 rows as preview
+                    complete: (results) => {
+                      setImportPreview(results.data);
+                    },
+                  });
+                } else {
+                  toast({ title: "กรุณาเลือกไฟล์ CSV เท่านั้น", status: "error" });
+                }
+              }}
+            >
+              <Input
+                type="file"
+                ref={fileInputRef}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file && file.type === "text/csv") {
+                    setImportFile(file);
+                    Papa.parse(file, {
+                      header: true,
+                      preview: 5,
+                      complete: (results) => {
+                        setImportPreview(results.data);
+                      },
+                    });
+                  } else {
+                    toast({ title: "กรุณาเลือกไฟล์ CSV เท่านั้น", status: "error" });
+                  }
+                }}
+                accept=".csv"
+                hidden
+              />
+              <Button
+                leftIcon={<FaFileCsv />}
+                onClick={() => fileInputRef.current?.click()}
+                colorScheme="gray"
+                variant="outline"
+              >
+                {importFile ? importFile.name : "เลือกไฟล์ CSV หรือลากมาวางที่นี่"}
+              </Button>
+              {importFile && (
+                <Text mt={2} fontSize="sm" color="gray.600">
+                  ไฟล์ที่เลือก: {importFile.name}
+                </Text>
+              )}
+            </Box>
+
+            {importPreview.length > 0 && (
+              <Box mt={4} overflowX="auto"> {/* Added overflowX="auto" */}
+                <Text fontWeight="bold" mb={2}>ตัวอย่างข้อมูล (5 แถวแรก):</Text>
+                <Table variant="striped" size="md">
+                  <Thead>
+                    <Tr>
+                      {Object.keys(importPreview[0]).map((key) => (
+                        <Th key={key} position="sticky" top={0} bg="gray.100" zIndex={1} minWidth="120px"> {/* Added minWidth */}
+                          {key}
+                        </Th>
+                      ))}
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {importPreview.map((row, index) => (
+                      <Tr key={index}>
+                        {Object.keys(row).map((key, idx) => {
+                          let displayValue = String((row as any)[key]);
+                          const originalValue = displayValue; // Store original value for tooltip
+
+                          if (key === 'extraServices' && displayValue) {
+                            try {
+                              const services = JSON.parse(displayValue);
+                              if (Array.isArray(services)) {
+                                displayValue = services.map(s => s.label).join(', ');
+                              }
+                            } catch (e) {
+                              // Keep original string if parsing fails
+                            }
+                          }
+
+                          // Truncate long strings for better readability in table cells
+                          const maxLength = 30; // Max characters to display
+                          const isTruncated = displayValue.length > maxLength;
+                          const truncatedValue = isTruncated ? displayValue.substring(0, maxLength) + '...' : displayValue;
+
+                          return (
+                            <Td key={idx}>
+                              {isTruncated ? (
+                                <Tooltip label={originalValue} placement="top">
+                                  <Text>{truncatedValue}</Text>
+                                </Tooltip>
+                              ) : (
+                                <Text>{displayValue}</Text>
+                              )}
+                            </Td>
+                          );
+                        })}
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </Box>
+            )}
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" onClick={() => setIsImportOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button colorScheme="blue" ml={3} onClick={handleImportCsv} isDisabled={!importFile}>
+              นำเข้าข้อมูล
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)} isCentered size={{ base: "full", md: "xl" }} scrollBehavior="inside">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>ใบประเมินอุปกรณ์</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <FormControl mb={4}>
+              <FormLabel>เลือกห้องที่ต้องการดาวน์โหลด</FormLabel>
+              <Select
+                placeholder="เลือกห้อง"
+                value={selectedRoomForEquipment}
+                onChange={e => setSelectedRoomForEquipment(e.target.value)}
+              >
+                {rooms.map(room => (
+                  <option key={room.id} value={room.id}>
+                    ห้อง {room.id} ({room.tenantName})
+                  </option>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Box mb={6}>
+              <Heading size="md" mb={3} color="blue.700">เพิ่มอุปกรณ์ใหม่</Heading>
+              <VStack spacing={3} align="stretch" p={4} borderWidth="1px" borderRadius="lg" bg="gray.50">
+                <FormControl>
+                  <FormLabel>ชื่ออุปกรณ์</FormLabel>
+                  <InputGroup>
+                    <Input
+                      placeholder="เช่น โทรทัศน์, ตู้เย็น"
+                      value={newEquipmentName}
+                      onChange={(e) => setNewEquipmentName(e.target.value)}
+                    />
+                    {newEquipmentName && (
+                      <InputRightElement>
+                        <CloseButton onClick={() => setNewEquipmentName("")} size="sm" />
+                      </InputRightElement>
+                    )}
+                  </InputGroup>
+                </FormControl>
+                <HStack spacing={3}>
+                  <FormControl flex={1}>
+                    <FormLabel>สถานะ</FormLabel>
+                    <Select
+                      value={newEquipmentStatus}
+                      onChange={(e) => setNewEquipmentStatus(e.target.value)}
+                    >
+                      <option value="ครบ">ครบ</option>
+                      <option value="ไม่ครบ">ไม่ครบ</option>
+                    </Select>
+                  </FormControl>
+                  <FormControl flex={1}>
+                    <FormLabel>สภาพ</FormLabel>
+                    <Select
+                      value={newEquipmentCondition}
+                      onChange={(e) => setNewEquipmentCondition(e.target.value)}
+                    >
+                      <option value="ดี">ดี</option>
+                      <option value="พอใช้">พอใช้</option>
+                      <option value="ชำรุด">ชำรุด</option>
+                    </Select>
+                  </FormControl>
+                </HStack>
+                <FormControl>
+                  <FormLabel>หมายเหตุ (ถ้ามี)</FormLabel>
+                  <Input
+                    placeholder="เช่น มีรอยขีดข่วนเล็กน้อย"
+                    value={newEquipmentNotes}
+                    onChange={(e) => setNewEquipmentNotes(e.target.value)}
+                  />
+                </FormControl>
+                <Button
+                  leftIcon={<FaPlus />}
+                  colorScheme="blue"
+                  onClick={() => {
+                    if (newEquipmentName.trim() === "") {
+                      toast({ title: "กรุณากรอกชื่ออุปกรณ์", status: "warning" });
+                      return;
+                    }
+                    setEquipmentList([
+                      ...equipmentList,
+                      {
+                        name: newEquipmentName,
+                        status: newEquipmentStatus,
+                        condition: newEquipmentCondition,
+                        notes: newEquipmentNotes,
+                      },
+                    ]);
+                    setNewEquipmentName("");
+                    setNewEquipmentStatus("ครบ");
+                    setNewEquipmentCondition("ดี");
+                    setNewEquipmentNotes("");
+                  }}
+                >
+                  เพิ่มอุปกรณ์
+                </Button>
+              </VStack>
+            </Box>
+
+            <Box>
+              <Heading size="md" mb={3} color="blue.700">รายการอุปกรณ์</Heading>
+              <Box maxH="400px" overflowY="auto" mb={4} borderWidth="1px" borderRadius="lg" p={2} bg="white">
+                <Table variant="simple" size="sm" width="full">
+                  <Thead bg="gray.100">
+                    <Tr>
+                      <Th>อุปกรณ์</Th>
+                      <Th>สถานะ</Th>
+                      <Th>สภาพ</Th>
+                      <Th>หมายเหตุ</Th>
+                      <Th></Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {equipmentList.length === 0 ? (
+                      <Tr>
+                        <Td colSpan={5} textAlign="center" color="gray.500">ไม่มีอุปกรณ์ในรายการ</Td>
+                      </Tr>
+                    ) : (
+                      equipmentList.map((item, index) => (
+                        <Tr key={index}>
+                          <Td py={2}>{item.name}</Td>
+                          <Td py={2}>
+                            <Select
+                              value={item.status}
+                              onChange={(e) => {
+                                const newEquipmentList = [...equipmentList];
+                                newEquipmentList[index].status = e.target.value;
+                                setEquipmentList(newEquipmentList);
+                              }}
+                              size="sm"
+                            >
+                              <option value="ครบ">ครบ</option>
+                              <option value="ไม่ครบ">ไม่ครบ</option>
+                            </Select>
+                          </Td>
+                          <Td py={2}>
+                            <Select
+                              value={item.condition}
+                              onChange={(e) => {
+                                const newEquipmentList = [...equipmentList];
+                                newEquipmentList[index].condition = e.target.value;
+                                setEquipmentList(newEquipmentList);
+                              }}
+                              size="sm"
+                            >
+                              <option value="ดี">ดี</option>
+                              <option value="พอใช้">พอใช้</option>
+                              <option value="ชำรุด">ชำรุด</option>
+                            </Select>
+                          </Td>
+                          <Td py={2}>
+                            <Input
+                              value={item.notes}
+                              onChange={(e) => {
+                                const newEquipmentList = [...equipmentList];
+                                newEquipmentList[index].notes = e.target.value;
+                                setEquipmentList(newEquipmentList);
+                              }}
+                              size="sm"
+                            />
+                          </Td>
+                          <Td py={2}>
+                            <IconButton
+                              aria-label="ลบอุปกรณ์"
+                              icon={<FaTrash />}
+                              size="sm"
+                              colorScheme="red"
+                              variant="ghost"
+                              onClick={() => {
+                                const newEquipmentList = equipmentList.filter((_, i) => i !== index);
+                                setEquipmentList(newEquipmentList);
+                              }}
+                            />
+                          </Td>
+                        </Tr>
+                      ))
+                    )}
+                  </Tbody>
+                </Table>
+              </Box>
+            </Box>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="gray" mr={3} onClick={() => setIsEquipmentModalOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button colorScheme="purple" onClick={handleConfirmEquipmentDownload}>
+              ดาวน์โหลด PDF
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)} isCentered size={{ base: "full", md: "xl" }} scrollBehavior="inside">
         <ModalOverlay />

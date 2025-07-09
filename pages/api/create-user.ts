@@ -9,22 +9,23 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { name, email, role, status, roomId } = req.body;
+  const { name, email, role = 'user', status = 'active', roomId } = req.body;
 
-  // Validate required fields
   if (!name || !email) {
     return res.status(400).json({ error: 'Missing name or email' });
   }
 
   try {
     let userRecord;
+    let message = 'User created successfully and password setup email sent.';
+    let isNewUser = false;
+
     try {
       userRecord = await admin.auth().getUserByEmail(email);
-      // If user exists, return an error
-      return res.status(400).json({ error: 'Email already exists.' });
+      message = 'User already exists.';
     } catch (error: any) {
       if (error.code === 'auth/user-not-found') {
-        // Create user with temporary password
+        isNewUser = true;
         const tempPassword = generateTemporaryPassword();
         userRecord = await admin.auth().createUser({
           email,
@@ -33,68 +34,48 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           emailVerified: false,
         });
 
-        // Save user data to Firestore
-        const userData: { [key: string]: any } = {
+        const userData = {
           name,
           email,
-          role: req.body.role || 'user', // Use role from request body, default to 'user'
-          status: status || 'active',
+          role,
+          status,
           avatar: '',
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           uid: userRecord.uid,
         };
-
-        if (role === 'user' && roomId) {
-          userData.roomId = roomId;
-          // Update the room document with the new tenantId
-          await admin.firestore().collection('rooms').doc(roomId).set(
-            { tenantId: userRecord.uid, tenantName: name, status: "occupied" },
-            { merge: true }
-          );
-          
-        }
-
         await admin.firestore().collection('users').doc(userRecord.uid).set(userData);
 
-        // Generate password reset link
         const resetLink = await admin.auth().generatePasswordResetLink(email);
-
-        // Send password reset email
         await transporter.sendMail({
-          from: `"Your App Name" <${process.env.SMTP_USER}>`,
+          from: `"TeeRao" <${process.env.SMTP_USER}>`,
           to: email,
-          subject: 'Set Your New Account Password',
+          subject: 'Set Your New Account Password for TeeRao',
           html: `
             <p>Hello ${name},</p>
-            <p>Your account has been created. Please click the link below to set your new password:</p>
+            <p>An account has been created for you on TeeRao. Please click the link below to set your password:</p>
             <a href="${resetLink}">Set Password</a>
-            <p>If you did not request this account creation, please ignore this email.</p>
+            <p>If you did not request this, please ignore this email.</p>
           `,
         });
       } else {
-        console.error('Error checking user existence or creating user:', error);
-        throw error; // Re-throw other errors
+        throw error;
       }
     }
 
-    res.status(200).json({ 
-      success: true, 
-      message: 'User created and password reset email sent.',
+    res.status(200).json({
+      success: true,
+      message,
       user: {
         uid: userRecord.uid,
         email: userRecord.email,
         name: userRecord.displayName,
-      }
+      },
+      isNewUser,
     });
 
   } catch (error: any) {
     console.error('Error in create-user API:', error);
-    if (error.code === 'auth/email-already-exists') {
-      return res.status(400).json({ error: 'This email is already in use.' });
-    }
-    
-    const errorMessage = error.message || 'An unknown error occurred while creating the user.';
-    res.status(500).json({ error: errorMessage });
+    res.status(500).json({ error: error.message || 'An unknown error occurred.' });
   }
 };
 
