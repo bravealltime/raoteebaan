@@ -743,7 +743,7 @@ export default function Dashboard() {
       <Container maxW="container.xl" py={{ base: 4, md: 8 }}>
         <VStack spacing={8} align="stretch">
           {/* Summary Cards */}
-          <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={{ base: 4, md: 6 }}>
+          <SimpleGrid minChildWidth="180px" spacing={{ base: 4, md: 6 }}>
             <SummaryCard icon={FaHome} label="ห้องทั้งหมด" value={totalRooms} />
             <SummaryCard icon={FaBed} label="ห้องมีผู้เช่า" value={availableRooms} />
             <SummaryCard icon={FaBed} label="ห้องว่าง" value={vacantRooms} color="green.500" />
@@ -803,7 +803,7 @@ export default function Dashboard() {
                 <Spinner size="xl" />
               </Center>
             ) : filteredRooms.length > 0 ? (
-              <RoomPaymentCardList rooms={roomPaymentCards} gridProps={{ columns: { base: 1, md: 2, lg: 3, xl: 4 }, spacing: 6 }} />
+              <RoomPaymentCardList rooms={roomPaymentCards} gridProps={{ columns: { base: 1, md: 2, lg: 4, xl: 4 }, spacing: 6 }} />
             ) : (
               <Center h="200px">
                 <VStack spacing={4}>

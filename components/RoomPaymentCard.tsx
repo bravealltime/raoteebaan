@@ -67,10 +67,8 @@ export function RoomPaymentCard({
       border="1px solid"
       borderColor="gray.100"
       p={6}
-      mb={6}
       w="100%"
-      minW="320px"
-      maxW="360px"
+      h="100%"
       display="flex"
       flexDirection="column"
       gap={5}
@@ -234,7 +232,6 @@ export function RoomPaymentCard({
 export default function RoomPaymentCardList({ rooms = [], itemsPerPage = 4, gridProps = {} }: RoomPaymentCardListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   
-  // Ensure rooms is always an array
   const safeRooms = Array.isArray(rooms) ? rooms : [];
   const totalPages = Math.ceil(safeRooms.length / itemsPerPage);
   
@@ -245,11 +242,10 @@ export default function RoomPaymentCardList({ rooms = [], itemsPerPage = 4, grid
   }, [safeRooms, currentPage, itemsPerPage]);
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    if (page > 0 && page <= totalPages) {
+      setCurrentPage(page);
+    }
   };
-
-  // Determine columns based on number of rooms
-  const columns = rooms.length < 4 ? Math.max(rooms.length, 1) : 4;
 
   if (safeRooms.length === 0) {
     return (
@@ -261,28 +257,15 @@ export default function RoomPaymentCardList({ rooms = [], itemsPerPage = 4, grid
 
   return (
     <Box w="100%">
-      <Flex position="relative" w="100%" justify="center" align="flex-end">
-        {currentRooms.map((room, idx) => (
-          <Box
-            key={room.id}
-            position="relative"
-            ml={idx === 0 ? 0 : -12}
-            zIndex={idx}
-            transition="all 0.2s"
-            _hover={{
-              zIndex: 99,
-              transform: "translateY(-12px) scale(1.04)",
-              boxShadow: "2xl",
-            }}
-          >
-            <RoomPaymentCard {...room} />
-          </Box>
+      <SimpleGrid {...gridProps}>
+        {currentRooms.map((room) => (
+          <RoomPaymentCard key={room.id} {...room} />
         ))}
-      </Flex>
+      </SimpleGrid>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <Flex justify="center" align="center" gap={2} mt={4}>
+        <Flex justify="center" align="center" gap={2} mt={8}>
           <ButtonGroup size="sm" isAttached variant="outline">
             <IconButton
               aria-label="Previous page"
@@ -292,7 +275,6 @@ export default function RoomPaymentCardList({ rooms = [], itemsPerPage = 4, grid
               colorScheme="blue"
             />
             
-            {/* Page Numbers */}
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <Button
                 key={page}
@@ -317,11 +299,13 @@ export default function RoomPaymentCardList({ rooms = [], itemsPerPage = 4, grid
       )}
 
       {/* Page Info */}
-      <Flex justify="center" mt={2}>
-        <Text fontSize="sm" color="gray.600">
-          แสดง {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, safeRooms.length)} จาก {safeRooms.length} ห้อง
-        </Text>
-      </Flex>
+      {totalPages > 1 && (
+        <Flex justify="center" mt={2}>
+          <Text fontSize="sm" color="gray.600">
+            แสดง {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, safeRooms.length)} จาก {safeRooms.length} ห้อง
+          </Text>
+        </Flex>
+      )}
     </Box>
   );
 } 
