@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Button, Input, VStack, SimpleGrid, HStack, CloseButton, Box, InputGroup, InputLeftElement } from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Button, Input, VStack, SimpleGrid, HStack, CloseButton, Box, InputGroup, InputLeftElement, FormControl, FormErrorMessage } from "@chakra-ui/react";
 import { FaTint, FaBolt, FaCalendarAlt, FaPlus, FaHome } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -17,6 +17,7 @@ interface AddRoomModalProps {
 
 export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, lastElecMeter, userRole, ownerId, isCentered, size }: AddRoomModalProps) {
   const [roomId, setRoomId] = useState("");
+  const [isRoomIdInvalid, setIsRoomIdInvalid] = useState(false);
   const [tenantName, setTenantName] = useState("");
   const [tenantEmail, setTenantEmail] = useState(""); // Add state for tenant email
   const [rent, setRent] = useState(0);
@@ -41,8 +42,19 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
       setElecPrev(lastElecMeter !== undefined ? lastElecMeter : 0);
       setRecordDate(new Date()); // Initialize with current date
       setDueDate(new Date());     // Initialize with current date
-    }
+    n    }
   }, [isOpen, lastWaterMeter, lastElecMeter]);
+
+  const handleRoomIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setRoomId(value);
+    // Firestore document IDs must not contain forward slashes or other reserved characters.
+    if (/[/\\.#$[]]/.test(value)) {
+      setIsRoomIdInvalid(true);
+    } else {
+      setIsRoomIdInvalid(false);
+    }
+  };
 
   const handleAddService = () => {
     setExtraServices([...extraServices, { label: "", value: 0 }]);
@@ -55,9 +67,11 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
   };
 
   const handleAdd = () => {
+    if (isRoomIdInvalid || !roomId.trim()) return;
+
     const isVacant = !tenantName.trim(); // Check if tenantName is empty or just whitespace
     onAdd({
-      id: roomId,
+      id: roomId.trim(),
       status: isVacant ? "vacant" : "occupied",
       tenantName: isVacant ? "-" : tenantName,
       tenantEmail,
@@ -81,6 +95,7 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
     });
     // Reset form fields
     setRoomId("");
+    setIsRoomIdInvalid(false);
     setTenantName("");
     setTenantEmail("");
     setRent(0);
@@ -118,10 +133,27 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
                   <Box as={FaHome} color="blue.400" />
                   <Box fontWeight={700} color="blue.600" fontSize="md">ข้อมูลห้อง</Box>
                 </HStack>
-                <Box mb={2}>
-                  <Input mt={1} size="md" placeholder="เลขห้อง *" value={roomId} onChange={e => setRoomId(e.target.value)} bg="gray.50" color="gray.800" borderRadius="lg" borderColor="blue.100" _focus={{ borderColor: 'blue.400' }} />
-                  <Box fontSize="xs" color="gray.400" mt={1}>กรอกเลขห้อง เช่น 101</Box>
-                </Box>
+                <FormControl isInvalid={isRoomIdInvalid} mb={2}>
+                  <InputGroup>
+                    <Input
+                      placeholder="เลขห้อง *"
+                      value={roomId}
+                      onChange={handleRoomIdChange}
+                      bg="gray.50"
+                      color="gray.800"
+                      borderRadius="lg"
+                      borderColor={isRoomIdInvalid ? "red.300" : "blue.100"}
+                      _focus={{ borderColor: isRoomIdInvalid ? 'red.500' : 'blue.400' }}
+                    />
+                  </InputGroup>
+                  {isRoomIdInvalid ? (
+                    <FormErrorMessage mt={1} fontSize="xs">
+                      ชื่อห้องห้ามมีเครื่องหมาย / . # $ [ ]
+                    </FormErrorMessage>
+                  ) : (
+                    <Box fontSize="xs" color="gray.400" mt={1}>กรอกเลขห้อง เช่น 101</Box>
+                  )}
+                </FormControl>
                 <Box mb={2}>
                   <Input mt={1} size="md" placeholder="ชื่อผู้เช่า *" value={tenantName} onChange={e => setTenantName(e.target.value)} bg="gray.50" color="gray.800" borderRadius="lg" borderColor="blue.100" _focus={{ borderColor: 'blue.400' }} />
                   <Box fontSize="xs" color="gray.400" mt={1}>กรอกชื่อผู้เช่า เช่น สมชาย ใจดี</Box>
@@ -239,7 +271,7 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
             </SimpleGrid>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={handleAdd} size="md" borderRadius="xl" fontFamily="Kanit" fontWeight="bold">
+            <Button colorScheme="blue" mr={3} onClick={handleAdd} size="md" borderRadius="xl" fontFamily="Kanit" fontWeight="bold" isDisabled={isRoomIdInvalid || !roomId.trim()}>
               เพิ่ม
             </Button>
             <Button variant="ghost" onClick={onClose} size="md" borderRadius="xl" fontFamily="Kanit">ยกเลิก</Button>

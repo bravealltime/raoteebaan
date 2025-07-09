@@ -220,6 +220,21 @@ export default function Rooms() {
 
   const handleAddRoom = async (roomData: any) => {
     try {
+      const sanitizedRoomId = roomData.id.trim().replace(/[/\\.#$[\]]/g, '-');
+      if (sanitizedRoomId !== roomData.id.trim()) {
+          toast({
+              title: "ชื่อห้องถูกปรับเปลี่ยน",
+              description: `อักขระที่ไม่ได้รับอนุญาตในชื่อห้องถูกเปลี่ยนเป็น '-'`,
+              status: "warning",
+              duration: 5000,
+              isClosable: true,
+          });
+      }
+      
+      if (!sanitizedRoomId) {
+          throw new Error("Room ID cannot be empty.");
+      }
+
       let tenantId = null;
       if (roomData.tenantEmail) {
         const idToken = await auth.currentUser?.getIdToken();
@@ -251,7 +266,7 @@ export default function Rooms() {
       }
 
       const room: Room = {
-        id: roomData.id,
+        id: sanitizedRoomId,
         status: roomData.status || "occupied",
         tenantName: roomData.tenantName,
         area: roomData.area,
@@ -267,7 +282,7 @@ export default function Rooms() {
         ownerId: userId || undefined,
       };
       
-      await setDoc(doc(db, "rooms", room.id), room);
+      await setDoc(doc(db, "rooms", sanitizedRoomId), room);
       setRooms(prev => [...prev, room]);
       toast({ title: "เพิ่มห้องใหม่สำเร็จ", status: "success" });
 
