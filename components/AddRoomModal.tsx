@@ -47,14 +47,9 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
 
   const handleRoomIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setRoomId(value);
-    // Firestore document IDs must not contain forward slashes or other reserved characters.
-    const invalidChars = ['/', '.', '#', '$', '[', ']'];
-    if (invalidChars.some(char => value.includes(char))) {
-      setIsRoomIdInvalid(true);
-    } else {
-      setIsRoomIdInvalid(false);
-    }
+    const numericValue = value.replace(/[^0-9]/g, '');
+    setRoomId(numericValue);
+    setIsRoomIdInvalid(false); // No longer invalid based on characters
   };
 
   const handleAddService = () => {
@@ -134,26 +129,22 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
                   <Box as={FaHome} color="blue.400" />
                   <Box fontWeight={700} color="blue.600" fontSize="md">ข้อมูลห้อง</Box>
                 </HStack>
-                <FormControl isInvalid={isRoomIdInvalid} mb={2}>
+                <FormControl mb={2}>
                   <InputGroup>
                     <Input
                       placeholder="เลขห้อง *"
                       value={roomId}
                       onChange={handleRoomIdChange}
+                      type="tel"
+                      inputMode="numeric"
                       bg="gray.50"
                       color="gray.800"
                       borderRadius="lg"
-                      borderColor={isRoomIdInvalid ? "red.300" : "blue.100"}
-                      _focus={{ borderColor: isRoomIdInvalid ? 'red.500' : 'blue.400' }}
+                      borderColor={"blue.100"}
+                      _focus={{ borderColor: 'blue.400' }}
                     />
                   </InputGroup>
-                  {isRoomIdInvalid ? (
-                    <FormErrorMessage mt={1} fontSize="xs">
-                      ชื่อห้องห้ามมีเครื่องหมาย / . # $ [ ]
-                    </FormErrorMessage>
-                  ) : (
-                    <Box fontSize="xs" color="gray.400" mt={1}>กรอกเลขห้อง เช่น 101</Box>
-                  )}
+                  <Box fontSize="xs" color="gray.400" mt={1}>กรอกเลขห้องที่เป็นตัวเลขเท่านั้น</Box>
                 </FormControl>
                 <Box mb={2}>
                   <Input mt={1} size="md" placeholder="ชื่อผู้เช่า *" value={tenantName} onChange={e => setTenantName(e.target.value)} bg="gray.50" color="gray.800" borderRadius="lg" borderColor="blue.100" _focus={{ borderColor: 'blue.400' }} />
