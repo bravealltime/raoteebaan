@@ -66,6 +66,7 @@ export default function Dashboard() {
   const [parcelCount, setParcelCount] = useState(0);
   const [inboxCount, setInboxCount] = useState(0);
   const [search, setSearch] = useState("");
+  const [users, setUsers] = useState<any[]>([]);
 
   const filterLabels: Record<string, string> = {
     all: 'ทั้งหมด',
@@ -74,11 +75,14 @@ export default function Dashboard() {
     review: 'รอตรวจสอบ'
   };
 
-  const user = {
-    name: "xxx",
-    avatar: "/avatar.png",
-    greeting: "อาทิตย์ 21 มิ.ย. 2568"
-  };
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const querySnapshot = await getDocs(collection(db, "users"));
+      const usersData = querySnapshot.docs.map(doc => ({...doc.data(), uid: doc.id}));
+      setUsers(usersData);
+    };
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -794,6 +798,10 @@ export default function Dashboard() {
               <Center h="200px">
                 <Spinner size="xl" />
               </Center>
+            ) : filterType === 'review' && filteredRooms.length === 0 ? (
+              <Text color="gray.400" textAlign="center" py={8}>
+                ไม่มีรายการรอตรวจสอบ
+              </Text>
             ) : filteredRooms.length > 0 ? (
               <RoomPaymentCardList rooms={roomPaymentCards} gridProps={{ columns: { base: 1, md: 2, lg: 4, xl: 4 }, spacing: 6 }} />
             ) : (
@@ -823,7 +831,7 @@ export default function Dashboard() {
 
       <AddRoomModal isOpen={isOpen} onClose={onClose} onAdd={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} isCentered size={{ base: "full", md: "2xl" }} />
       {editRoom && (
-        <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} isCentered size={{ base: "full", md: "2xl" }} />
+        <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} users={users} isCentered size={{ base: "full", md: "2xl" }} />
       )}
 
       <AlertDialog

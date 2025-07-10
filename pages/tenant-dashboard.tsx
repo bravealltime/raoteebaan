@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc } from "firebase/firestore";
-import MainLayout from "../components/MainLayout";
+import TenantLayout from "../components/TenantLayout";
 import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice } from "react-icons/fa";
 
 interface UserData {
@@ -50,7 +50,7 @@ export default function TenantDashboard() {
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [billHistory, setBillHistory] = useState<BillHistory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState<string | null>(null);
+  
   const { isOpen: isAlertOpen, onOpen: onAlertOpen, onClose: onAlertClose } = useDisclosure();
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [alertRoomId, setAlertRoomId] = useState<string | null>(null);
@@ -61,7 +61,6 @@ export default function TenantDashboard() {
         setLoading(true);
 
         const userDocRef = doc(db, "users", user.uid);
-
         const userUnsubscribe = onSnapshot(userDocRef, (userDoc) => {
           const firestoreData = userDoc.exists() ? userDoc.data() : {};
           const combinedUser = {
@@ -73,7 +72,6 @@ export default function TenantDashboard() {
             roomId: firestoreData.roomId,
           };
           setCurrentUser(combinedUser);
-          setRole(combinedUser.role);
         });
 
         const roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", user.uid), limit(1));
@@ -105,7 +103,6 @@ export default function TenantDashboard() {
           userUnsubscribe();
           roomUnsubscribe();
         };
-
       } else {
         router.replace("/login");
       }
@@ -202,26 +199,18 @@ export default function TenantDashboard() {
 
   if (loading) {
     return (
-      <MainLayout role={role} currentUser={currentUser}>
+      <TenantLayout currentUser={currentUser}>
         <Center h="50vh">
           <Spinner size="xl" color="brand.500" />
         </Center>
-      </MainLayout>
+      </TenantLayout>
     );
   }
 
-  if (role !== "user") {
-    return (
-      <MainLayout role={role} currentUser={currentUser}>
-        <Center h="50vh">
-          <Text color="red.500">Access denied. This page is for tenants only.</Text>
-        </Center>
-      </MainLayout>
-    );
-  }
+  
 
   return (
-    <MainLayout role={role} currentUser={currentUser}>
+    <TenantLayout currentUser={currentUser}>
       <Box p={{ base: 2, md: 4 }} bg="gray.50" minH="100vh">
         <Heading size={{ base: "lg", md: "xl" }} mb={6} color="gray.700">
           แดชบอร์ดผู้เช่า
@@ -458,6 +447,6 @@ export default function TenantDashboard() {
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
-    </MainLayout>
+    </TenantLayout>
   );
 }

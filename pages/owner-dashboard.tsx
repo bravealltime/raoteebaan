@@ -785,6 +785,10 @@ export default function OwnerDashboard() {
               <Center h="200px">
                 <Spinner size="xl" />
               </Center>
+            ) : filterType === 'review' && filteredRooms.length === 0 ? (
+              <Text color="gray.400" textAlign="center" py={8}>
+                ไม่มีรายการรอตรวจสอบ
+              </Text>
             ) : filteredRooms.length > 0 ? (
               <RoomPaymentCardList rooms={roomPaymentCards} gridProps={{ columns: { base: 1, md: 2, lg: 3, xl: 4 }, spacing: 6 }} />
             ) : (

@@ -1,13 +1,14 @@
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
-import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogCloseButton, SimpleGrid } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogCloseButton, SimpleGrid, Badge, Divider, Center } from "@chakra-ui/react";
 import { db, auth } from "../../lib/firebase";
 import { collection, query, where, orderBy, limit, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { onAuthStateChanged } from "firebase/auth";
 import { FaFileInvoice, FaArrowLeft, FaDownload, FaUpload, FaEye, FaTrash, FaCheckCircle } from "react-icons/fa";
 import Script from "next/script";
-import AppHeader from "../../components/AppHeader";
+import TenantLayout from "../../components/TenantLayout";
+import MainLayout from "../../components/MainLayout";
 
 export default function BillDetail() {
   const router = useRouter();
@@ -29,12 +30,6 @@ export default function BillDetail() {
 
   // Hardcode promptpay for now (replace with real data if available)
   const promptpay = "1209701702030";
-
-  const user = {
-    name: "xxx",
-    avatar: "/avatar.png",
-    greeting: "อาทิตย์ 21 มิ.ย. 2568"
-  };
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -63,23 +58,15 @@ export default function BillDetail() {
         );
         const snap = await getDocs(q);
         
-        if (snap.empty) {
-          
-        }
         let roomData: any = null;
         const roomSnap = await getDoc(doc(db, "rooms", String(roomId)));
         if (roomSnap.exists()) {
           roomData = roomSnap.data();
-          
-        } else {
-          
         }
 
         if (!snap.empty) {
           const d = snap.docs[0].data();
           
-
-          // Helper to convert Firestore Timestamp or ISO string to JS Date
           const toDate = (firebaseDate: any): Date | null => {
             if (!firebaseDate) return null;
             if (firebaseDate.seconds) return new Date(firebaseDate.seconds * 1000);
@@ -91,8 +78,7 @@ export default function BillDetail() {
           const dueDate = toDate(d.dueDate);
 
           if (!billDate || !dueDate) {
-            console.error("Invalid date format in bill:", d);
-            setBill(null); // Or handle as an error
+            setBill(null);
             return;
           }
 
@@ -111,7 +97,7 @@ export default function BillDetail() {
             ...(Array.isArray(latestExtraServices)
               ? latestExtraServices.map((svc: any) => ({ label: svc.label || "ค่าบริการเสริม", value: svc.value || 0 }))
               : [])
-          ].filter(item => item.value > 0); // Filter out items with 0 value
+          ].filter(item => item.value > 0);
           
           const total = items.reduce((sum, i) => sum + Number(i.value), 0);
 
@@ -131,29 +117,28 @@ export default function BillDetail() {
           const formatDate = (dateObj: Date) => dateObj.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
           const finalBill = {
-            id: snap.docs[0].id, // Add the bill document ID here
+            id: snap.docs[0].id,
             date: formatDate(billDate),
             dueDate: formatDate(dueDate),
             room: d.roomId,
             tenant: d.tenantName || roomData?.tenantName || "-",
             total,
             items,
-            promptpay: promptpay, // Use the hardcoded one for now
+            promptpay: promptpay,
             rent: latestRent,
             extraServices: latestExtraServices,
             area: roomData?.area || 0,
             status: roomData?.status || "vacant",
             overdueDays: overdueDays,
             billStatus: d.status || "unpaid",
-            proofUrl: d.proofUrl || null, // Fetch existing proof URL
-            meterImageUrl: d.meterImageUrl || null, // Fetch meter image URL
+            proofUrl: d.proofUrl || null,
+            meterImageUrl: d.meterImageUrl || null,
             electricityImageUrl: d.electricityImageUrl || null,
             waterImageUrl: d.waterImageUrl || null,
           };
 
-          
           setBill(finalBill);
-          setProofUrl(d.proofUrl || null); // Set proofUrl state
+          setProofUrl(d.proofUrl || null);
         } else {
           setBill(null);
         }
@@ -177,11 +162,9 @@ export default function BillDetail() {
     }
   }, [bill?.promptpay, bill?.total]);
 
-  // Additional useEffect to retry QR generation after scripts are loaded
   useEffect(() => {
     const checkAndGenerateQR = () => {
       if (typeof window !== "undefined" && (window as any).ThaiQRCode && bill?.promptpay && bill?.total && !qr) {
-        
         try {
           const qrData = (window as any).ThaiQRCode.generate(bill.promptpay, { amount: bill.total });
           setQr(qrData);
@@ -191,22 +174,15 @@ export default function BillDetail() {
       }
     };
 
-    // Check immediately
     checkAndGenerateQR();
     
-    // Also check after a short delay to ensure scripts are loaded
     const timer = setTimeout(checkAndGenerateQR, 1000);
     
     return () => clearTimeout(timer);
   }, [bill?.promptpay, bill?.total, qr]);
 
-  useEffect(() => {
-    
-  }, []);
-
   const handleExportPDF = async () => {
     if (!pdfRef.current) return;
-    // โหลด html2pdf เฉพาะฝั่ง client
     const html2pdf = (await import('html2pdf.js')).default;
     html2pdf()
       .set({
@@ -222,9 +198,6 @@ export default function BillDetail() {
   const handleUploadProof = async () => {
     if (!proofFile || !bill) return;
 
-    
-    
-
     setUploadingProof(true);
     try {
       const storage = getStorage();
@@ -236,10 +209,9 @@ export default function BillDetail() {
       const billDocRef = doc(db, "bills", bill.id);
       await updateDoc(billDocRef, {
         proofUrl: downloadURL,
-        status: "pending", // Change bill status to pending after proof upload
+        status: "pending",
       });
 
-      // Update room billStatus to 'pending'
       if (bill.room) {
         const roomDocRef = doc(db, "rooms", bill.room);
         await updateDoc(roomDocRef, { billStatus: "pending" });
@@ -254,9 +226,9 @@ export default function BillDetail() {
         isClosable: true,
       });
       if (userRole === 'user') {
-        router.push("/tenant-dashboard"); // Redirect to tenant dashboard
+        router.push("/tenant-dashboard");
       } else {
-        router.push("/dashboard"); // Redirect to admin/owner dashboard
+        router.push("/dashboard");
       }
     } catch (error) {
       console.error("Error uploading proof:", error);
@@ -275,19 +247,18 @@ export default function BillDetail() {
   const handleDeleteProof = async () => {
     if (!proofUrl || !bill) return;
 
-    setUploadingProof(true); // Use the same loading state for delete operation
+    setUploadingProof(true);
     try {
       const storage = getStorage();
-      const fileRef = storageRef(storage, proofUrl); // Create ref from URL
+      const fileRef = storageRef(storage, proofUrl);
       await deleteObject(fileRef);
 
       const billDocRef = doc(db, "bills", bill.id);
       await updateDoc(billDocRef, {
         proofUrl: null,
-        status: "unpaid", // Change bill status back to unpaid after proof delete
+        status: "unpaid",
       });
 
-      // Update room billStatus to 'unpaid'
       if (bill.room) {
         const roomDocRef = doc(db, "rooms", bill.room);
         await updateDoc(roomDocRef, { billStatus: "unpaid" });
@@ -301,9 +272,9 @@ export default function BillDetail() {
         isClosable: true,
       });
       if (userRole === 'user') {
-        router.push("/tenant-dashboard"); // Redirect to tenant dashboard
+        router.push("/tenant-dashboard");
       } else {
-        router.push("/dashboard"); // Redirect to admin/owner dashboard
+        router.push("/dashboard");
       }
     } catch (error) {
       console.error("Error deleting proof:", error);
@@ -320,11 +291,11 @@ export default function BillDetail() {
   };
 
   const handleConfirmProof = async () => {
-    setIsConfirmAlertOpen(true); // Open the confirmation alert
+    setIsConfirmAlertOpen(true);
   };
 
   const confirmMarkAsPaid = async () => {
-    setIsConfirmAlertOpen(false); // Close the alert
+    setIsConfirmAlertOpen(false);
     if (!bill) return;
 
     setUploadingProof(true);
@@ -332,10 +303,9 @@ export default function BillDetail() {
       const billDocRef = doc(db, "bills", bill.id);
       await updateDoc(billDocRef, {
         proofUrl: null,
-        status: "paid", // Mark bill as paid
+        status: "paid",
       });
 
-      // Update room billStatus to 'paid'
       if (bill.room) {
         const roomDocRef = doc(db, "rooms", bill.room);
         await updateDoc(roomDocRef, { billStatus: "paid" });
@@ -348,7 +318,7 @@ export default function BillDetail() {
         duration: 3000,
         isClosable: true,
       });
-      router.push("/dashboard"); // Redirect to dashboard after successful confirmation
+      router.push("/dashboard");
     } catch (error) {
       console.error("Error confirming proof:", error);
       toast({
@@ -366,240 +336,190 @@ export default function BillDetail() {
   if (loading) return <Flex minH="100vh" align="center" justify="center"><Spinner size="xl" /></Flex>;
   if (!bill) return <Box p={8}><Text>ไม่พบข้อมูลบิล</Text></Box>;
 
+  const renderContent = () => (
+    <Box maxW="1200px" mx="auto" p={{ base: 2, md: 4 }}>
+      <VStack spacing={6} align="stretch">
+        <Flex justify="space-between" align={{ base: "flex-start", md: "center" }} direction={{ base: "column", md: "row" }} gap={4}>
+          <Box>
+            <Heading size={{ base: "md", lg: "lg" }} color="gray.700">ใบแจ้งหนี้ - ห้อง {roomId}</Heading>
+            <Text color="gray.500">สำหรับ {bill.tenant}</Text>
+          </Box>
+          <Badge colorScheme={
+            bill.billStatus === 'paid' ? 'green' :
+            bill.billStatus === 'pending' ? 'yellow' : 'red'
+          } p={{ base: 2, md: 3 }} borderRadius="full" fontSize={{ base: "sm", md: "md" }}>
+            สถานะ: {
+              bill.billStatus === 'paid' ? 'ชำระแล้ว' :
+              bill.billStatus === 'pending' ? 'รอตรวจสอบ' : 'ค้างชำระ'
+            }
+          </Badge>
+        </Flex>
+
+        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={{ base: 4, md: 6 }}>
+          <Box bg="white" p={{ base: 4, md: 6 }} borderRadius="xl" boxShadow="sm">
+            <VStack spacing={4} align="stretch">
+              <HStack justify="space-between">
+                <Text fontWeight="bold" color="gray.600">วันที่ออกบิล:</Text>
+                <Text>{bill.date}</Text>
+              </HStack>
+              <HStack justify="space-between">
+                <Text fontWeight="bold" color="gray.600">วันครบกำหนด:</Text>
+                <Text color="red.500" fontWeight="bold">{bill.dueDate}</Text>
+              </HStack>
+              <Divider />
+              {bill.items.map((item: any, index: number) => (
+                <HStack key={index} justify="space-between">
+                  <VStack align="start" spacing={0}>
+                    <Text>{item.label}</Text>
+                  </VStack>
+                  <Text>{item.value.toLocaleString()} บาท</Text>
+                </HStack>
+              ))}
+              <Divider />
+              <HStack justify="space-between" fontSize={{ base: "lg", md: "xl" }} fontWeight="bold" color="blue.800">
+                <Text>ยอดรวมสุทธิ</Text>
+                <Text>{bill.total.toLocaleString()} บาท</Text>
+              </HStack>
+            </VStack>
+          </Box>
+
+          <Box bg="white" p={{ base: 4, md: 6 }} borderRadius="xl" boxShadow="sm">
+            <VStack spacing={6} align="stretch">
+              <Heading size="md" color="blue.700" textAlign="center">ช่องทางการชำระเงิน</Heading>
+              {bill.billStatus === 'unpaid' && (
+                <>
+                  <Center>
+                    {qr ? (
+                      <Image src={qr} alt="PromptPay QR Code" boxSize={{ base: "150px", md: "200px" }} />
+                    ) : (
+                      <Spinner />
+                    )}
+                  </Center>
+                  <Text textAlign="center" color="gray.600">สแกน QR Code เพื่อชำระเงินผ่าน PromptPay</Text>
+                  <Divider />
+                  {userRole === "user" && (
+                    !proofUrl ? (
+                      <VStack spacing={4}>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setProofFile(e.target.files ? e.target.files[0] : null)}
+                          style={{ padding: "10px", border: "1px solid #ccc", borderRadius: "md", width: "100%" }}
+                        />
+                        <Button
+                          colorScheme="green"
+                          onClick={handleUploadProof}
+                          isLoading={uploadingProof}
+                          isDisabled={!proofFile || uploadingProof}
+                          leftIcon={<Icon as={FaUpload} />}
+                          w="full"
+                          size="lg"
+                        >
+                          {uploadingProof ? "กำลังอัปโหลด..." : "อัปโหลดสลิป"}
+                        </Button>
+                      </VStack>
+                    ) : (
+                      <VStack spacing={4}>
+                        <Text fontWeight="bold" color="green.600" fontSize="lg">หลักฐานการชำระเงินถูกอัปโหลดแล้ว</Text>
+                        <Image src={proofUrl} alt="Payment Proof" maxW="250px" borderRadius="md" boxShadow="md" />
+                        <HStack spacing={3}>
+                          <Button
+                            colorScheme="teal"
+                            onClick={() => {
+                              setCurrentProofImageUrl(proofUrl);
+                              onProofModalOpen();
+                            }}
+                            leftIcon={<Icon as={FaEye} />}
+                            size="md"
+                          >
+                            ดูหลักฐาน
+                          </Button>
+                          <Button
+                            colorScheme="red"
+                            onClick={handleDeleteProof}
+                            isLoading={uploadingProof}
+                            isDisabled={uploadingProof}
+                            leftIcon={<Icon as={FaTrash} />}
+                            size="md"
+                          >
+                            ลบหลักฐาน
+                          </Button>
+                        </HStack>
+                      </VStack>
+                    )
+                  )}
+                </>
+              )}
+              {bill.billStatus === 'pending' && (
+                <VStack spacing={4}>
+                  <Icon as={FaCheckCircle} w={12} h={12} color="yellow.400" />
+                  <Heading size="md">รอการตรวจสอบ</Heading>
+                  <Text>เราได้รับสลิปของคุณแล้วและกำลังตรวจสอบ</Text>
+                  {bill.proofUrl && <Image src={bill.proofUrl} alt="Uploaded Slip" maxH="150px" borderRadius="md" />}
+                </VStack>
+              )}
+              {bill.billStatus === 'paid' && (
+                <VStack spacing={4}>
+                  <Icon as={FaCheckCircle} w={12} h={12} color="green.400" />
+                  <Heading size="md">ชำระเงินเรียบร้อย</Heading>
+                  {bill.proofUrl && <Image src={bill.proofUrl} alt="Payment Slip" maxH="150px" borderRadius="md" />}
+                </VStack>
+              )}
+            </VStack>
+          </Box>
+        </SimpleGrid>
+
+        <Box mt={8} p={{ base: 4, md: 6 }} borderWidth="1px" borderRadius="xl" borderColor="gray.200" bg="gray.50">
+          <Heading size="md" mb={4} color="gray.700">รูปภาพมิเตอร์</Heading>
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+            <Box>
+              <Text fontWeight="semibold" mb={2} fontSize={{ base: "md", md: "lg" }}>รูปภาพมิเตอร์ไฟฟ้า</Text>
+              {bill.electricityImageUrl ? (
+                <Image src={bill.electricityImageUrl} alt="รูปมิเตอร์ไฟฟ้า" borderRadius="md" maxW="100%" boxShadow="sm" />
+              ) : (
+                <Text color="gray.500">ไม่มีรูปมิเตอร์ไฟฟ้า</Text>
+              )}
+            </Box>
+            <Box>
+              <Text fontWeight="semibold" mb={2} fontSize={{ base: "md", md: "lg" }}>รูปภาพมิเตอร์น้ำ</Text>
+              {bill.waterImageUrl ? (
+                <Image src={bill.waterImageUrl} alt="รูปมิเตอร์น้ำ" borderRadius="md" maxW="100%" boxShadow="sm" />
+              ) : (
+                <Text color="gray.500">ไม่มีรูปมิเตอร์น้ำ</Text>
+              )}
+            </Box>
+          </SimpleGrid>
+        </Box>
+
+        <Button
+          leftIcon={<FaDownload />}
+          colorScheme="green"
+          w={{ base: "full", md: "auto" }}
+          maxW="320px"
+          fontSize={{ base: "md", md: "lg" }}
+          onClick={handleExportPDF}
+          mt={4}
+          size="lg"
+        >
+          ดาวน์โหลด PDF
+        </Button>
+      </VStack>
+    </Box>
+  );
+
   return (
     <>
       <Script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.5.0/qrcode.min.js" strategy="afterInteractive" />
       <Script src="/scripts/promptpay.js" strategy="afterInteractive" />
-      <MainLayout role={userRole} currentUser={currentUser}>
-        <Box maxW="1200px" mx="auto" p={{ base: 2, md: 4 }}>
-          <VStack spacing={6} align="stretch">
-            <Flex justify="space-between" align={{ base: "flex-start", md: "center" }} direction={{ base: "column", md: "row" }} gap={4}>
-              <Box>
-                <Heading size={{ base: "md", lg: "lg" }} color="gray.700">ใบแจ้งหนี้ - ห้อง {roomId}</Heading>
-                <Text color="gray.500">สำหรับ {bill.tenant}</Text>
-              </Box>
-              <Badge colorScheme={
-                bill.billStatus === 'paid' ? 'green' :
-                bill.billStatus === 'pending' ? 'yellow' : 'red'
-              } p={{ base: 2, md: 3 }} borderRadius="full" fontSize={{ base: "sm", md: "md" }}>
-                สถานะ: {
-                  bill.billStatus === 'paid' ? 'ชำระแล้ว' :
-                  bill.billStatus === 'pending' ? 'รอตรวจสอบ' : 'ค้างชำระ'
-                }
-              </Badge>
-            </Flex>
-
-            <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={{ base: 4, md: 6 }}>
-              {/* Bill Details */}
-              <Box bg="white" p={{ base: 4, md: 6 }} borderRadius="xl" boxShadow="sm">
-                <VStack spacing={4} align="stretch">
-                  <HStack justify="space-between">
-                    <Text fontWeight="bold" color="gray.600">วันที่ออกบิล:</Text>
-                    <Text>{bill.date}</Text>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontWeight="bold" color="gray.600">วันครบกำหนด:</Text>
-                    <Text color="red.500" fontWeight="bold">{bill.dueDate}</Text>
-                  </HStack>
-                  <Divider />
-                  {bill.items.map((item: any, index: number) => (
-                    <HStack key={index} justify="space-between">
-                      <VStack align="start" spacing={0}>
-                        <Text>{item.label}</Text>
-                      </VStack>
-                      <Text>{item.value.toLocaleString()} บาท</Text>
-                    </HStack>
-                  ))}
-                  <Divider />
-                  <HStack justify="space-between" fontSize={{ base: "lg", md: "xl" }} fontWeight="bold" color="blue.800">
-                    <Text>ยอดรวมสุทธิ</Text>
-                    <Text>{bill.total.toLocaleString()} บาท</Text>
-                  </HStack>
-                </VStack>
-              </Box>
-
-              {/* Payment Section */}
-              <Box bg="white" p={{ base: 4, md: 6 }} borderRadius="xl" boxShadow="sm">
-                <VStack spacing={6} align="stretch">
-                  <Heading size="md" color="blue.700" textAlign="center">ช่องทางการชำระเงิน</Heading>
-                  {bill.billStatus === 'unpaid' && (
-                    <>
-                      <Center>
-                        {qr ? (
-                          <Image src={qr} alt="PromptPay QR Code" boxSize={{ base: "150px", md: "200px" }} />
-                        ) : (
-                          <Spinner />
-                        )}
-                      </Center>
-                      <Text textAlign="center" color="gray.600">สแกน QR Code เพื่อชำระเงินผ่าน PromptPay</Text>
-                      <Divider />
-                      <Button
-                        leftIcon={<FaUpload />}
-                        colorScheme="green"
-                        size="lg"
-                        onClick={() => {}}
-                      >
-                        อัปโหลดสลิปการโอนเงิน
-                      </Button>
-                    </>
-                  )}
-                  {bill.billStatus === 'pending' && (
-                    <VStack spacing={4}>
-                      <Icon as={FaCheckCircle} w={12} h={12} color="yellow.400" />
-                      <Heading size="md">รอการตรวจสอบ</Heading>
-                      <Text>เราได้รับสลิปของคุณแล้วและกำลังตรวจสอบ</Text>
-                      {bill.proofUrl && <Image src={bill.proofUrl} alt="Uploaded Slip" maxH="150px" borderRadius="md" />}
-                      {(userRole === 'admin' || userRole === 'owner') && (
-                        <HStack>
-                          <Button colorScheme="green" onClick={handleConfirmProof}>ยืนยันการชำระเงิน</Button>
-                          <Button colorScheme="red" onClick={handleDeleteProof}>ปฏิเสธ</Button>
-                        </HStack>
-                      )}
-                    </VStack>
-                  )}
-                  {bill.billStatus === 'paid' && (
-                    <VStack spacing={4}>
-                      <Icon as={FaCheckCircle} w={12} h={12} color="green.400" />
-                      <Heading size="md">ชำระเงินเรียบร้อย</Heading>
-                      {bill.proofUrl && <Image src={bill.proofUrl} alt="Payment Slip" maxH="150px" borderRadius="md" />}
-                    </VStack>
-                  )}
-                </VStack>
-              </Box>
-            </SimpleGrid>
-
-            {/* Meter Images Section */}
-            <Box mt={8} p={{ base: 4, md: 6 }} borderWidth="1px" borderRadius="xl" borderColor="gray.200" bg="gray.50">
-              <Heading size="md" mb={4} color="gray.700">รูปภาพมิเตอร์</Heading>
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                <Box>
-                  <Text fontWeight="semibold" mb={2} fontSize={{ base: "md", md: "lg" }}>รูปภาพมิเตอร์ไฟฟ้า</Text>
-                  {bill.electricityImageUrl ? (
-                    <Image src={bill.electricityImageUrl} alt="รูปมิเตอร์ไฟฟ้า" borderRadius="md" maxW="100%" boxShadow="sm" />
-                  ) : (
-                    <Text color="gray.500">ไม่มีรูปมิเตอร์ไฟฟ้า</Text>
-                  )}
-                </Box>
-                <Box>
-                  <Text fontWeight="semibold" mb={2} fontSize={{ base: "md", md: "lg" }}>รูปภาพมิเตอร์น้ำ</Text>
-                  {bill.waterImageUrl ? (
-                    <Image src={bill.waterImageUrl} alt="รูปมิเตอร์น้ำ" borderRadius="md" maxW="100%" boxShadow="sm" />
-                  ) : (
-                    <Text color="gray.500">ไม่มีรูปมิเตอร์น้ำ</Text>
-                  )}
-                </Box>
-              </SimpleGrid>
-            </Box>
-
-            <Box p={{ base: 4, md: 6 }} borderWidth="1px" borderRadius="xl" borderColor="gray.200" bg="gray.50">
-              <Heading size="md" mb={4} color="blue.700">อัปโหลดหลักฐานการชำระเงิน</Heading>
-              {userRole === "user" ? (
-                !proofUrl ? (
-                  <VStack spacing={4}>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setProofFile(e.target.files ? e.target.files[0] : null)}
-                      style={{ padding: "10px", border: "1px solid #ccc", borderRadius: "md", width: "100%" }}
-                    />
-                    <Button
-                      colorScheme="blue"
-                      onClick={handleUploadProof}
-                      isLoading={uploadingProof}
-                      isDisabled={!proofFile || uploadingProof}
-                      leftIcon={<Icon as={FaUpload} />}
-                      w="full"
-                      size="lg"
-                    >
-                      {uploadingProof ? "กำลังอัปโหลด..." : "อัปโหลดสลิป"}
-                    </Button>
-                  </VStack>
-                ) : (
-                  <VStack spacing={4}>
-                    <Text fontWeight="bold" color="green.600" fontSize="lg">หลักฐานการชำระเงินถูกอัปโหลดแล้ว</Text>
-                    <Image src={proofUrl} alt="Payment Proof" maxW="250px" borderRadius="md" boxShadow="md" />
-                    <HStack spacing={3}>
-                      <Button
-                        colorScheme="teal"
-                        onClick={() => {
-                          setCurrentProofImageUrl(proofUrl);
-                          onProofModalOpen();
-                        }}
-                        leftIcon={<Icon as={FaEye} />}
-                        size="md"
-                      >
-                        ดูหลักฐาน
-                      </Button>
-                      <Button
-                        colorScheme="red"
-                        onClick={handleDeleteProof}
-                        isLoading={uploadingProof}
-                        isDisabled={uploadingProof}
-                        leftIcon={<Icon as={FaTrash} />}
-                        size="md"
-                      >
-                        ลบหลักฐาน
-                      </Button>
-                    </HStack>
-                  </VStack>
-                )
-              ) : (userRole === "owner" || userRole === "admin") && proofUrl ? (
-                <VStack spacing={4}>
-                  <Text fontWeight="bold" color="green.600" fontSize="lg">หลักฐานการชำระเงินถูกอัปโหลดแล้ว</Text>
-                  <Image src={proofUrl} alt="Payment Proof" maxW="250px" borderRadius="md" boxShadow="md" />
-                  <HStack spacing={3}>
-                    <Button
-                      colorScheme="teal"
-                      onClick={() => {
-                        setCurrentProofImageUrl(proofUrl);
-                        onProofModalOpen();
-                      }}
-                      leftIcon={<Icon as={FaEye} />}
-                      size="md"
-                    >
-                      ดูหลักฐาน
-                    </Button>
-                    <Button
-                      colorScheme="green"
-                      onClick={handleConfirmProof}
-                      isLoading={uploadingProof}
-                      isDisabled={uploadingProof}
-                      leftIcon={<Icon as={FaCheckCircle} />}
-                      size="md"
-                    >
-                      ยืนยันหลักฐาน
-                    </Button>
-                    <Button
-                      colorScheme="red"
-                      onClick={handleDeleteProof}
-                      isLoading={uploadingProof}
-                      isDisabled={uploadingProof}
-                      leftIcon={<Icon as={FaTrash} />}
-                      size="md"
-                    >
-                      ลบหลักฐาน
-                    </Button>
-                  </HStack>
-                </VStack>
-              ) : (
-                <Text color="gray.500" fontSize="md">ไม่มีหลักฐานการชำระเงิน</Text>
-              )}
-            </Box>
-
-            <Button
-              leftIcon={<FaDownload />}
-              colorScheme="green"
-              w={{ base: "full", md: "auto" }}
-              maxW="320px"
-              fontSize={{ base: "md", md: "lg" }}
-              onClick={handleExportPDF}
-              mt={4}
-              size="lg"
-            >
-              ดาวน์โหลด PDF
-            </Button>
-          </VStack>
-        </Box>
-      </MainLayout>
+      {userRole === 'user' ? (
+        <TenantLayout currentUser={currentUser}>
+          {renderContent()}
+        </TenantLayout>
+      ) : (
+        <MainLayout role={userRole} currentUser={currentUser}>
+          {renderContent()}
+        </MainLayout>
+      )}
     </>
   );
+}

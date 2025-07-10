@@ -1,24 +1,23 @@
-import { Flex, Box, Modal, ModalOverlay, ModalContent, ModalCloseButton, ModalBody, Image, Text, useToast } from "@chakra-ui/react";
-import AppHeader from "./AppHeader";
-import Sidebar from "./Sidebar";
-import { AnimatePresence, motion } from "framer-motion";
+
+import { Flex, Box, Text, Avatar, Menu, MenuButton, MenuList, MenuItem, MenuDivider, useToast, Image, Modal, ModalOverlay, ModalContent, ModalCloseButton, ModalBody } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import { useEffect, useRef } from "react";
 import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { db, auth } from "../lib/firebase";
+import { signOut } from "firebase/auth";
 import { Conversation } from "../types/chat";
+import { FaSignOutAlt, FaUserCircle, FaInbox } from "react-icons/fa";
+import { AnimatePresence, motion } from "framer-motion";
 
-interface MainLayoutProps {
+interface TenantLayoutProps {
   children: React.ReactNode;
-  role: string | null;
   currentUser?: any | null;
-  showSidebar?: boolean;
   isProofModalOpen?: boolean;
   onProofModalClose?: () => void;
   proofImageUrl?: string | null;
 }
 
-export default function MainLayout({ children, role, currentUser, showSidebar = true, isProofModalOpen, onProofModalClose, proofImageUrl }: MainLayoutProps) {
+export default function TenantLayout({ children, currentUser, isProofModalOpen, onProofModalClose, proofImageUrl }: TenantLayoutProps) {
   const router = useRouter();
   const toast = useToast();
   const notificationSoundRef = useRef<HTMLAudioElement>(null);
@@ -56,13 +55,6 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
           if (playPromise !== undefined) {
             playPromise.catch(error => {
               console.error("Audio play failed:", error);
-              toast({
-                title: "ไม่สามารถเล่นเสียงแจ้งเตือน",
-                description: "เบราว์เซอร์อาจบล็อกเสียงอัตโนมัติ คลิกบนหน้าจอเพื่อเปิดใช้งาน",
-                status: "info",
-                duration: 5000,
-                isClosable: true,
-              });
             });
           }
         }
@@ -77,39 +69,60 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
     }
   }, [currentUser, router.query.conversationId, toast]);
 
-  const SimpleHeader = () => (
-    <Flex
-      as="header"
-      w="full"
-      px={[2, 4, 8]}
-      py={[2, 3]}
-      align="center"
-      bg="whiteAlpha.800"
-      borderRadius="2xl"
-      boxShadow="0 4px 24px 0 rgba(33, 150, 243, 0.10)"
-      mt={[2, 4]}
-      mb={[4, 8]}
-      maxW="100vw"
-      minH="64px"
-      position="relative"
-      zIndex={10}
-      style={{ backdropFilter: "blur(12px)" }}
-      border="1.5px solid brand.50"
-    >
-      <Text fontWeight="extrabold" fontSize={["lg", "2xl"]} color="blue.500" mr={6} letterSpacing={1}>
-        TeeRao
-      </Text>
-    </Flex>
-  );
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout failed", error);
+      toast({
+        title: "Logout Failed",
+        description: "An error occurred while logging out.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
-  
-
-  
   return (
-    <Flex minH="100vh" bg="gray.100">
-      {showSidebar && <Sidebar role={role} currentUser={currentUser} />}
-      <Box flex={1} p={{ base: 4, md: 6 }}>
-        {currentUser && <AppHeader currentUser={currentUser} />}
+    <Flex direction="column" minH="100vh" bg="gray.50">
+      <Box
+        as="header"
+        w="full"
+        px={{ base: 4, md: 8 }}
+        py={3}
+        bg="white"
+        boxShadow="sm"
+        position="sticky"
+        top={0}
+        zIndex={100}
+      >
+        <Flex justify="space-between" align="center" maxW="container.xl" mx="auto">
+          <Text fontWeight="bold" fontSize="2xl" color="blue.600" onClick={() => router.push('/tenant-dashboard')} cursor="pointer">
+            TeeRao
+          </Text>
+          {currentUser && (
+            <Menu>
+              <MenuButton as={Avatar} size="sm" name={currentUser.name} src={currentUser.photoURL} cursor="pointer" />
+              <MenuList>
+                <MenuItem onClick={() => router.push('/profile')} icon={<FaUserCircle />}>
+                  โปรไฟล์
+                </MenuItem>
+                <MenuItem onClick={() => router.push('/inbox')} icon={<FaInbox />}>
+                  กล่องข้อความ
+                </MenuItem>
+                <MenuDivider />
+                <MenuItem onClick={handleLogout} color="red.500" icon={<FaSignOutAlt />}>
+                  ออกจากระบบ
+                </MenuItem>
+              </MenuList>
+            </Menu>
+          )}
+        </Flex>
+      </Box>
+      
+      <Box flex={1} w="full" maxW="container.xl" mx="auto" p={{ base: 4, md: 6 }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={router.pathname}
@@ -117,7 +130,6 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.2 }}
-            style={{ flex: 1 }}
           >
             {children}
           </motion.div>

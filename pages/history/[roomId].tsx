@@ -1,10 +1,12 @@
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import {
-  Box, Heading, Text, Flex, Button, Input, Table, Thead, Tbody, Tr, Th, Td, Icon, InputGroup, InputLeftElement, Stack, useToast, useBreakpointValue, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay
+  Box, Heading, Text, Flex, Button, Input, Table, Thead, Tbody, Tr, Th, Td, Icon, InputGroup, InputLeftElement, Stack, useToast, useBreakpointValue, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay,
+  TableContainer
 } from "@chakra-ui/react";
 import { FaArrowLeft, FaCalculator, FaBolt, FaTint, FaTrash } from "react-icons/fa";
-import AppHeader from "../../components/AppHeader";
+import MainLayout from "../../components/MainLayout";
+import TenantLayout from "../../components/TenantLayout";
 import { db, auth } from "../../lib/firebase";
 import { collection, addDoc, query, where, orderBy, limit, getDocs, deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
@@ -286,195 +288,390 @@ export default function HistoryRoom() {
   };
 
   return (
-    <MainLayout role={userRole} currentUser={currentUser}>
-      <Box minH="100vh" p={{ base: 2, md: 4 }} color="gray.800">
-        <Flex align="center" mb={6} direction={{ base: "column", md: "row" }} gap={4}>
-          <Button leftIcon={<FaArrowLeft />} variant="ghost" colorScheme="blue" borderRadius="lg" size="md" onClick={() => router.back()} w={{ base: "full", md: "auto" }}>กลับหน้าหลัก</Button>
-          <Heading fontWeight="bold" fontSize={{ base: "xl", md: "2xl" }} color="gray.700" ml={{ base: 0, md: 4 }} textAlign={{ base: "center", md: "left" }} w="full">
-            ประวัติค่าไฟ - ห้อง {roomId}
-          </Heading>
-        </Flex>
-        
-        {/* แสดงข้อมูลห้อง */}
-        {roomData && (
-          <Box bg="white" borderRadius="xl" boxShadow="sm" p={{ base: 4, md: 6 }} mb={6}>
-            <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} color="blue.700" mb={3}>ข้อมูลห้อง</Text>
-            <Flex gap={6} flexWrap="wrap" direction={{ base: "column", sm: "row" }}>
-              <Box>
-                <Text color="gray.600" fontSize="sm">ชื่อผู้เช่า</Text>
-                <Text fontWeight="semibold" color="gray.800" fontSize={{ base: "md", md: "lg" }}>{roomData.tenantName || '-'}</Text>
+    (userRole === 'user' ?
+      <TenantLayout currentUser={currentUser}>
+        <Box minH="100vh" p={{ base: 2, md: 4 }} color="gray.800">
+          <Flex align="center" mb={6} direction={{ base: "column", md: "row" }} gap={4}>
+            <Button leftIcon={<FaArrowLeft />} variant="ghost" colorScheme="blue" borderRadius="lg" size="md" onClick={() => router.back()} w={{ base: "full", md: "auto" }}>กลับหน้าหลัก</Button>
+            <Heading fontWeight="bold" fontSize={{ base: "xl", md: "2xl" }} color="gray.700" ml={{ base: 0, md: 4 }} textAlign={{ base: "center", md: "left" }} w="full">
+              ประวัติค่าไฟ - ห้อง {roomId}
+            </Heading>
+          </Flex>
+          
+          {/* แสดงข้อมูลห้อง */}
+          {roomData && (
+            <Box bg="white" borderRadius="xl" boxShadow="sm" p={{ base: 4, md: 6 }} mb={6}>
+              <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} color="blue.700" mb={3}>ข้อมูลห้อง</Text>
+              <Flex gap={6} flexWrap="wrap" direction={{ base: "column", sm: "row" }}>
+                <Box>
+                  <Text color="gray.600" fontSize="sm">ชื่อผู้เช่า</Text>
+                  <Text fontWeight="semibold" color="gray.800" fontSize={{ base: "md", md: "lg" }}>{roomData.tenantName || '-'}</Text>
+                </Box>
+                <Box>
+                  <Text color="gray.600" fontSize="sm">ขนาดห้อง</Text>
+                  <Text fontWeight="semibold" color="gray.800" fontSize={{ base: "md", md: "lg" }}>{roomData.area || 0} ตร.ม.</Text>
+                </Box>
+                <Box>
+                  <Text color="gray.600" fontSize="sm">สถานะ</Text>
+                  <Text fontWeight="semibold" color={roomData.status === 'occupied' ? 'green.600' : 'gray.600'} fontSize={{ base: "md", md: "lg" }}>
+                    {roomData.status === 'occupied' ? 'มีคนอยู่' : 'ว่าง'}
+                  </Text>
+                </Box>
+                <Box>
+                  <Text color="gray.600" fontSize="sm">ค่าเช่า</Text>
+                  <Text fontWeight="semibold" color="gray.800" fontSize={{ base: "md", md: "lg" }}>฿{roomData.rent?.toLocaleString('th-TH') || 0}</Text>
+                </Box>
+              </Flex>
+            </Box>
+          )}
+          {userRole !== 'user' && (
+            <Flex gap={6} flexWrap="wrap" mb={8} direction={{ base: "column", lg: "row" }}>
+              {/* Card: บันทึกค่าไฟฟ้า */}
+              <Box flex={1} minW={{ base: "full", md: "320px" }} bg="white" borderRadius="xl" boxShadow="sm" p={{ base: 4, md: 6 }}>
+                <Flex align="center" mb={4} gap={2}>
+                  <Icon as={FaBolt} color="yellow.500" boxSize={6} />
+                  <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} color="blue.700">บันทึกค่าไฟฟ้ารอบใหม่</Text>
+                </Flex>
+                <Flex gap={3} mb={4} direction={{ base: "column", sm: "row" }}>
+                  <Box flex={1} w="full">
+                    <Text mb={1} color="gray.600" fontSize="sm">วันที่จด</Text>
+                    <Input type="date" value={electricity.date} onChange={e => setElectricity({ ...electricity, date: e.target.value })} size="md" bg="gray.50" borderRadius="md" />
+                  </Box>
+                  <Box flex={1} w="full">
+                    <Text mb={1} color="gray.600" fontSize="sm">วันครบกำหนด</Text>
+                    <Input type="date" value={electricity.dueDate} onChange={e => setElectricity({ ...electricity, dueDate: e.target.value })} size="md" bg="gray.50" borderRadius="md" />
+                  </Box>
+                </Flex>
+                <Box mb={3}>
+                  <Text mb={1} color="gray.600" fontSize="sm">เลขมิเตอร์ปัจจุบัน</Text>
+                  <InputGroup size="md">
+                    <InputLeftElement pointerEvents="none"><FaBolt color="#fbbf24" /></InputLeftElement>
+                    <Input placeholder="เลขมิเตอร์" value={electricity.meter} onChange={e => setElectricity({ ...electricity, meter: e.target.value })} bg="gray.50" borderRadius="md" />
+                  </InputGroup>
+                </Box>
+                <Box mb={3}>
+                  <Text mb={1} color="gray.600" fontSize="sm">ค่ามิเตอร์ครั้งก่อน</Text>
+                  <Input value={electricity.prev} isReadOnly size="md" bg="gray.100" color="gray.500" borderRadius="md" />
+                  <Text fontSize="xs" color="gray.400" mt={1}>
+                    {roomData ? 'จากข้อมูลห้อง' : history.length > 0 ? 'จากประวัติล่าสุด' : 'ไม่มีข้อมูล'}
+                  </Text>
+                </Box>
+                <Box mb={3}>
+                  <Text mb={1} color="gray.600" fontSize="sm">เรทค่าไฟ (บาท/หน่วย)</Text>
+                  <Input placeholder="เช่น 4.5" value={electricity.rate} onChange={e => setElectricity({ ...electricity, rate: e.target.value })} size="md" bg="gray.50" type="number" min="0" step="0.01" borderRadius="md" />
+                  <Text fontSize="xs" color="gray.400" mt={1}>
+                    {history.length > 0 ? 'จากประวัติล่าสุด' : 'ค่าเริ่มต้น'}
+                  </Text>
+                </Box>
               </Box>
-              <Box>
-                <Text color="gray.600" fontSize="sm">ขนาดห้อง</Text>
-                <Text fontWeight="semibold" color="gray.800" fontSize={{ base: "md", md: "lg" }}>{roomData.area || 0} ตร.ม.</Text>
-              </Box>
-              <Box>
-                <Text color="gray.600" fontSize="sm">สถานะ</Text>
-                <Text fontWeight="semibold" color={roomData.status === 'occupied' ? 'green.600' : 'gray.600'} fontSize={{ base: "md", md: "lg" }}>
-                  {roomData.status === 'occupied' ? 'มีคนอยู่' : 'ว่าง'}
-                </Text>
-              </Box>
-              <Box>
-                <Text color="gray.600" fontSize="sm">ค่าเช่า</Text>
-                <Text fontWeight="semibold" color="gray.800" fontSize={{ base: "md", md: "lg" }}>฿{roomData.rent?.toLocaleString('th-TH') || 0}</Text>
+              {/* Card: บันทึกค่าน้ำ */}
+              <Box flex={1} minW={{ base: "full", md: "320px" }} bg="white" borderRadius="xl" boxShadow="sm" p={{ base: 4, md: 6 }}>
+                <Flex align="center" mb={4} gap={2}>
+                  <Icon as={FaTint} color="blue.500" boxSize={6} />
+                  <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} color="blue.700">บันทึกค่าน้ำรอบใหม่</Text>
+                </Flex>
+                <Box mb={3}>
+                  <Text mb={1} color="gray.600" fontSize="sm">เลขมิเตอร์น้ำปัจจุบัน</Text>
+                  <InputGroup size="md">
+                    <InputLeftElement pointerEvents="none"><FaTint color="#38bdf8" /></InputLeftElement>
+                    <Input placeholder="เลขมิเตอร์น้ำ" value={water.meter} onChange={e => setWater({ ...water, meter: e.target.value })} bg="gray.50" borderRadius="md" />
+                  </InputGroup>
+                </Box>
+                <Box mb={3}>
+                  <Text mb={1} color="gray.600" fontSize="sm">ค่ามิเตอร์น้ำครั้งก่อน</Text>
+                  <Input value={water.prev} isReadOnly size="md" bg="gray.100" color="gray.500" borderRadius="md" />
+                  <Text fontSize="xs" color="gray.400" mt={1}>
+                    {roomData ? 'จากข้อมูลห้อง' : history.length > 0 ? 'จากประวัติล่าสุด' : 'ไม่มีข้อมูล'}
+                  </Text>
+                </Box>
+                <Box mb={3}>
+                  <Text mb={1} color="gray.600" fontSize="sm">เรทค่าน้ำ (บาท/หน่วย)</Text>
+                  <Input placeholder="เช่น 15.5" value={water.rate} onChange={e => setWater({ ...water, rate: e.target.value })} size="md" bg="gray.50" type="number" min="0" step="0.01" borderRadius="md" />
+                  <Text fontSize="xs" color="gray.400" mt={1}>
+                    {history.length > 0 ? 'จากประวัติล่าสุด' : 'ค่าเริ่มต้น'}
+                  </Text>
+                </Box>
               </Box>
             </Flex>
-          </Box>
-        )}
-        {userRole !== 'user' && (
-          <Flex gap={6} flexWrap="wrap" mb={8} direction={{ base: "column", lg: "row" }}>
-            {/* Card: บันทึกค่าไฟฟ้า */}
-            <Box flex={1} minW={{ base: "full", md: "320px" }} bg="white" borderRadius="xl" boxShadow="sm" p={{ base: 4, md: 6 }}>
-              <Flex align="center" mb={4} gap={2}>
-                <Icon as={FaBolt} color="yellow.500" boxSize={6} />
-                <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} color="blue.700">บันทึกค่าไฟฟ้ารอบใหม่</Text>
-              </Flex>
-              <Flex gap={3} mb={4} direction={{ base: "column", sm: "row" }}>
-                <Box flex={1} w="full">
-                  <Text mb={1} color="gray.600" fontSize="sm">วันที่จด</Text>
-                  <Input type="date" value={electricity.date} onChange={e => setElectricity({ ...electricity, date: e.target.value })} size="md" bg="gray.50" borderRadius="md" />
-                </Box>
-                <Box flex={1} w="full">
-                  <Text mb={1} color="gray.600" fontSize="sm">วันครบกำหนด</Text>
-                  <Input type="date" value={electricity.dueDate} onChange={e => setElectricity({ ...electricity, dueDate: e.target.value })} size="md" bg="gray.50" borderRadius="md" />
-                </Box>
-              </Flex>
-              <Box mb={3}>
-                <Text mb={1} color="gray.600" fontSize="sm">เลขมิเตอร์ปัจจุบัน</Text>
-                <InputGroup size="md">
-                  <InputLeftElement pointerEvents="none"><FaBolt color="#fbbf24" /></InputLeftElement>
-                  <Input placeholder="เลขมิเตอร์" value={electricity.meter} onChange={e => setElectricity({ ...electricity, meter: e.target.value })} bg="gray.50" borderRadius="md" />
-                </InputGroup>
-              </Box>
-              <Box mb={3}>
-                <Text mb={1} color="gray.600" fontSize="sm">ค่ามิเตอร์ครั้งก่อน</Text>
-                <Input value={electricity.prev} isReadOnly size="md" bg="gray.100" color="gray.500" borderRadius="md" />
-                <Text fontSize="xs" color="gray.400" mt={1}>
-                  {roomData ? 'จากข้อมูลห้อง' : history.length > 0 ? 'จากประวัติล่าสุด' : 'ไม่มีข้อมูล'}
-                </Text>
-              </Box>
-              <Box mb={3}>
-                <Text mb={1} color="gray.600" fontSize="sm">เรทค่าไฟ (บาท/หน่วย)</Text>
-                <Input placeholder="เช่น 4.5" value={electricity.rate} onChange={e => setElectricity({ ...electricity, rate: e.target.value })} size="md" bg="gray.50" type="number" min="0" step="0.01" borderRadius="md" />
-                <Text fontSize="xs" color="gray.400" mt={1}>
-                  {history.length > 0 ? 'จากประวัติล่าสุด' : 'ค่าเริ่มต้น'}
-                </Text>
-              </Box>
-            </Box>
-            {/* Card: บันทึกค่าน้ำ */}
-            <Box flex={1} minW={{ base: "full", md: "320px" }} bg="white" borderRadius="xl" boxShadow="sm" p={{ base: 4, md: 6 }}>
-              <Flex align="center" mb={4} gap={2}>
-                <Icon as={FaTint} color="blue.500" boxSize={6} />
-                <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} color="blue.700">บันทึกค่าน้ำรอบใหม่</Text>
-              </Flex>
-              <Box mb={3}>
-                <Text mb={1} color="gray.600" fontSize="sm">เลขมิเตอร์น้ำปัจจุบัน</Text>
-                <InputGroup size="md">
-                  <InputLeftElement pointerEvents="none"><FaTint color="#38bdf8" /></InputLeftElement>
-                  <Input placeholder="เลขมิเตอร์น้ำ" value={water.meter} onChange={e => setWater({ ...water, meter: e.target.value })} bg="gray.50" borderRadius="md" />
-                </InputGroup>
-              </Box>
-              <Box mb={3}>
-                <Text mb={1} color="gray.600" fontSize="sm">ค่ามิเตอร์น้ำครั้งก่อน</Text>
-                <Input value={water.prev} isReadOnly size="md" bg="gray.100" color="gray.500" borderRadius="md" />
-                <Text fontSize="xs" color="gray.400" mt={1}>
-                  {roomData ? 'จากข้อมูลห้อง' : history.length > 0 ? 'จากประวัติล่าสุด' : 'ไม่มีข้อมูล'}
-                </Text>
-              </Box>
-              <Box mb={3}>
-                <Text mb={1} color="gray.600" fontSize="sm">เรทค่าน้ำ (บาท/หน่วย)</Text>
-                <Input placeholder="เช่น 15.5" value={water.rate} onChange={e => setWater({ ...water, rate: e.target.value })} size="md" bg="gray.50" type="number" min="0" step="0.01" borderRadius="md" />
-                <Text fontSize="xs" color="gray.400" mt={1}>
-                  {history.length > 0 ? 'จากประวัติล่าสุด' : 'ค่าเริ่มต้น'}
-                </Text>
-              </Box>
-            </Box>
-          </Flex>
-        )}
-        {/* ปุ่มบันทึกข้อมูลรวม */}
-        {userRole !== 'user' && (
-          <Flex justify="flex-end" mb={8}>
-            <Button leftIcon={<FaCalculator />} colorScheme="blue" size="md" borderRadius="lg" fontWeight="bold" px={6} onClick={handleSaveData} isLoading={isSaving}>
-              บันทึกข้อมูล
-            </Button>
-          </Flex>
-        )}
-        {/* Card: ประวัติการคำนวณ */}
-        <Box bg="white" borderRadius="xl" boxShadow="sm" p={{ base: 4, md: 6 }}>
-          <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} color="blue.700" mb={4}>ประวัติการคำนวณ</Text>
-          <TableContainer>
-            <Table size={{ base: "sm", md: "md" }} variant="simple">
-              <Thead bg="gray.50">
-                <Tr>
-                  <Th>วันที่</Th>
-                  <Th color="orange.500">หน่วยไฟ</Th>
-                  <Th>เรทไฟ</Th>
-                  <Th color="green.500">ค่าไฟห้อง</Th>
-                  <Th>หน่วยน้ำ</Th>
-                  <Th>เรทน้ำ</Th>
-                  <Th color="blue.500">ค่าน้ำห้อง</Th>
-                  {userRole !== 'user' && <Th>การดำเนินการ</Th>}
-                </Tr>
-              </Thead>
-              <Tbody>
-                {history.length === 0 ? (
+          )}
+          {/* ปุ่มบันทึกข้อมูลรวม */}
+          {userRole !== 'user' && (
+            <Flex justify="flex-end" mb={8}>
+              <Button leftIcon={<FaCalculator />} colorScheme="blue" size="md" borderRadius="lg" fontWeight="bold" px={6} onClick={handleSaveData} isLoading={isSaving}>
+                บันทึกข้อมูล
+              </Button>
+            </Flex>
+          )}
+          {/* Card: ประวัติการคำนวณ */}
+          <Box bg="white" borderRadius="xl" boxShadow="sm" p={{ base: 4, md: 6 }}>
+            <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} color="blue.700" mb={4}>ประวัติการคำนวณ</Text>
+            <TableContainer>
+              <Table size={{ base: "sm", md: "md" }} variant="simple">
+                <Thead bg="gray.50">
                   <Tr>
-                    <Td colSpan={userRole !== 'user' ? 8 : 7} textAlign="center" color="gray.500" py={8}>ไม่มีประวัติการคำนวณ</Td>
+                    <Th>วันที่</Th>
+                    <Th color="orange.500">หน่วยไฟ</Th>
+                    <Th>เรทไฟ</Th>
+                    <Th color="green.500">ค่าไฟห้อง</Th>
+                    <Th>หน่วยน้ำ</Th>
+                    <Th>เรทน้ำ</Th>
+                    <Th color="blue.500">ค่าน้ำห้อง</Th>
+                    {userRole !== 'user' && <Th>การดำเนินการ</Th>}
                   </Tr>
-                ) : (
-                  history.map((item, idx) => (
-                    <Tr key={item.id || idx}>
-                      <Td>{formatDate(item.date)}</Td>
-                      <Td color="orange.500">{item.electricityUnit}</Td>
-                      <Td>{item.electricityRate ? item.electricityRate : '-'}</Td>
-                      <Td color="green.500">
-                        {typeof item.electricityTotal === 'number'
-                          ? item.electricityTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                          : '-'}
-                      </Td>
-                      <Td>{item.waterUnit}</Td>
-                      <Td>{item.waterRate ? item.waterRate : '-'}</Td>
-                      <Td color="blue.500">
-                        {typeof item.waterTotal === 'number'
-                          ? item.waterTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                          : '-'}
-                      </Td>
-                      {userRole !== 'user' && (
-                        <Td>
-                          <Button size="sm" colorScheme="red" variant="ghost" borderRadius="lg" onClick={() => handleDeleteBill(item.id)} leftIcon={<FaTrash />}>
-                            ลบ
-                          </Button>
-                        </Td>
-                      )}
+                </Thead>
+                <Tbody>
+                  {history.length === 0 ? (
+                    <Tr>
+                      <Td colSpan={userRole !== 'user' ? 8 : 7} textAlign="center" color="gray.500" py={8}>ไม่มีประวัติการคำนวณ</Td>
                     </Tr>
-                  ))
-                )}
-              </Tbody>
-            </Table>
-          </TableContainer>
+                  ) : (
+                    history.map((item, idx) => (
+                      <Tr key={item.id || idx}>
+                        <Td>{formatDate(item.date)}</Td>
+                        <Td color="orange.500">{item.electricityUnit}</Td>
+                        <Td>{item.electricityRate ? item.electricityRate : '-'}</Td>
+                        <Td color="green.500">
+                          {typeof item.electricityTotal === 'number'
+                            ? item.electricityTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                            : '-'}
+                        </Td>
+                        <Td>{item.waterUnit}</Td>
+                        <Td>{item.waterRate ? item.waterRate : '-'}</Td>
+                        <Td color="blue.500">
+                          {typeof item.waterTotal === 'number'
+                            ? item.waterTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                            : '-'}
+                        </Td>
+                        {userRole !== 'user' && (
+                          <Td>
+                            <Button size="sm" colorScheme="red" variant="ghost" borderRadius="lg" onClick={() => handleDeleteBill(item.id)} leftIcon={<FaTrash />}>
+                              ลบ
+                            </Button>
+                          </Td>
+                        )}
+                      </Tr>
+                    ))
+                  )}
+                </Tbody>
+              </Table>
+            </TableContainer>
+          </Box>
+          {userRole !== 'user' && (
+            <AlertDialog
+              isOpen={!!deleteConfirmId}
+              leastDestructiveRef={cancelRef}
+              onClose={() => setDeleteConfirmId(null)}
+              isCentered
+            >
+              <AlertDialogOverlay />
+              <AlertDialogContent borderRadius="xl" m={{ base: 4, md: "auto" }}>
+                <AlertDialogHeader fontWeight="bold" color="red.600">ยืนยันการลบข้อมูล</AlertDialogHeader>
+                <AlertDialogBody>คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลบิลนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</AlertDialogBody>
+                <AlertDialogFooter>
+                  <Button ref={cancelRef} onClick={() => setDeleteConfirmId(null)} borderRadius="lg" size="md">
+                    ยกเลิก
+                  </Button>
+                  <Button colorScheme="red" onClick={confirmDeleteBill} ml={3} borderRadius="lg" size="md">
+                    ลบ
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </Box>
-        {userRole !== 'user' && (
-          <AlertDialog
-            isOpen={!!deleteConfirmId}
-            leastDestructiveRef={cancelRef}
-            onClose={() => setDeleteConfirmId(null)}
-            isCentered
-          >
-            <AlertDialogOverlay />
-            <AlertDialogContent borderRadius="xl" m={{ base: 4, md: "auto" }}>
-              <AlertDialogHeader fontWeight="bold" color="red.600">ยืนยันการลบข้อมูล</AlertDialogHeader>
-              <AlertDialogBody>คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลบิลนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</AlertDialogBody>
-              <AlertDialogFooter>
-                <Button ref={cancelRef} onClick={() => setDeleteConfirmId(null)} borderRadius="lg" size="md">
-                  ยกเลิก
-                </Button>
-                <Button colorScheme="red" onClick={confirmDeleteBill} ml={3} borderRadius="lg" size="md">
-                  ลบ
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        )}
-      </Box>
-    </MainLayout>
+      </TenantLayout>
+      :
+      <MainLayout role={userRole} currentUser={currentUser}>
+        <Box minH="100vh" p={{ base: 2, md: 4 }} color="gray.800">
+          <Flex align="center" mb={6} direction={{ base: "column", md: "row" }} gap={4}>
+            <Button leftIcon={<FaArrowLeft />} variant="ghost" colorScheme="blue" borderRadius="lg" size="md" onClick={() => router.back()} w={{ base: "full", md: "auto" }}>กลับหน้าหลัก</Button>
+            <Heading fontWeight="bold" fontSize={{ base: "xl", md: "2xl" }} color="gray.700" ml={{ base: 0, md: 4 }} textAlign={{ base: "center", md: "left" }} w="full">
+              ประวัติค่าไฟ - ห้อง {roomId}
+            </Heading>
+          </Flex>
+          
+          {/* แสดงข้อมูลห้อง */}
+          {roomData && (
+            <Box bg="white" borderRadius="xl" boxShadow="sm" p={{ base: 4, md: 6 }} mb={6}>
+              <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} color="blue.700" mb={3}>ข้อมูลห้อง</Text>
+              <Flex gap={6} flexWrap="wrap" direction={{ base: "column", sm: "row" }}>
+                <Box>
+                  <Text color="gray.600" fontSize="sm">ชื่อผู้เช่า</Text>
+                  <Text fontWeight="semibold" color="gray.800" fontSize={{ base: "md", md: "lg" }}>{roomData.tenantName || '-'}</Text>
+                </Box>
+                <Box>
+                  <Text color="gray.600" fontSize="sm">ขนาดห้อง</Text>
+                  <Text fontWeight="semibold" color="gray.800" fontSize={{ base: "md", md: "lg" }}>{roomData.area || 0} ตร.ม.</Text>
+                </Box>
+                <Box>
+                  <Text color="gray.600" fontSize="sm">สถานะ</Text>
+                  <Text fontWeight="semibold" color={roomData.status === 'occupied' ? 'green.600' : 'gray.600'} fontSize={{ base: "md", md: "lg" }}>
+                    {roomData.status === 'occupied' ? 'มีคนอยู่' : 'ว่าง'}
+                  </Text>
+                </Box>
+                <Box>
+                  <Text color="gray.600" fontSize="sm">ค่าเช่า</Text>
+                  <Text fontWeight="semibold" color="gray.800" fontSize={{ base: "md", md: "lg" }}>฿{roomData.rent?.toLocaleString('th-TH') || 0}</Text>
+                </Box>
+              </Flex>
+            </Box>
+          )}
+          {userRole !== 'user' && (
+            <Flex gap={6} flexWrap="wrap" mb={8} direction={{ base: "column", lg: "row" }}>
+              {/* Card: บันทึกค่าไฟฟ้า */}
+              <Box flex={1} minW={{ base: "full", md: "320px" }} bg="white" borderRadius="xl" boxShadow="sm" p={{ base: 4, md: 6 }}>
+                <Flex align="center" mb={4} gap={2}>
+                  <Icon as={FaBolt} color="yellow.500" boxSize={6} />
+                  <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} color="blue.700">บันทึกค่าไฟฟ้ารอบใหม่</Text>
+                </Flex>
+                <Flex gap={3} mb={4} direction={{ base: "column", sm: "row" }}>
+                  <Box flex={1} w="full">
+                    <Text mb={1} color="gray.600" fontSize="sm">วันที่จด</Text>
+                    <Input type="date" value={electricity.date} onChange={e => setElectricity({ ...electricity, date: e.target.value })} size="md" bg="gray.50" borderRadius="md" />
+                  </Box>
+                  <Box flex={1} w="full">
+                    <Text mb={1} color="gray.600" fontSize="sm">วันครบกำหนด</Text>
+                    <Input type="date" value={electricity.dueDate} onChange={e => setElectricity({ ...electricity, dueDate: e.target.value })} size="md" bg="gray.50" borderRadius="md" />
+                  </Box>
+                </Flex>
+                <Box mb={3}>
+                  <Text mb={1} color="gray.600" fontSize="sm">เลขมิเตอร์ปัจจุบัน</Text>
+                  <InputGroup size="md">
+                    <InputLeftElement pointerEvents="none"><FaBolt color="#fbbf24" /></InputLeftElement>
+                    <Input placeholder="เลขมิเตอร์" value={electricity.meter} onChange={e => setElectricity({ ...electricity, meter: e.target.value })} bg="gray.50" borderRadius="md" />
+                  </InputGroup>
+                </Box>
+                <Box mb={3}>
+                  <Text mb={1} color="gray.600" fontSize="sm">ค่ามิเตอร์ครั้งก่อน</Text>
+                  <Input value={electricity.prev} isReadOnly size="md" bg="gray.100" color="gray.500" borderRadius="md" />
+                  <Text fontSize="xs" color="gray.400" mt={1}>
+                    {roomData ? 'จากข้อมูลห้อง' : history.length > 0 ? 'จากประวัติล่าสุด' : 'ไม่มีข้อมูล'}
+                  </Text>
+                </Box>
+                <Box mb={3}>
+                  <Text mb={1} color="gray.600" fontSize="sm">เรทค่าไฟ (บาท/หน่วย)</Text>
+                  <Input placeholder="เช่น 4.5" value={electricity.rate} onChange={e => setElectricity({ ...electricity, rate: e.target.value })} size="md" bg="gray.50" type="number" min="0" step="0.01" borderRadius="md" />
+                  <Text fontSize="xs" color="gray.400" mt={1}>
+                    {history.length > 0 ? 'จากประวัติล่าสุด' : 'ค่าเริ่มต้น'}
+                  </Text>
+                </Box>
+              </Box>
+              {/* Card: บันทึกค่าน้ำ */}
+              <Box flex={1} minW={{ base: "full", md: "320px" }} bg="white" borderRadius="xl" boxShadow="sm" p={{ base: 4, md: 6 }}>
+                <Flex align="center" mb={4} gap={2}>
+                  <Icon as={FaTint} color="blue.500" boxSize={6} />
+                  <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} color="blue.700">บันทึกค่าน้ำรอบใหม่</Text>
+                </Flex>
+                <Box mb={3}>
+                  <Text mb={1} color="gray.600" fontSize="sm">เลขมิเตอร์น้ำปัจจุบัน</Text>
+                  <InputGroup size="md">
+                    <InputLeftElement pointerEvents="none"><FaTint color="#38bdf8" /></InputLeftElement>
+                    <Input placeholder="เลขมิเตอร์น้ำ" value={water.meter} onChange={e => setWater({ ...water, meter: e.target.value })} bg="gray.50" borderRadius="md" />
+                  </InputGroup>
+                </Box>
+                <Box mb={3}>
+                  <Text mb={1} color="gray.600" fontSize="sm">ค่ามิเตอร์น้ำครั้งก่อน</Text>
+                  <Input value={water.prev} isReadOnly size="md" bg="gray.100" color="gray.500" borderRadius="md" />
+                  <Text fontSize="xs" color="gray.400" mt={1}>
+                    {roomData ? 'จากข้อมูลห้อง' : history.length > 0 ? 'จากประวัติล่าสุด' : 'ไม่มีข้อมูล'}
+                  </Text>
+                </Box>
+                <Box mb={3}>
+                  <Text mb={1} color="gray.600" fontSize="sm">เรทค่าน้ำ (บาท/หน่วย)</Text>
+                  <Input placeholder="เช่น 15.5" value={water.rate} onChange={e => setWater({ ...water, rate: e.target.value })} size="md" bg="gray.50" type="number" min="0" step="0.01" borderRadius="md" />
+                  <Text fontSize="xs" color="gray.400" mt={1}>
+                    {history.length > 0 ? 'จากประวัติล่าสุด' : 'ค่าเริ่มต้น'}
+                  </Text>
+                </Box>
+              </Box>
+            </Flex>
+          )}
+          {/* ปุ่มบันทึกข้อมูลรวม */}
+          {userRole !== 'user' && (
+            <Flex justify="flex-end" mb={8}>
+              <Button leftIcon={<FaCalculator />} colorScheme="blue" size="md" borderRadius="lg" fontWeight="bold" px={6} onClick={handleSaveData} isLoading={isSaving}>
+                บันทึกข้อมูล
+              </Button>
+            </Flex>
+          )}
+          {/* Card: ประวัติการคำนวณ */}
+          <Box bg="white" borderRadius="xl" boxShadow="sm" p={{ base: 4, md: 6 }}>
+            <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} color="blue.700" mb={4}>ประวัติการคำนวณ</Text>
+            <TableContainer>
+              <Table size={{ base: "sm", md: "md" }} variant="simple">
+                <Thead bg="gray.50">
+                  <Tr>
+                    <Th>วันที่</Th>
+                    <Th color="orange.500">หน่วยไฟ</Th>
+                    <Th>เรทไฟ</Th>
+                    <Th color="green.500">ค่าไฟห้อง</Th>
+                    <Th>หน่วยน้ำ</Th>
+                    <Th>เรทน้ำ</Th>
+                    <Th color="blue.500">ค่าน้ำห้อง</Th>
+                    {userRole !== 'user' && <Th>การดำเนินการ</Th>}
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {history.length === 0 ? (
+                    <Tr>
+                      <Td colSpan={userRole !== 'user' ? 8 : 7} textAlign="center" color="gray.500" py={8}>ไม่มีประวัติการคำนวณ</Td>
+                    </Tr>
+                  ) : (
+                    history.map((item, idx) => (
+                      <Tr key={item.id || idx}>
+                        <Td>{formatDate(item.date)}</Td>
+                        <Td color="orange.500">{item.electricityUnit}</Td>
+                        <Td>{item.electricityRate ? item.electricityRate : '-'}</Td>
+                        <Td color="green.500">
+                          {typeof item.electricityTotal === 'number'
+                            ? item.electricityTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                            : '-'}
+                        </Td>
+                        <Td>{item.waterUnit}</Td>
+                        <Td>{item.waterRate ? item.waterRate : '-'}</Td>
+                        <Td color="blue.500">
+                          {typeof item.waterTotal === 'number'
+                            ? item.waterTotal.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                            : '-'}
+                        </Td>
+                        {userRole !== 'user' && (
+                          <Td>
+                            <Button size="sm" colorScheme="red" variant="ghost" borderRadius="lg" onClick={() => handleDeleteBill(item.id)} leftIcon={<FaTrash />}>
+                              ลบ
+                            </Button>
+                          </Td>
+                        )}
+                      </Tr>
+                    ))
+                  )}
+                </Tbody>
+              </Table>
+            </TableContainer>
+          </Box>
+          {userRole !== 'user' && (
+            <AlertDialog
+              isOpen={!!deleteConfirmId}
+              leastDestructiveRef={cancelRef}
+              onClose={() => setDeleteConfirmId(null)}
+              isCentered
+            >
+              <AlertDialogOverlay />
+              <AlertDialogContent borderRadius="xl" m={{ base: 4, md: "auto" }}>
+                <AlertDialogHeader fontWeight="bold" color="red.600">ยืนยันการลบข้อมูล</AlertDialogHeader>
+                <AlertDialogBody>คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลบิลนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</AlertDialogBody>
+                <AlertDialogFooter>
+                  <Button ref={cancelRef} onClick={() => setDeleteConfirmId(null)} borderRadius="lg" size="md">
+                    ยกเลิก
+                  </Button>
+                  <Button colorScheme="red" onClick={confirmDeleteBill} ml={3} borderRadius="lg" size="md">
+                    ลบ
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </Box>
+      </MainLayout>
+    )
   ); 
+} 

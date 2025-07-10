@@ -645,6 +645,16 @@ const Inbox = () => {
                 borderColor="gray.200"
                 bg="gray.50"
               >
+                {/* ปุ่มย้อนกลับสำหรับ mobile view */}
+                <IconButton
+                  aria-label="ย้อนกลับไปหน้ารายชื่อแชท"
+                  icon={<FaArrowLeft />}
+                  display={{ base: "inline-flex", md: "none" }}
+                  onClick={() => setSelectedConversationId(null)}
+                  variant="ghost"
+                  size="md"
+                  mr={2}
+                />
                 {selectedConversation ? (
                   <>
                     {(() => {
