@@ -1,10 +1,11 @@
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import {
-  Box, Heading, Text, Flex, Button, Input, Table, Thead, Tbody, Tr, Th, Td, Icon, InputGroup, InputLeftElement, Stack, useToast, useBreakpointValue, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay
+  Box, Heading, Text, Flex, Button, Input, Table, Thead, Tbody, Tr, Th, Td, Icon, InputGroup, InputLeftElement, Stack, useToast, useBreakpointValue, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, TableContainer
 } from "@chakra-ui/react";
 import { FaArrowLeft, FaCalculator, FaBolt, FaTint, FaTrash } from "react-icons/fa";
 import AppHeader from "../../components/AppHeader";
+import MainLayout from "../../components/MainLayout";
 import { db, auth } from "../../lib/firebase";
 import { collection, addDoc, query, where, orderBy, limit, getDocs, deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
@@ -478,3 +479,4 @@ export default function HistoryRoom() {
       </Box>
     </MainLayout>
   ); 
+} 

@@ -5,6 +5,10 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import "../styles/fonts.css";
 import "../styles/globals.css";
 import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../lib/firebase";
 
 const theme = extendTheme({
   fonts: {
@@ -42,6 +46,32 @@ const theme = extendTheme({
 });
 
 function MyApp({ Component, pageProps }: AppProps) {
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          setCurrentUser({ ...user, ...userDoc.data() });
+        } else {
+          setCurrentUser(user);
+        }
+      } else {
+        setCurrentUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (loading) {
+    return null; // Or a loading spinner
+  }
+
   return (
     <ErrorBoundary>
       <Head>
@@ -53,7 +83,7 @@ function MyApp({ Component, pageProps }: AppProps) {
         />
       </Head>
       <ChakraProvider theme={theme}>
-        <Component {...pageProps} />
+        <Component {...pageProps} currentUser={currentUser} />
       </ChakraProvider>
     </ErrorBoundary>
   );

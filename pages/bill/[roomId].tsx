@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
-import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogCloseButton, SimpleGrid } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogCloseButton, SimpleGrid, Badge, Divider, Center } from "@chakra-ui/react";
 import { db, auth } from "../../lib/firebase";
 import { collection, query, where, orderBy, limit, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
@@ -8,6 +8,9 @@ import { onAuthStateChanged } from "firebase/auth";
 import { FaFileInvoice, FaArrowLeft, FaDownload, FaUpload, FaEye, FaTrash, FaCheckCircle } from "react-icons/fa";
 import Script from "next/script";
 import AppHeader from "../../components/AppHeader";
+import MainLayout from "../../components/MainLayout";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 
 export default function BillDetail() {
   const router = useRouter();
@@ -78,6 +81,16 @@ export default function BillDetail() {
         if (!snap.empty) {
           const d = snap.docs[0].data();
           
+          let tenantName = d.tenantName || roomData?.tenantName;
+
+          // If tenantName is still missing, but we have a tenantId, fetch the user's name
+          if (!tenantName && roomData?.tenantId) {
+            const userDocRef = doc(db, "users", roomData.tenantId);
+            const userSnap = await getDoc(userDocRef);
+            if (userSnap.exists()) {
+              tenantName = userSnap.data().name;
+            }
+          }
 
           // Helper to convert Firestore Timestamp or ISO string to JS Date
           const toDate = (firebaseDate: any): Date | null => {
@@ -135,7 +148,7 @@ export default function BillDetail() {
             date: formatDate(billDate),
             dueDate: formatDate(dueDate),
             room: d.roomId,
-            tenant: d.tenantName || roomData?.tenantName || "-",
+            tenant: tenantName || "-", // Use the fetched name with a fallback
             total,
             items,
             promptpay: promptpay, // Use the hardcoded one for now
@@ -205,18 +218,40 @@ export default function BillDetail() {
   }, []);
 
   const handleExportPDF = async () => {
-    if (!pdfRef.current) return;
+    if (!pdfRef.current || !bill) {
+      console.error("PDF reference or bill data is not available.");
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถสร้าง PDF ได้: ข้อมูลบิลไม่พร้อมใช้งาน",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    console.log("Content of pdfRef.current:", pdfRef.current.innerHTML);
+
     // โหลด html2pdf เฉพาะฝั่ง client
     const html2pdf = (await import('html2pdf.js')).default;
-    html2pdf()
-      .set({
-        margin: 0.5,
-        filename: `invoice_${bill.room}_${bill.date}.pdf`,
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
-      })
-      .from(pdfRef.current)
-      .save();
+
+    // เพิ่ม setTimeout เพื่อให้แน่ใจว่า DOM ถูกเรนเดอร์สมบูรณ์
+    setTimeout(() => {
+      html2pdf()
+        .set({
+          margin: 0.5,
+          filename: `invoice_${bill.room}_${bill.date}.pdf`,
+          html2canvas: { 
+            scale: 2, 
+            useCORS: true, 
+            allowTaint: true, // เพิ่ม allowTaint
+            foreignObjectRendering: true // เพิ่ม foreignObjectRendering
+          },
+          jsPDF: { unit: "in", format: "a4", orientation: "portrait", font: "Kanit-Regular" },
+        })
+        .from(pdfRef.current)
+        .save();
+    }, 200); // หน่วงเวลา 200 มิลลิวินาที
   };
 
   const handleUploadProof = async () => {
@@ -599,7 +634,44 @@ export default function BillDetail() {
               ดาวน์โหลด PDF
             </Button>
           </VStack>
+
+          {/* Hidden PDF rendering area */}
+          <Box ref={pdfRef} position="absolute" left="-9999px" top="-9999px" width="800px" p={8} bg="white" fontFamily="Kanit, sans-serif">
+            {bill && (
+              <VStack align="stretch" spacing={4}>
+                <Heading size="lg" textAlign="center">ใบแจ้งหนี้</Heading>
+                <HStack justify="space-between">
+                  <Text>ห้อง: {bill.room}</Text>
+                  <Text>วันที่: {bill.date}</Text>
+                </HStack>
+                <Text>ผู้เช่า: {bill.tenant}</Text>
+                <Divider />
+                <Table variant="simple">
+                  <Thead>
+                    <Tr>
+                      <Th>รายการ</Th>
+                      <Th isNumeric>จำนวนเงิน</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {bill.items.map((item, index) => (
+                      <Tr key={index}>
+                        <Td>{item.label}</Td>
+                        <Td isNumeric>{item.value.toLocaleString()} บาท</Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+                <Divider />
+                <HStack justify="flex-end" fontWeight="bold" fontSize="xl">
+                  <Text>ยอดรวมสุทธิ</Text>
+                  <Text>{bill.total.toLocaleString()} บาท</Text>
+                </HStack>
+              </VStack>
+            )}
+          </Box>
         </Box>
       </MainLayout>
     </>
   );
+}

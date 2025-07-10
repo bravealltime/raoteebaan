@@ -35,8 +35,17 @@ interface Room {
   latestBillId?: string;
 }
 
-export default function Dashboard() {
+interface User {
+  uid: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar?: string;
+}
+
+export default function Dashboard({ currentUser }) {
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -57,8 +66,7 @@ export default function Dashboard() {
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant' | 'review'>('unpaid');
   const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
-  const [role, setRole] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<any | null>(null);
+  
   const [proofImageUrl, setProofImageUrl] = useState<string | null>(null);
   const { isOpen: isProofModalOpen, onOpen: onProofModalOpen, onClose: onProofModalClose } = useDisclosure();
   const [selectedBill, setSelectedBill] = useState<any | null>(null);
@@ -80,40 +88,7 @@ export default function Dashboard() {
     greeting: "อาทิตย์ 21 มิ.ย. 2568"
   };
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) {
-        router.replace("/login");
-        return;
-      }
-      const snap = await getDoc(doc(db, "users", u.uid));
-      const userRole = snap.exists() ? snap.data().role : "user";
-      const firestoreData = snap.exists() ? snap.data() : {};
-      setRole(userRole);
-      setCurrentUser({
-        uid: u.uid,
-        name: firestoreData.name || u.displayName || '',
-        email: firestoreData.email || u.email || '',
-        role: userRole,
-        photoURL: firestoreData.avatar || u.photoURL || undefined,
-        ownerId: firestoreData.ownerId || undefined,
-      });
-        if (role !== "admin" && role !== "owner") return null;
-        if (userRole === "owner") {
-          router.replace("/owner-dashboard");
-          return;
-        }
-        if (userRole === "employee") {
-          router.replace("/employee-dashboard");
-          return;
-        }
-        if (userRole === "tenant") {
-          router.replace("/tenant-dashboard");
-          return;
-        }
-    });
-    return () => unsub();
-  }, [router]);
+  
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -121,7 +96,7 @@ export default function Dashboard() {
       try {
         let roomsQuery: Query = collection(db, "rooms");
 
-        if (role === "owner" && currentUser?.uid) {
+        if (currentUser.role === "owner" && currentUser?.uid) {
           roomsQuery = query(roomsQuery, where("ownerId", "==", currentUser.uid));
         }
 
@@ -177,11 +152,11 @@ export default function Dashboard() {
       }
     };
 
-    if (role === "admin") {
+    if (currentUser.role === "admin") {
       fetchRooms();
-    } else if (role === "owner" && currentUser?.uid) {
+    } else if (currentUser.role === "owner" && currentUser?.uid) {
       fetchRooms();
-    } else if (role === "employee") {
+    } else if (currentUser.role === "employee") {
       fetchRooms();
     }
 
@@ -196,7 +171,7 @@ export default function Dashboard() {
     return () => {
       router.events.off('routeChangeComplete', handleRouteChange);
     };
-  }, [toast, router.events, role, currentUser]);
+  }, [toast, router.events, currentUser]);
 
   useEffect(() => {
     async function fetchAllBills() {
@@ -251,6 +226,20 @@ export default function Dashboard() {
     }
     if (currentUser?.uid) fetchInbox();
   }, [currentUser]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const usersCollection = collection(db, "users");
+      const usersSnapshot = await getDocs(usersCollection);
+      const usersList = usersSnapshot.docs.map(doc => ({
+        uid: doc.id,
+        ...doc.data()
+      })) as User[];
+      setUsers(usersList);
+    };
+
+    fetchUsers();
+  }, []);
 
   const handleDelete = async (id: string) => {
     setDeleteId(id);
@@ -734,7 +723,7 @@ export default function Dashboard() {
 
   return (
     <MainLayout 
-      role={role} 
+      role={currentUser?.role} 
       currentUser={currentUser}
       isProofModalOpen={isProofModalOpen}
       onProofModalClose={onProofModalClose}
@@ -823,7 +812,7 @@ export default function Dashboard() {
 
       <AddRoomModal isOpen={isOpen} onClose={onClose} onAdd={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} isCentered size={{ base: "full", md: "2xl" }} />
       {editRoom && (
-        <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} isCentered size={{ base: "full", md: "2xl" }} />
+        <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} users={users} isCentered size={{ base: "full", md: "2xl" }} />
       )}
 
       <AlertDialog
