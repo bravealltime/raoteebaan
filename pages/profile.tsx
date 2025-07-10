@@ -200,8 +200,8 @@ export default function Profile() {
   if (!user) return null;
 
   return (
-    <Flex minH="100vh" align="center" justify="center" bgGradient="linear(to-br, brand.50, brand.100)">
-      <Box bg="white" borderRadius="2xl" boxShadow="2xl" p={{ base: 4, md: 8 }} maxW={{ base: "90%", md: "400px" }} w="full" position="relative">
+    <Flex minH="100vh" align="center" justify="center" bg="gray.100">
+      <Box bg="white" borderRadius="xl" boxShadow="lg" p={{ base: 4, md: 8 }} maxW={{ base: "95%", sm: "80%", md: "600px" }} w="full" position="relative">
         <IconButton
           icon={<FaArrowLeft />}
           aria-label="ย้อนกลับ"
@@ -213,21 +213,21 @@ export default function Profile() {
           borderRadius="full"
           onClick={() => router.back()}
         />
-        <Flex direction="column" align="center" mb={6} mt={2}>
-          <Avatar size="2xl" name={form.name || user.name} src={avatarPreview || user.avatar} mb={4} />
-          <Heading fontSize="2xl" color="blue.700" mb={1}>โปรไฟล์ผู้ใช้งาน</Heading>
+        <Flex direction="column" align="center" mb={6} mt={{ base: 8, md: 2 }}>
+          <Avatar size="xl" name={form.name || user.name} src={avatarPreview || user.avatar} mb={4} />
+          <Heading fontSize={{ base: "xl", md: "2xl" }} color="blue.700" mb={1}>โปรไฟล์ผู้ใช้งาน</Heading>
           <Text color="gray.500">ข้อมูลบัญชีของคุณ</Text>
           <Badge colorScheme={user.role === "admin" ? "purple" : "blue"} borderRadius="full" px={3} py={1} fontSize="sm" mt={2}>
             {getRoleDisplayName(user.role)}
           </Badge>
         </Flex>
-        <VStack align="stretch" spacing={3} mb={6}>
+        <VStack align="stretch" spacing={4} mb={6}>
           <FormControl>
             <FormLabel>ชื่อผู้ใช้</FormLabel>
             {editMode ? (
               <Input name="name" value={form.name} onChange={handleChange} />
             ) : (
-              <Text fontWeight="bold" color="gray.800">{user.name}</Text>
+              <Text fontWeight="bold" color="gray.800" p={2} bg="gray.50" borderRadius="md">{user.name}</Text>
             )}
           </FormControl>
           <FormControl>
@@ -235,14 +235,14 @@ export default function Profile() {
             {editMode ? (
               <Input name="email" value={form.email} onChange={handleChange} isDisabled={user.role !== "admin" && user.role !== "owner"} />
             ) : (
-              <Text color="gray.800">{user.email}</Text>
+              <Text color="gray.800" p={2} bg="gray.50" borderRadius="md">{user.email}</Text>
             )}
           </FormControl>
-          <FormControl>
-            <FormLabel>รูปโปรไฟล์</FormLabel>
-            {editMode ? (
-              <>
-                <Button size="md" onClick={() => fileInputRef.current?.click()} mb={2} borderRadius="xl" fontFamily="Kanit">อัปโหลดรูปใหม่</Button>
+          {editMode && (
+            <FormControl>
+              <FormLabel>รูปโปรไฟล์</FormLabel>
+              <HStack>
+                <Button size="md" onClick={() => fileInputRef.current?.click()} borderRadius="lg">อัปโหลดรูปใหม่</Button>
                 <input 
                   type="file" 
                   accept="image/*" 
@@ -251,37 +251,35 @@ export default function Profile() {
                   onChange={handleAvatarChange} 
                 />
                 {selectedFile && (
-                  <Text fontSize="sm" color="gray.600">ไฟล์ที่เลือก: {selectedFile.name}</Text>
+                  <Text fontSize="sm" color="gray.600" noOfLines={1}>ไฟล์ที่เลือก: {selectedFile.name}</Text>
                 )}
-              </>
-            ) : null}
-          </FormControl>
-          <Box>
-            <Text color="gray.600" fontSize="sm">สถานะ</Text>
-            <Badge colorScheme={user.status === "active" ? "green" : "gray"} borderRadius="full" px={3} py={1} fontSize="sm">
-              {user.status === "active" ? "ใช้งานอยู่" : "ไม่ใช้งาน"}
-            </Badge>
-          </Box>
-          <Box>
-            <Text color="gray.600" fontSize="sm">วันที่เริ่มใช้งาน</Text>
-            <Text color="gray.800">{user.started}</Text>
-          </Box>
-          <Box>
-            <Text color="gray.600" fontSize="sm">ใช้งานล่าสุด</Text>
-            <Text color="gray.800">{user.lastActive}</Text>
-          </Box>
+              </HStack>
+            </FormControl>
+          )}
+          <SimpleGrid columns={2} spacing={4}>
+            <Box>
+              <Text color="gray.600" fontSize="sm">สถานะ</Text>
+              <Badge colorScheme={user.status === "active" ? "green" : "gray"} borderRadius="full" px={3} py={1} fontSize="sm">
+                {user.status === "active" ? "ใช้งานอยู่" : "ไม่ใช้งาน"}
+              </Badge>
+            </Box>
+            <Box>
+              <Text color="gray.600" fontSize="sm">วันที่เริ่มใช้งาน</Text>
+              <Text color="gray.800">{user.started}</Text>
+            </Box>
+          </SimpleGrid>
         </VStack>
         <Divider mb={6} />
-        <Flex gap={3}>
+        <Flex gap={3} direction={{ base: "column", sm: "row" }}>
           {editMode ? (
             <>
-              <Button colorScheme="blue" flex={1} onClick={handleSave} isLoading={loading} borderRadius="xl" fontFamily="Kanit" size="md">บันทึก</Button>
-              <Button flex={1} variant="outline" onClick={handleCancel} borderRadius="xl" fontFamily="Kanit" size="md">ยกเลิก</Button>
+              <Button colorScheme="blue" flex={1} onClick={handleSave} isLoading={loading} borderRadius="lg" size="md">บันทึก</Button>
+              <Button flex={1} variant="outline" onClick={handleCancel} borderRadius="lg" size="md">ยกเลิก</Button>
             </>
           ) : (
             <>
-              <Button colorScheme="blue" flex={1} onClick={handleEdit} borderRadius="xl" fontFamily="Kanit" size="md">แก้ไขโปรไฟล์</Button>
-              <Button colorScheme="red" flex={1} variant="outline" onClick={handleLogout} borderRadius="xl" fontFamily="Kanit" size="md">ออกจากระบบ</Button>
+              <Button colorScheme="blue" flex={1} onClick={handleEdit} borderRadius="lg" size="md">แก้ไขโปรไฟล์</Button>
+              <Button colorScheme="red" flex={1} variant="outline" onClick={handleLogout} borderRadius="lg" size="md">ออกจากระบบ</Button>
             </>
           )}
         </Flex>

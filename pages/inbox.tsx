@@ -511,12 +511,13 @@ const Inbox = () => {
 
   return (
     <MainLayout role={currentUser?.role} currentUser={currentUser} showSidebar={false}>
-      <Flex h="calc(100vh - 80px)">
+      <Flex h="calc(100vh - 4rem)" bg="white" borderRadius="lg" boxShadow="md">
         <VStack
-          w={isSidebarExpanded ? "350px" : "80px"}
-          minW={isSidebarExpanded ? "350px" : "80px"}
+          w={{ base: "100%", md: isSidebarExpanded ? "350px" : "80px" }}
+          minW={{ base: "100%", md: isSidebarExpanded ? "350px" : "80px" }}
+          display={{ base: selectedConversationId ? "none" : "flex", md: "flex" }}
           bg="gray.50"
-          borderRight="1px solid"
+          borderRight={{ md: "1px solid" }}
           borderColor="gray.200"
           p={{ base: 2, md: 4 }}
           spacing={4}

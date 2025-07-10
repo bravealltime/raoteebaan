@@ -1183,7 +1183,7 @@ export default function Rooms() {
       photoURL: currentUser?.photoURL || undefined,
       roomNumber: currentUser?.roomNumber || undefined,
     }}>
-      <Box flex={1} p={{ base: 4, md: 8, lg: 10 }}>
+      <Box p={{ base: 2, md: 4 }}>
         <Flex
           direction={{ base: "column", md: "row" }}
           align={{ base: "flex-start", md: "center" }}
@@ -1191,7 +1191,7 @@ export default function Rooms() {
           gap={{ base: 4, md: 4 }}
           flexWrap="wrap"
         >
-          <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4} mb={{ base: 2, md: 0 }}>Rooms</Text>
+          <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4} mb={{ base: 2, md: 0 }}>ห้องพัก</Text>
           {(role === 'admin' || role === 'owner') && (
             <Box mb={{ base: 4, md: 0 }} mr={{ md: 4 }}>
               <Heading size="sm" mb={2} color="gray.600">การจัดการห้องพัก</Heading>
@@ -1203,7 +1203,7 @@ export default function Rooms() {
                     variant="solid"
                     borderRadius="lg"
                     fontWeight="bold"
-                    size="md"
+                    size="sm"
                     onClick={() => setIsAddRoomOpen(true)}
                   >
                     เพิ่มห้อง
@@ -1216,7 +1216,7 @@ export default function Rooms() {
                     variant="outline"
                     borderRadius="lg"
                     fontWeight="bold"
-                    size="md"
+                    size="sm"
                     onClick={() => setIsImportOpen(true)}
                   >
                     นำเข้า CSV
@@ -1224,11 +1224,11 @@ export default function Rooms() {
                 </WrapItem>
                 <WrapItem>
                   <Button
-                    leftIcon={<FaFilePdf size={20} />}
+                    leftIcon={<FaFilePdf size={18} />}
                     colorScheme="purple"
                     borderRadius="lg"
                     fontWeight="bold"
-                    size="md"
+                    size="sm"
                     variant="solid"
                     onClick={handleDownloadEquipmentAssessment}
                   >
@@ -1241,7 +1241,7 @@ export default function Rooms() {
                     colorScheme="green"
                     borderRadius="lg"
                     fontWeight="bold"
-                    size="md"
+                    size="sm"
                     variant="solid"
                     onClick={handleOpenMeterModal}
                   >
@@ -1254,22 +1254,19 @@ export default function Rooms() {
           <Spacer />
           <Box>
             <Heading size="sm" mb={2} color="gray.600">ค้นหาและกรอง</Heading>
-            <HStack spacing={3} w={{ base: "100%", md: "auto" }} align="center">
-              <InputGroup maxW={{ base: "full", md: "220px" }}>
+            <HStack spacing={2} w={{ base: "100%", md: "auto" }} align="center">
+              <InputGroup maxW={{ base: "full", md: "200px" }}>
                 <Input
-                  placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
+                  placeholder="ค้นหาห้องหรือชื่อ..."
                   bg="white"
                   borderRadius="lg"
                   value={searchRoom}
                   onChange={e => setSearchRoom(e.target.value)}
-                  size="md"
+                  size="sm"
                 />
-                <InputRightElement pointerEvents="none">
-                  <FaSearch color="#A0AEC0" />
-                </InputRightElement>
               </InputGroup>
               <Menu>
-                <MenuButton as={Button} leftIcon={<FaFilter />} colorScheme="gray" variant="outline" borderRadius="lg" size="md" fontWeight="bold">
+                <MenuButton as={Button} leftIcon={<FaFilter />} colorScheme="gray" variant="outline" borderRadius="lg" size="sm" fontWeight="bold">
                   กรอง
                 </MenuButton>
                 <MenuList>
@@ -1286,7 +1283,7 @@ export default function Rooms() {
           initial="hidden"
           animate="visible"
         >
-          <SimpleGrid minChildWidth="350px" spacing={8} mt={8}>
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4 }} spacing={{ base: 4, md: 6 }}>
             {paginatedRooms.map(room => {
               const electricity = roomBills[room.id]?.electricityTotal || room.electricity || 0;
               const water = roomBills[room.id]?.waterTotal || room.water || 0;

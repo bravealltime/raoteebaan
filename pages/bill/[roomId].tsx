@@ -370,217 +370,151 @@ export default function BillDetail() {
     <>
       <Script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.5.0/qrcode.min.js" strategy="afterInteractive" />
       <Script src="/scripts/promptpay.js" strategy="afterInteractive" />
-      <AppHeader currentUser={currentUser} />
-      <Flex minH="100vh" align="center" justify="center" bgGradient="linear(to-br, brand.50, brand.100)" p={[1, 2, 4]}>
-        <Box w="full" display="flex" flexDirection="column" alignItems="center">
-          <Button
-            leftIcon={<FaArrowLeft />}
-            mb={4}
-            variant="ghost"
-            colorScheme="blue"
-            onClick={() => router.back()}
-            fontSize={["md", "md", "lg"]}
-            px={[2, 4]}
-          >
-            กลับหน้าหลัก
-          </Button>
-          <Box
-            bg="white"
-            borderRadius="2xl"
-            boxShadow="2xl"
-            p={[4, 6, 8]}
-            maxW={["98vw", "98vw", "800px"]}
-            minW={["0", "320px", "400px"]}
-            w="full"
-            color="gray.800"
-            overflowX="auto"
-            mb={4}
-          >
-            <div ref={pdfRef}>
-              <VStack spacing={1} mb={6}>
-                <Icon as={FaFileInvoice} w={[8, 10]} h={[8, 10]} color="green.500" />
-                <Heading fontWeight="extrabold" fontSize={["2xl", "3xl"]} color="green.700" textAlign="center">
-                  ใบแจ้งค่าใช้จ่าย
-                </Heading>
-                <Text color="gray.500" fontSize={["sm", "md"]} textAlign="center">
-                  วันที่ออกใบแจ้งหนี้: {bill.date}
-                </Text>
-              </VStack>
+      <MainLayout role={userRole} currentUser={currentUser}>
+        <Box maxW="1200px" mx="auto" p={{ base: 2, md: 4 }}>
+          <VStack spacing={6} align="stretch">
+            <Flex justify="space-between" align={{ base: "flex-start", md: "center" }} direction={{ base: "column", md: "row" }} gap={4}>
+              <Box>
+                <Heading size={{ base: "md", lg: "lg" }} color="gray.700">ใบแจ้งหนี้ - ห้อง {roomId}</Heading>
+                <Text color="gray.500">สำหรับ {bill.tenant}</Text>
+              </Box>
+              <Badge colorScheme={
+                bill.billStatus === 'paid' ? 'green' :
+                bill.billStatus === 'pending' ? 'yellow' : 'red'
+              } p={{ base: 2, md: 3 }} borderRadius="full" fontSize={{ base: "sm", md: "md" }}>
+                สถานะ: {
+                  bill.billStatus === 'paid' ? 'ชำระแล้ว' :
+                  bill.billStatus === 'pending' ? 'รอตรวจสอบ' : 'ค้างชำระ'
+                }
+              </Badge>
+            </Flex>
 
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} mb={6}>
+            <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={{ base: 4, md: 6 }}>
+              {/* Bill Details */}
+              <Box bg="white" p={{ base: 4, md: 6 }} borderRadius="xl" boxShadow="sm">
+                <VStack spacing={4} align="stretch">
+                  <HStack justify="space-between">
+                    <Text fontWeight="bold" color="gray.600">วันที่ออกบิล:</Text>
+                    <Text>{bill.date}</Text>
+                  </HStack>
+                  <HStack justify="space-between">
+                    <Text fontWeight="bold" color="gray.600">วันครบกำหนด:</Text>
+                    <Text color="red.500" fontWeight="bold">{bill.dueDate}</Text>
+                  </HStack>
+                  <Divider />
+                  {bill.items.map((item: any, index: number) => (
+                    <HStack key={index} justify="space-between">
+                      <VStack align="start" spacing={0}>
+                        <Text>{item.label}</Text>
+                      </VStack>
+                      <Text>{item.value.toLocaleString()} บาท</Text>
+                    </HStack>
+                  ))}
+                  <Divider />
+                  <HStack justify="space-between" fontSize={{ base: "lg", md: "xl" }} fontWeight="bold" color="blue.800">
+                    <Text>ยอดรวมสุทธิ</Text>
+                    <Text>{bill.total.toLocaleString()} บาท</Text>
+                  </HStack>
+                </VStack>
+              </Box>
+
+              {/* Payment Section */}
+              <Box bg="white" p={{ base: 4, md: 6 }} borderRadius="xl" boxShadow="sm">
+                <VStack spacing={6} align="stretch">
+                  <Heading size="md" color="blue.700" textAlign="center">ช่องทางการชำระเงิน</Heading>
+                  {bill.billStatus === 'unpaid' && (
+                    <>
+                      <Center>
+                        {qr ? (
+                          <Image src={qr} alt="PromptPay QR Code" boxSize={{ base: "150px", md: "200px" }} />
+                        ) : (
+                          <Spinner />
+                        )}
+                      </Center>
+                      <Text textAlign="center" color="gray.600">สแกน QR Code เพื่อชำระเงินผ่าน PromptPay</Text>
+                      <Divider />
+                      <Button
+                        leftIcon={<FaUpload />}
+                        colorScheme="green"
+                        size="lg"
+                        onClick={() => {}}
+                      >
+                        อัปโหลดสลิปการโอนเงิน
+                      </Button>
+                    </>
+                  )}
+                  {bill.billStatus === 'pending' && (
+                    <VStack spacing={4}>
+                      <Icon as={FaCheckCircle} w={12} h={12} color="yellow.400" />
+                      <Heading size="md">รอการตรวจสอบ</Heading>
+                      <Text>เราได้รับสลิปของคุณแล้วและกำลังตรวจสอบ</Text>
+                      {bill.proofUrl && <Image src={bill.proofUrl} alt="Uploaded Slip" maxH="150px" borderRadius="md" />}
+                      {(userRole === 'admin' || userRole === 'owner') && (
+                        <HStack>
+                          <Button colorScheme="green" onClick={handleConfirmProof}>ยืนยันการชำระเงิน</Button>
+                          <Button colorScheme="red" onClick={handleDeleteProof}>ปฏิเสธ</Button>
+                        </HStack>
+                      )}
+                    </VStack>
+                  )}
+                  {bill.billStatus === 'paid' && (
+                    <VStack spacing={4}>
+                      <Icon as={FaCheckCircle} w={12} h={12} color="green.400" />
+                      <Heading size="md">ชำระเงินเรียบร้อย</Heading>
+                      {bill.proofUrl && <Image src={bill.proofUrl} alt="Payment Slip" maxH="150px" borderRadius="md" />}
+                    </VStack>
+                  )}
+                </VStack>
+              </Box>
+            </SimpleGrid>
+
+            {/* Meter Images Section */}
+            <Box mt={8} p={{ base: 4, md: 6 }} borderWidth="1px" borderRadius="xl" borderColor="gray.200" bg="gray.50">
+              <Heading size="md" mb={4} color="gray.700">รูปภาพมิเตอร์</Heading>
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
                 <Box>
-                  <Text fontSize={["md", "lg"]}>ห้อง: <Text as="b" color="blue.600">{bill.room}</Text></Text>
-                  <Text fontSize={["md", "lg"]}>ชื่อผู้เช่า: <Text as="b" color="blue.600">{bill.tenant}</Text></Text>
+                  <Text fontWeight="semibold" mb={2} fontSize={{ base: "md", md: "lg" }}>รูปภาพมิเตอร์ไฟฟ้า</Text>
+                  {bill.electricityImageUrl ? (
+                    <Image src={bill.electricityImageUrl} alt="รูปมิเตอร์ไฟฟ้า" borderRadius="md" maxW="100%" boxShadow="sm" />
+                  ) : (
+                    <Text color="gray.500">ไม่มีรูปมิเตอร์ไฟฟ้า</Text>
+                  )}
                 </Box>
-                <Box textAlign={{ base: "left", md: "right" }}>
-                  <Text fontSize={["md", "lg"]}>รอบบิล: <Text as="b" color="blue.600">{bill.date}</Text></Text>
-                  <Text fontSize={["md", "lg"]}>วันครบกำหนด: <Text as="b" color="red.500">{bill.dueDate}</Text></Text>
-                  {bill.overdueDays > 0 && (
-                    <Text fontSize={["md", "lg"]} color="red.600" fontWeight="bold">
-                      (เกินกำหนด {bill.overdueDays} วัน)
-                    </Text>
+                <Box>
+                  <Text fontWeight="semibold" mb={2} fontSize={{ base: "md", md: "lg" }}>รูปภาพมิเตอร์น้ำ</Text>
+                  {bill.waterImageUrl ? (
+                    <Image src={bill.waterImageUrl} alt="รูปมิเตอร์น้ำ" borderRadius="md" maxW="100%" boxShadow="sm" />
+                  ) : (
+                    <Text color="gray.500">ไม่มีรูปมิเตอร์น้ำ</Text>
                   )}
                 </Box>
               </SimpleGrid>
+            </Box>
 
-              <Box bg="green.50" p={4} borderRadius="lg" mb={6} textAlign="center">
-                <Text fontSize={["3xl", "4xl"]} color="green.700" fontWeight="extrabold">
-                  ยอดรวม: ฿{bill.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
-                </Text>
-              </Box>
-
-              <Box mb={6} overflowX="auto">
-                <Heading size="md" mb={3} color="gray.700">รายละเอียดค่าใช้จ่าย</Heading>
-                <Table size="md" variant="simple" minW="320px">
-                  <Thead bg="gray.100">
-                    <Tr>
-                      <Th fontSize={["sm", "md"]}>รายการ</Th>
-                      <Th isNumeric fontSize={["sm", "md"]}>จำนวนเงิน (บาท)</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {bill.items.map((item: any, index: number) => (
-                      <Tr key={index}>
-                        <Td fontSize={["sm", "md"]}>{item.label}</Td>
-                        <Td isNumeric fontSize={["sm", "md"]}>{item.value.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
-                      </Tr>
-                    ))}
-                    <Tr fontWeight="bold" bg="green.50">
-                      <Td fontSize={["md", "lg"]}>รวมทั้งสิ้น</Td>
-                      <Td isNumeric fontSize={["md", "lg"]}>{bill.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
-                    </Tr>
-                  </Tbody>
-                </Table>
-              </Box>
-
-              {bill.promptpay && (
-                <Box mb={6} p={4} bg="blue.50" borderRadius="lg" textAlign="center">
-                  <Heading size="md" mb={3} color="blue.700">ชำระผ่านพร้อมเพย์</Heading>
-                  <VStack spacing={3} align="center">
-                    {qr && (
-                      <Box
-                        as="span"
-                        display="inline-block"
-                        width={["160px", "200px"]}
-                        height={["160px", "200px"]}
-                        mb={2}
-                        border="2px solid"
-                        borderColor="gray.200"
-                        borderRadius="md"
-                        overflow="hidden"
-                      >
-                        <img
-                          src={qr}
-                          alt="QR พร้อมเพย์"
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            display: "block",
-                            margin: "0 auto"
-                          }}
-                        />
-                      </Box>
-                    )}
-                    {!qr && (
-                      <Box p={4} bg="gray.100" borderRadius="md" mb={2}>
-                        <Text fontSize="sm" color="gray.600">กำลังสร้าง QR Code...</Text>
-                      </Box>
-                    )}
-                    <Text fontSize={["md", "lg"]} color="gray.700" wordBreak="break-all" whiteSpace="break-spaces">
-                      PromptPay ID: <Text as="b" color="blue.800">{bill.promptpay}</Text>
-                    </Text>
-                    <Text fontSize={["md", "lg"]} color="gray.700">
-                      ยอดเงิน: <Text as="b" color="blue.800">{bill.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท</Text>
-                    </Text>
+            <Box p={{ base: 4, md: 6 }} borderWidth="1px" borderRadius="xl" borderColor="gray.200" bg="gray.50">
+              <Heading size="md" mb={4} color="blue.700">อัปโหลดหลักฐานการชำระเงิน</Heading>
+              {userRole === "user" ? (
+                !proofUrl ? (
+                  <VStack spacing={4}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setProofFile(e.target.files ? e.target.files[0] : null)}
+                      style={{ padding: "10px", border: "1px solid #ccc", borderRadius: "md", width: "100%" }}
+                    />
+                    <Button
+                      colorScheme="blue"
+                      onClick={handleUploadProof}
+                      isLoading={uploadingProof}
+                      isDisabled={!proofFile || uploadingProof}
+                      leftIcon={<Icon as={FaUpload} />}
+                      w="full"
+                      size="lg"
+                    >
+                      {uploadingProof ? "กำลังอัปโหลด..." : "อัปโหลดสลิป"}
+                    </Button>
                   </VStack>
-                </Box>
-              )}
-
-              <Box bg="yellow.50" borderRadius="lg" p={[3, 4]} color="yellow.800" fontSize={["sm", "md"]} mb={6}>
-                <Heading size="sm" mb={2} color="yellow.700">วิธีการชำระเงิน</Heading>
-                <ul style={{ marginLeft: 20, listStyleType: "disc" }}>
-                  <li>กรุณาชำระเงินภายในวันที่ <Text as="b" color="red.600">{bill.dueDate}</Text></li>
-                  <li>ช่องทางการชำระเงิน: โอนบัญชีธนาคาร/พร้อมเพย์/เงินสด</li>
-                  <li>แจ้งสลิปหรือหลักฐานการชำระเงินกับผู้ดูแล</li>
-                </ul>
-              </Box>
-
-              {/* Meter Images Section */}
-              <Box mt={8} p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50" mb={6}>
-                <Heading size="md" mb={4} color="gray.700">รูปภาพมิเตอร์</Heading>
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                  <Box>
-                    <Text fontWeight="semibold" mb={2} fontSize={["md", "lg"]}>รูปภาพมิเตอร์ไฟฟ้า</Text>
-                    {bill.electricityImageUrl ? (
-                      <Image src={bill.electricityImageUrl} alt="รูปมิเตอร์ไฟฟ้า" borderRadius="md" maxW="100%" boxShadow="sm" />
-                    ) : (
-                      <Text color="gray.500">ไม่มีรูปมิเตอร์ไฟฟ้า</Text>
-                    )}
-                  </Box>
-                  <Box>
-                    <Text fontWeight="semibold" mb={2} fontSize={["md", "lg"]}>รูปภาพมิเตอร์น้ำ</Text>
-                    {bill.waterImageUrl ? (
-                      <Image src={bill.waterImageUrl} alt="รูปมิเตอร์น้ำ" borderRadius="md" maxW="100%" boxShadow="sm" />
-                    ) : (
-                      <Text color="gray.500">ไม่มีรูปมิเตอร์น้ำ</Text>
-                    )}
-                  </Box>
-                </SimpleGrid>
-              </Box>
-
-              <Box p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50">
-                <Heading size="md" mb={4} color="blue.700">อัปโหลดหลักฐานการชำระเงิน</Heading>
-                {userRole === "user" ? (
-                  !proofUrl ? (
-                    <VStack spacing={4}>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setProofFile(e.target.files ? e.target.files[0] : null)}
-                        style={{ padding: "10px", border: "1px solid #ccc", borderRadius: "md", width: "100%" }}
-                      />
-                      <Button
-                        colorScheme="blue"
-                        onClick={handleUploadProof}
-                        isLoading={uploadingProof}
-                        isDisabled={!proofFile || uploadingProof}
-                        leftIcon={<Icon as={FaUpload} />}
-                        w="full"
-                        size="lg"
-                      >
-                        {uploadingProof ? "กำลังอัปโหลด..." : "อัปโหลดสลิป"}
-                      </Button>
-                    </VStack>
-                  ) : (
-                    <VStack spacing={4}>
-                      <Text fontWeight="bold" color="green.600" fontSize="lg">หลักฐานการชำระเงินถูกอัปโหลดแล้ว</Text>
-                      <Image src={proofUrl} alt="Payment Proof" maxW="250px" borderRadius="md" boxShadow="md" />
-                      <HStack spacing={3}>
-                        <Button
-                          colorScheme="teal"
-                          onClick={() => {
-                            setCurrentProofImageUrl(proofUrl);
-                            onProofModalOpen();
-                          }}
-                          leftIcon={<Icon as={FaEye} />}
-                          size="md"
-                        >
-                          ดูหลักฐาน
-                        </Button>
-                        <Button
-                          colorScheme="red"
-                          onClick={handleDeleteProof}
-                          isLoading={uploadingProof}
-                          isDisabled={uploadingProof}
-                          leftIcon={<Icon as={FaTrash} />}
-                          size="md"
-                        >
-                          ลบหลักฐาน
-                        </Button>
-                      </HStack>
-                    </VStack>
-                  )
-                ) : (userRole === "owner" || userRole === "admin") && proofUrl ? (
+                ) : (
                   <VStack spacing={4}>
                     <Text fontWeight="bold" color="green.600" fontSize="lg">หลักฐานการชำระเงินถูกอัปโหลดแล้ว</Text>
                     <Image src={proofUrl} alt="Payment Proof" maxW="250px" borderRadius="md" boxShadow="md" />
@@ -597,16 +531,6 @@ export default function BillDetail() {
                         ดูหลักฐาน
                       </Button>
                       <Button
-                        colorScheme="green"
-                        onClick={handleConfirmProof}
-                        isLoading={uploadingProof}
-                        isDisabled={uploadingProof}
-                        leftIcon={<Icon as={FaCheckCircle} />}
-                        size="md"
-                      >
-                        ยืนยันหลักฐาน
-                      </Button>
-                      <Button
                         colorScheme="red"
                         onClick={handleDeleteProof}
                         isLoading={uploadingProof}
@@ -618,67 +542,64 @@ export default function BillDetail() {
                       </Button>
                     </HStack>
                   </VStack>
-                ) : (
-                  <Text color="gray.500" fontSize="md">ไม่มีหลักฐานการชำระเงิน</Text>
-                )}
-              </Box>
-            </div>
-          </Box>
-          <Button
-            leftIcon={<FaDownload />}
-            colorScheme="green"
-            w={["100%", "auto"]}
-            maxW="320px"
-            fontSize={["md", "lg"]}
-            onClick={handleExportPDF}
-            mt={4}
-            size="lg"
-          >
-            ดาวน์โหลด PDF
-          </Button>
+                )
+              ) : (userRole === "owner" || userRole === "admin") && proofUrl ? (
+                <VStack spacing={4}>
+                  <Text fontWeight="bold" color="green.600" fontSize="lg">หลักฐานการชำระเงินถูกอัปโหลดแล้ว</Text>
+                  <Image src={proofUrl} alt="Payment Proof" maxW="250px" borderRadius="md" boxShadow="md" />
+                  <HStack spacing={3}>
+                    <Button
+                      colorScheme="teal"
+                      onClick={() => {
+                        setCurrentProofImageUrl(proofUrl);
+                        onProofModalOpen();
+                      }}
+                      leftIcon={<Icon as={FaEye} />}
+                      size="md"
+                    >
+                      ดูหลักฐาน
+                    </Button>
+                    <Button
+                      colorScheme="green"
+                      onClick={handleConfirmProof}
+                      isLoading={uploadingProof}
+                      isDisabled={uploadingProof}
+                      leftIcon={<Icon as={FaCheckCircle} />}
+                      size="md"
+                    >
+                      ยืนยันหลักฐาน
+                    </Button>
+                    <Button
+                      colorScheme="red"
+                      onClick={handleDeleteProof}
+                      isLoading={uploadingProof}
+                      isDisabled={uploadingProof}
+                      leftIcon={<Icon as={FaTrash} />}
+                      size="md"
+                    >
+                      ลบหลักฐาน
+                    </Button>
+                  </HStack>
+                </VStack>
+              ) : (
+                <Text color="gray.500" fontSize="md">ไม่มีหลักฐานการชำระเงิน</Text>
+              )}
+            </Box>
+
+            <Button
+              leftIcon={<FaDownload />}
+              colorScheme="green"
+              w={{ base: "full", md: "auto" }}
+              maxW="320px"
+              fontSize={{ base: "md", md: "lg" }}
+              onClick={handleExportPDF}
+              mt={4}
+              size="lg"
+            >
+              ดาวน์โหลด PDF
+            </Button>
+          </VStack>
         </Box>
-      </Flex>
-
-      {/* Proof Image Modal */}
-      <Modal isOpen={isProofModalOpen} onClose={onProofModalClose} isCentered size="xl">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalCloseButton />
-          <ModalBody p={4}>
-            {currentProofImageUrl && (
-              <Image src={currentProofImageUrl} alt="Payment Proof" maxW="full" maxH="80vh" objectFit="contain" />
-            )}
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-
-      {/* Confirmation AlertDialog for Marking as Paid */}
-      <AlertDialog
-        isOpen={isConfirmAlertOpen}
-        leastDestructiveRef={cancelRef}
-        onClose={() => setIsConfirmAlertOpen(false)}
-      >
-        <AlertDialogOverlay>
-          <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              ยืนยันการชำระเงิน
-            </AlertDialogHeader>
-
-            <AlertDialogBody>
-              คุณแน่ใจหรือไม่ว่าต้องการยืนยันว่าบิลนี้ชำระแล้ว?
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={() => setIsConfirmAlertOpen(false)}>
-                ยกเลิก
-              </Button>
-              <Button colorScheme="green" onClick={confirmMarkAsPaid} ml={3}>
-                ยืนยัน
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
+      </MainLayout>
     </>
   );
-}

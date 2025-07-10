@@ -71,9 +71,9 @@ export default function Login() {
 
   return (
     <Flex minH="100vh" align="center" justify="center" bg="gray.50">
-      <Flex w={["100vw", null, "900px"]} minH={["100vh", null, "600px"]} boxShadow="2xl" borderRadius="2xl" overflow="hidden" bg="white">
+      <Flex w={{ base: "100%", md: "90%", lg: "80%" }} maxW="1200px" minH={{ base: "100vh", md: "auto" }} boxShadow={{ md: "2xl" }} borderRadius={{ md: "2xl" }} overflow="hidden" bg="white" direction={{ base: "column", md: "row" }}>
         {/* Left: Branding/Welcome */}
-        <Box flex={1} bgGradient="linear(to-br, orange.400, orange.500)" color="white" display="flex" flexDirection="column" justifyContent="center" alignItems="center" p={[6, 8]}>
+        <Box flex={1} bgGradient="linear(to-br, orange.400, orange.500)" color="white" display={{ base: "none", md: "flex" }} flexDirection="column" justifyContent="center" alignItems="center" p={8}>
           <Box maxW="340px" w="full">
             <Heading fontSize={["2xl", "3xl"]} fontWeight="extrabold" mb={4} lineHeight={1.2}>
               Simplify management with <br /> our dashboard.
@@ -89,7 +89,7 @@ export default function Login() {
           </Box>
         </Box>
         {/* Right: Login Form */}
-        <Box flex={1} display="flex" flexDirection="column" justifyContent="center" alignItems="center" p={[6, 8]}>
+        <Box flex={1} display="flex" flexDirection="column" justifyContent="center" alignItems="center" p={{ base: 6, md: 8 }}>
           <Box w="full" maxW="340px">
             <Flex align="center" gap={2} mb={6} justify="center">
               <Box bg="orange.400" borderRadius="full" p={2} boxShadow="md">
@@ -101,7 +101,7 @@ export default function Login() {
             </Flex>
             <Heading color="gray.800" fontSize="2xl" mb={2} fontWeight="bold" textAlign="left">Welcome Back</Heading>
             <Text color="gray.500" mb={6} fontSize="md">Please login to your account</Text>
-            <InputGroup mb={4}>
+            <InputGroup mb={4} size="lg">
               <InputLeftElement pointerEvents="none">
                 <FaUser color="#aaa" />
               </InputLeftElement>
@@ -114,10 +114,9 @@ export default function Login() {
                 border="none"
                 _placeholder={{ color: "gray.400" }}
                 _focus={{ bg: "white" }}
-                size="lg"
               />
             </InputGroup>
-            <InputGroup mb={2}>
+            <InputGroup mb={2} size="lg">
               <InputLeftElement pointerEvents="none">
                 <FaLock color="#aaa" />
               </InputLeftElement>
@@ -131,7 +130,6 @@ export default function Login() {
                 border="none"
                 _placeholder={{ color: "gray.400" }}
                 _focus={{ bg: "white" }}
-                size="lg"
               />
               <InputRightElement>
                 <IconButton

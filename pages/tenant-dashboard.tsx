@@ -221,50 +221,38 @@ export default function TenantDashboard() {
   }
 
   return (
-    <MainLayout role={role} currentUser={currentUser} showSidebar={false}>
-      <Box p={{ base: 4, md: 6 }} bgGradient="linear(to-b, gray.50, white)" minH="100vh">
-        <Heading size={{ base: "md", md: "lg" }} mb={8} color="brand.700" letterSpacing="wide">
+    <MainLayout role={role} currentUser={currentUser}>
+      <Box p={{ base: 2, md: 4 }} bg="gray.50" minH="100vh">
+        <Heading size={{ base: "lg", md: "xl" }} mb={6} color="gray.700">
           แดชบอร์ดผู้เช่า
         </Heading>
 
         {/* Personal Information Card */}
-        <Card mb={8} boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 4, md: 8 }} py={6}>
+        <Card mb={6} boxShadow="md" borderRadius="lg" bg="white" p={{ base: 4, md: 6 }}>
           <CardHeader pb={2}>
-            <Heading size="md" color="brand.600" letterSpacing="wide">
+            <Heading size="md" color="blue.600">
               <Icon as={FaUser} mr={2} /> ข้อมูลส่วนตัว
             </Heading>
           </CardHeader>
           <CardBody>
-            <Flex direction={{ base: "column", md: "row" }} align="center" gap={10}>
-              <Avatar size="2xl" src={currentUser?.avatar} name={currentUser?.name} boxShadow="lg" border="4px solid #fff" />
-              <VStack align="flex-start" spacing={0} flex={1} fontSize="lg" w="100%">
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacingY={1} spacingX={8} w="100%">
+            <Flex direction={{ base: "column", md: "row" }} align="center" gap={6}>
+              <Avatar size="xl" src={currentUser?.photoURL} name={currentUser?.name} boxShadow="md" />
+              <VStack align={{ base: "center", md: "flex-start" }} spacing={1} flex={1} w="100%">
+                <SimpleGrid columns={{ base: 1, sm: 2 }} spacingY={2} spacingX={6} w="100%">
                   <Box>
-                    <Text fontWeight="bold" color="gray.600" fontSize="md">ชื่อ</Text>
-                    <Text color="gray.800" fontSize="lg">{currentUser?.name}</Text>
+                    <Text fontWeight="bold" color="gray.500" fontSize="sm">ชื่อ</Text>
+                    <Text color="gray.800" fontSize="md">{currentUser?.name}</Text>
                   </Box>
                   <Box>
-                    <Text fontWeight="bold" color="gray.600" fontSize="md">อีเมล</Text>
-                    <Text color="gray.800" fontSize="lg">{currentUser?.email}</Text>
+                    <Text fontWeight="bold" color="gray.500" fontSize="sm">อีเมล</Text>
+                    <Text color="gray.800" fontSize="md">{currentUser?.email}</Text>
                   </Box>
-                  {currentUser?.phoneNumber && (
-                    <Box>
-                      <Text fontWeight="bold" color="gray.600" fontSize="md">เบอร์โทรศัพท์</Text>
-                      <Text color="gray.800" fontSize="lg">{currentUser.phoneNumber}</Text>
-                    </Box>
-                  )}
                   <Box>
-                    <Text fontWeight="bold" color="gray.600" fontSize="md">สถานะ</Text>
-                    <Badge fontSize="md" px={3} py={1} borderRadius="md" colorScheme={currentUser?.status === "active" ? "green" : "red"}>
+                    <Text fontWeight="bold" color="gray.500" fontSize="sm">สถานะ</Text>
+                    <Badge fontSize="sm" px={2} py={0.5} borderRadius="md" colorScheme={currentUser?.status === "active" ? "green" : "red"}>
                       {currentUser?.status === "active" ? "เปิดใช้งาน" : "ปิดใช้งาน"}
                     </Badge>
                   </Box>
-                  {currentUser?.joinedDate && (
-                    <Box>
-                      <Text fontWeight="bold" color="gray.600" fontSize="md">วันที่เข้าร่วม</Text>
-                      <Text color="gray.800" fontSize="lg">{currentUser.joinedDate}</Text>
-                    </Box>
-                  )}
                 </SimpleGrid>
               </VStack>
             </Flex>
@@ -273,39 +261,39 @@ export default function TenantDashboard() {
 
         {/* Room Information Card */}
         {roomData ? (
-          <Card mb={8} boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 4, md: 8 }} py={6}>
+          <Card mb={6} boxShadow="md" borderRadius="lg" bg="white" p={{ base: 4, md: 6 }}>
           <CardHeader pb={2}>
-            <Heading size="md" color="brand.600" letterSpacing="wide">
+            <Heading size="md" color="blue.600">
               <Icon as={FaHome} mr={2} /> ข้อมูลห้องพัก
             </Heading>
           </CardHeader>
           <CardBody>
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+            <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={5}>
                 <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="md">หมายเลขห้อง</Text>
-                  <Text color="gray.800" fontSize="xl">{roomData.id}</Text>
+                  <Text fontWeight="bold" color="gray.500" fontSize="sm">หมายเลขห้อง</Text>
+                  <Text color="gray.800" fontSize="lg">{roomData.id}</Text>
                 </Box>
                 <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="md">ขนาดห้อง</Text>
-                  <Text color="gray.800" fontSize="xl">{roomData.area} ตร.ม.</Text>
+                  <Text fontWeight="bold" color="gray.500" fontSize="sm">ขนาดห้อง</Text>
+                  <Text color="gray.800" fontSize="lg">{roomData.area} ตร.ม.</Text>
                 </Box>
                 <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="md">ค่าเช่า</Text>
-                  <Text color="gray.800" fontSize="xl">{roomData.rent.toLocaleString()} บาท</Text>
+                  <Text fontWeight="bold" color="gray.500" fontSize="sm">ค่าเช่า</Text>
+                  <Text color="gray.800" fontSize="lg">{roomData.rent.toLocaleString()} บาท</Text>
                 </Box>
                 <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="md">ค่าบริการ</Text>
-                  <Text color="gray.800" fontSize="xl">{roomData.service.toLocaleString()} บาท</Text>
+                  <Text fontWeight="bold" color="gray.500" fontSize="sm">ค่าบริการ</Text>
+                  <Text color="gray.800" fontSize="lg">{roomData.service.toLocaleString()} บาท</Text>
                 </Box>
                 <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="md">สถานะบิลล่าสุด</Text>
+                  <Text fontWeight="bold" color="gray.500" fontSize="sm">สถานะบิลล่าสุด</Text>
                   <Badge fontSize="md" px={3} py={1} borderRadius="md" colorScheme={getStatusColor(roomData.billStatus)}>
                     {getStatusText(roomData.billStatus)}
                   </Badge>
                 </Box>
                 {roomData.billStatus === 'unpaid' && (
                 <Box>
-                  <Text fontWeight="bold" color="gray.600" fontSize="md">ยอดค้างชำระ</Text>
+                  <Text fontWeight="bold" color="red.500" fontSize="sm">ยอดค้างชำระ</Text>
                   <Text color="red.500" fontSize="xl" fontWeight="bold">{roomData.latestTotal.toLocaleString()} บาท</Text>
                 </Box>
                 )}
@@ -313,10 +301,10 @@ export default function TenantDashboard() {
             </CardBody>
           </Card>
         ) : (
-          <Card mb={8} boxShadow="2xl" borderRadius="2xl" bg="white" p={8}>
+          <Card mb={6} boxShadow="md" borderRadius="lg" bg="white" p={6}>
             <Center>
               <VStack>
-                <Icon as={FaHome} boxSize={12} color="gray.300" />
+                <Icon as={FaHome} boxSize={10} color="gray.300" />
                 <Text color="gray.500">คุณยังไม่มีข้อมูลห้องพัก</Text>
               </VStack>
             </Center>

@@ -50,6 +50,8 @@ import {
   AlertDescription,
   Link,
   Tooltip,
+  Icon,
+  Spacer,
 } from "@chakra-ui/react";
 import {
   FaUserShield,
@@ -375,11 +377,11 @@ export default function AdminUsers() {
   if (role !== "admin") return null;
 
   return (
-    <MainLayout role={role}>
-      <Box flex={1} p={{ base: 4, md: 8 }}>
+    <MainLayout role={role} currentUser={currentUser}>
+      <Box p={{ base: 2, md: 4 }}>
         <Heading
-          color="blue.600"
-          fontSize="2xl"
+          color="gray.700"
+          fontSize={{ base: "xl", md: "2xl" }}
           mb={6}
           display="flex"
           alignItems="center"
@@ -387,143 +389,101 @@ export default function AdminUsers() {
         >
           <FaUserShield /> Admin Panel
         </Heading>
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={{ base: 4, md: 6 }} mb={6}>
+        <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={{ base: 4, md: 6 }} mb={6}>
           <Box
             bg="white"
-            borderRadius="xl"
-            p={6}
-            color="blue.700"
+            borderRadius="lg"
+            p={5}
             display="flex"
             alignItems="center"
             gap={4}
-            boxShadow="md"
-            border="1.5px solid brand.50"
+            boxShadow="sm"
           >
-            <FaUserFriends fontSize="2xl" />
+            <Icon as={FaUserFriends} fontSize="2xl" color="blue.500" />
             <Box>
-              <Text fontWeight="bold" fontSize="lg">
+              <Text fontWeight="bold" fontSize="md" color="gray.600">
                 ผู้ใช้ทั้งหมด
               </Text>
-              <Text fontSize="2xl">{users.length}</Text>
+              <Text fontSize="xl" fontWeight="bold">{users.length}</Text>
             </Box>
           </Box>
           <Box
             bg="white"
-            borderRadius="xl"
-            p={6}
-            color="yellow.700"
+            borderRadius="lg"
+            p={5}
             display="flex"
             alignItems="center"
             gap={4}
-            boxShadow="md"
-            border="1.5px solid #ffe082"
+            boxShadow="sm"
           >
-            <FaCrown fontSize="2xl" color="#ffd700" />
+            <Icon as={FaCrown} fontSize="2xl" color="yellow.500" />
             <Box>
-              <Text fontWeight="bold" fontSize="lg">
+              <Text fontWeight="bold" fontSize="md" color="gray.600">
                 ผู้ดูแลระบบ
               </Text>
-              <Text fontSize="2xl">
+              <Text fontSize="xl" fontWeight="bold">
                 {users.filter((u) => u.role === "admin").length}
               </Text>
             </Box>
           </Box>
           <Box
             bg="white"
-            borderRadius="xl"
-            p={6}
-            color="green.700"
+            borderRadius="lg"
+            p={5}
             display="flex"
             alignItems="center"
             gap={4}
-            boxShadow="md"
-            border="1.5px solid #c8e6c9"
+            boxShadow="sm"
           >
-            <FaHome fontSize="2xl" />
+            <Icon as={FaHome} fontSize="2xl" color="green.500" />
             <Box>
-              <Text fontWeight="bold" fontSize="lg">
+              <Text fontWeight="bold" fontSize="md" color="gray.600">
                 ห้องทั้งหมด
               </Text>
-              <Text fontSize="2xl">{rooms.length}</Text>
+              <Text fontSize="xl" fontWeight="bold">{rooms.length}</Text>
             </Box>
           </Box>
           <Box
             bg="white"
-            borderRadius="xl"
-            p={6}
-            color="purple.700"
+            borderRadius="lg"
+            p={5}
             display="flex"
             alignItems="center"
             gap={4}
-            boxShadow="md"
-            border="1.5px solid #e1bee7"
+            boxShadow="sm"
           >
-            <FaFileInvoice fontSize="2xl" />
+            <Icon as={FaFileInvoice} fontSize="2xl" color="purple.500" />
             <Box>
-              <Text fontWeight="bold" fontSize="lg">
+              <Text fontWeight="bold" fontSize="md" color="gray.600">
                 บิลทั้งหมด
               </Text>
-              <Text fontSize="2xl">{bills.length}</Text>
+              <Text fontSize="xl" fontWeight="bold">{bills.length}</Text>
             </Box>
           </Box>
         </SimpleGrid>
         <Box
           bg="white"
-          borderRadius="2xl"
-          p={6}
-          color="gray.800"
-          boxShadow="xl"
-          border="1.5px solid brand.50"
+          borderRadius="lg"
+          p={{ base: 3, md: 5 }}
+          boxShadow="sm"
         >
           <Flex mb={4} gap={2} align="center" flexWrap="wrap" direction={{ base: "column", md: "row" }}>
-            <Button
-              leftIcon={<FaUserFriends />}
-              colorScheme="blue"
-              variant="solid"
-              borderRadius="xl"
-              fontWeight="bold"
-              mr={{ base: 0, md: 2 }}
-              w={{ base: "full", md: "auto" }}
-            >
-              จัดการผู้ใช้
-            </Button>
-            <Button
-              colorScheme="gray"
-              variant="ghost"
-              borderRadius="xl"
-              fontWeight="bold"
-              mr={{ base: 0, md: 2 }}
-              onClick={() => setIsManagePermissionsOpen(true)}
-              w={{ base: "full", md: "auto" }}
-            >
-              จัดการสิทธิ์
-            </Button>
-            <Button
-              colorScheme="gray"
-              variant="ghost"
-              borderRadius="xl"
-              fontWeight="bold"
-              w={{ base: "full", md: "auto" }}
-            >
-              รายงาน
-            </Button>
             <Input
               placeholder="ค้นหาผู้ใช้..."
-              maxW={{ base: "full", md: "220px" }}
+              maxW={{ base: "full", md: "250px" }}
               bg="gray.50"
-              borderRadius="xl"
-              color="gray.800"
-              mr={{ base: 0, md: 2 }}
+              borderRadius="lg"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              size="sm"
             />
             <Select
-              maxW={{ base: "full", md: "160px" }}
+              maxW={{ base: "full", md: "180px" }}
               bg="gray.50"
-              borderRadius="xl"
-              color="gray.800"
+              borderRadius="lg"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
+              size="sm"
             >
               <option value="">ทุกสิทธิ์</option>
               <option value="admin">🛡️ ผู้ดูแลระบบ</option>
@@ -532,49 +492,42 @@ export default function AdminUsers() {
                 <option value="owner">🏠 เจ้าของห้อง</option>
                 <option value="user">👤 ลูกบ้าน</option>
             </Select>
+            <Spacer />
             <Button
               leftIcon={<FaPlus />}
-              colorScheme="green"
-              borderRadius="xl"
-              fontWeight="bold"
-              ml={{ base: 0, md: "auto" }}
+              colorScheme="blue"
+              borderRadius="lg"
+              size="sm"
               onClick={() => setIsAddOpen(true)}
               w={{ base: "full", md: "auto" }}
             >
               เพิ่มผู้ใช้
             </Button>
+            <Button
+              leftIcon={<FaUserTag />}
+              colorScheme="gray"
+              variant="outline"
+              borderRadius="lg"
+              size="sm"
+              onClick={() => setIsManagePermissionsOpen(true)}
+              w={{ base: "full", md: "auto" }}
+            >
+              จัดการสิทธิ์
+            </Button>
           </Flex>
           <Box overflowX="auto">
             <Table
               variant="simple"
-              colorScheme="gray"
-              bg="white"
-              borderRadius="xl"
-              size="md"
+              size="sm"
             >
               <Thead>
                 <Tr>
-                  <Th color="blue.700" fontSize="sm">
-                    รูปโปรไฟล์
-                  </Th>
-                  <Th color="blue.700" fontSize="sm" minW="120px">
-                    ชื่อ
-                  </Th>
-                  <Th color="blue.700" fontSize="sm">
-                    อีเมล
-                  </Th>
-                  <Th color="blue.700" fontSize="sm">
-                    สิทธิ์
-                  </Th>
-                  <Th color="blue.700" fontSize="sm">
-                    วันที่สมัคร
-                  </Th>
-                  <Th color="blue.700" fontSize="sm">
-                    สถานะ
-                  </Th>
-                  <Th color="blue.700" fontSize="sm">
-                    จัดการ
-                  </Th>
+                  <Th>ผู้ใช้</Th>
+                  <Th>อีเมล</Th>
+                  <Th>สิทธิ์</Th>
+                  <Th>วันที่สมัคร</Th>
+                  <Th>สถานะ</Th>
+                  <Th>จัดการ</Th>
                 </Tr>
               </Thead>
               <Tbody>

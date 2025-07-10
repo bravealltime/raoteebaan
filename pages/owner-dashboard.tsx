@@ -731,10 +731,10 @@ export default function OwnerDashboard() {
       onProofModalClose={onProofModalClose}
       proofImageUrl={proofImageUrl}
     >
-      <Container maxW="container.xl" py={{ base: 4, md: 8 }}>
-        <VStack spacing={8} align="stretch">
+      <Container maxW="container.xl" py={{ base: 2, md: 4 }}>
+        <VStack spacing={6} align="stretch">
           {/* Summary Cards */}
-          <SimpleGrid columns={{ base: 2, md: 3, lg: 6 }} spacing={{ base: 4, md: 6 }}>
+          <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 6 }} spacing={{ base: 4, md: 6 }}>
             <SummaryCard icon={FaHome} label="ห้องทั้งหมด" value={totalRooms} />
             <SummaryCard icon={FaBed} label="ห้องมีผู้เช่า" value={availableRooms} />
             <SummaryCard icon={FaBed} label="ห้องว่าง" value={vacantRooms} color="green.500" />
@@ -744,10 +744,10 @@ export default function OwnerDashboard() {
           </SimpleGrid>
 
           {/* Main Content */}
-          <Box bg="white" borderRadius="2xl" p={{ base: 4, md: 6 }} boxShadow="md">
-            <Flex direction={{ base: "column", md: "row" }} justify="space-between" align={{ base: "flex-start", md: "center" }} mb={6}>
-              <VStack align="flex-start" spacing={1} mb={{ base: 4, md: 0 }}>
-                <Heading as="h2" size="lg">
+          <Box bg="white" borderRadius="xl" p={{ base: 3, md: 5 }} boxShadow="sm">
+            <Flex direction={{ base: "column", md: "row" }} justify="space-between" align={{ base: "flex-start", md: "center" }} mb={5} gap={4}>
+              <VStack align="flex-start" spacing={1}>
+                <Heading as="h2" size="md">
                   {filterType === 'review' ? 'รายการรอตรวจสอบ' : 
                    filterType === 'unpaid' ? 'ค้างชำระ' :
                    filterType === 'vacant' ? 'ห้องว่าง' : 'ห้องทั้งหมด'}
@@ -758,9 +758,9 @@ export default function OwnerDashboard() {
                    filterType === 'vacant' ? 'รายการห้องว่าง' : 'รายการห้องทั้งหมด'}
                 </Text>
               </VStack>
-              <Flex gap={2}>
+              <Flex gap={2} w={{ base: "full", md: "auto" }}>
                 <Menu>
-                  <MenuButton as={Button} leftIcon={<FaFilter />} colorScheme="purple" variant="solid" w={{ base: "full", md: "160px" }} px={4}>
+                  <MenuButton as={Button} leftIcon={<FaFilter />} colorScheme="purple" variant="outline" w={{ base: "full", md: "auto" }} size="sm">
                     <Text as="span" isTruncated>{filterLabels[filterType]}</Text>
                   </MenuButton>
                   <MenuList>
@@ -770,21 +770,13 @@ export default function OwnerDashboard() {
                     <MenuItem onClick={() => setFilterType('review')} fontWeight={filterType === 'review' ? 'bold' : 'normal'}>รอตรวจสอบ</MenuItem>
                   </MenuList>
                 </Menu>
-                <InputGroup maxW={{ base: "full", md: "320px" }}>
+                <InputGroup w={{ base: "full", md: "auto" }} size="sm">
                   <Input
                     placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     borderRadius="lg"
                   />
-                  <InputRightElement>
-                    <IconButton
-                      aria-label="ค้นหา"
-                      icon={<FaSearch />}
-                      size="sm"
-                      isRound
-                    />
-                  </InputRightElement>
                 </InputGroup>
               </Flex>
             </Flex>

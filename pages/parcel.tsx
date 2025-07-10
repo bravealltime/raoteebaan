@@ -579,10 +579,10 @@ export default function Parcel() {
 
   return (
     <MainLayout role={role} currentUser={currentUser}>
-      <Box p={{ base: 4, md: 6 }} maxW="1400px" mx="auto">
+      <Box p={{ base: 2, md: 4 }} maxW="1600px" mx="auto">
         {/* Header */}
-        <Flex justify="space-between" align="center" mb={6}>
-          <Heading size={{ base: "md", md: "lg" }} color="blue.700" display="flex" alignItems="center" gap={2}>
+        <Flex justify="space-between" align="center" mb={6} direction={{ base: "column", md: "row" }} gap={4}>
+          <Heading size={{ base: "md", md: "lg" }} color="gray.700" display="flex" alignItems="center" gap={2}>
             <Icon as={FaBox} />
             จัดการพัสดุ
           </Heading>
@@ -602,6 +602,7 @@ export default function Parcel() {
                   }]);
                   onAddOpen();
                 }}
+                w={{ base: "full", md: "auto" }}
               >
                 เพิ่มพัสดุใหม่
               </Button>
@@ -609,43 +610,43 @@ export default function Parcel() {
         </Flex>
 
         {/* Stats Summary */}
-        <SimpleGrid columns={{ base: 2, md: 2, lg: 4, xl: 5 }} spacing={{ base: 4, md: 6 }} mb={8}>
-          <Stat bg="white" p={4} borderRadius="xl" boxShadow="sm">
-            <StatLabel color="gray.600">ทั้งหมด</StatLabel>
+        <SimpleGrid columns={{ base: 1, sm: 2, lg: 5 }} spacing={{ base: 4, md: 6 }} mb={8}>
+          <Stat bg="white" p={5} borderRadius="xl" boxShadow="sm">
+            <StatLabel color="gray.500">ทั้งหมด</StatLabel>
             <StatNumber color="blue.600">{stats.total}</StatNumber>
             <StatHelpText>พัสดุทั้งหมด</StatHelpText>
           </Stat>
-          <Stat bg="white" p={4} borderRadius="xl" boxShadow="sm">
-            <StatLabel color="gray.600">รอรับ</StatLabel>
-            <StatNumber color="orange.600">{stats.pending}</StatNumber>
+          <Stat bg="white" p={5} borderRadius="xl" boxShadow="sm">
+            <StatLabel color="gray.500">รอรับ</StatLabel>
+            <StatNumber color="orange.500">{stats.pending}</StatNumber>
             <StatHelpText>ยังไม่ได้รับ</StatHelpText>
           </Stat>
-          <Stat bg="white" p={4} borderRadius="xl" boxShadow="sm">
-            <StatLabel color="gray.600">รับแล้ว</StatLabel>
-            <StatNumber color="blue.600">{stats.received}</StatNumber>
+          <Stat bg="white" p={5} borderRadius="xl" boxShadow="sm">
+            <StatLabel color="gray.500">รับแล้ว</StatLabel>
+            <StatNumber color="teal.500">{stats.received}</StatNumber>
             <StatHelpText>รอส่งมอบ</StatHelpText>
           </Stat>
-          <Stat bg="white" p={4} borderRadius="xl" boxShadow="sm">
-            <StatLabel color="gray.600">ส่งมอบแล้ว</StatLabel>
-            <StatNumber color="green.600">{stats.delivered}</StatNumber>
+          <Stat bg="white" p={5} borderRadius="xl" boxShadow="sm">
+            <StatLabel color="gray.500">ส่งมอบแล้ว</StatLabel>
+            <StatNumber color="green.500">{stats.delivered}</StatNumber>
             <StatHelpText>เสร็จสิ้น</StatHelpText>
           </Stat>
-          <Stat bg="white" p={4} borderRadius="xl" boxShadow="sm">
-            <StatLabel color="gray.600">เกินกำหนด</StatLabel>
-            <StatNumber color="red.600">{stats.overdue}</StatNumber>
+          <Stat bg="white" p={5} borderRadius="xl" boxShadow="sm">
+            <StatLabel color="gray.500">เกินกำหนด</StatLabel>
+            <StatNumber color="red.500">{stats.overdue}</StatNumber>
             <StatHelpText>เก็บเกิน 3 วัน</StatHelpText>
           </Stat>
         </SimpleGrid>
 
         {/* Room Cards with Parcels */}
-        <Box>
-          <Flex justify="space-between" align={{ base: "flex-start", md: "center" }} mb={4} direction={{ base: "column", md: "row" }}>
-            <Heading size="md" color="gray.700" mb={{ base: 4, md: 0 }}>
+        <Box bg="white" p={{ base: 4, md: 6 }} borderRadius="xl" boxShadow="sm">
+          <Flex justify="space-between" align={{ base: "flex-start", md: "center" }} mb={4} direction={{ base: "column", md: "row" }} gap={4}>
+            <Heading size="md" color="gray.700">
               {roomFilter === "all" ? `ห้องทั้งหมด (${filteredRooms.length})` : `ห้องที่มีพัสดุรอ (${filteredRooms.length})`}
             </Heading>
             
-            <HStack spacing={3} direction={{ base: "column", md: "row" }} w={{ base: "full", md: "auto" }}>
-              <InputGroup w={{ base: "full", md: "300px" }}>
+            <HStack spacing={2} w={{ base: "full", md: "auto" }}>
+              <InputGroup w={{ base: "full", md: "250px" }}>
                 <InputLeftElement pointerEvents="none">
                   <Icon as={FaSearch} color="gray.400" />
                 </InputLeftElement>
@@ -653,55 +654,56 @@ export default function Parcel() {
                   placeholder="ค้นหาห้อง หรือ ชื่อผู้เช่า..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  bg="white"
-                  borderColor="gray.300"
-                  size="md"
+                  bg="gray.50"
+                  borderRadius="lg"
                 />
               </InputGroup>
               <Select
                 value={roomFilter}
                 onChange={(e) => setRoomFilter(e.target.value as "all" | "with-parcels")}
-                w={{ base: "full", md: "250px" }}
-                bg="white"
-                borderColor="gray.300"
+                w={{ base: "full", md: "200px" }}
+                bg="gray.50"
+                borderRadius="lg"
               >
                 <option value="all">แสดงห้องทั้งหมด</option>
-                <option value="with-parcels">แสดงเฉพาะห้องที่มีพัสดุ</option>
+                <option value="with-parcels">เฉพาะห้องที่มีพัสดุ</option>
               </Select>
             </HStack>
           </Flex>
           
           {filteredRooms.length === 0 ? (
-            <Box bg="white" borderRadius="xl" p={8} textAlign="center" boxShadow="sm">
-              <Icon as={FaBox} fontSize="4xl" color="gray.300" mb={4} />
-              <Text color="gray.500" fontSize="lg">
-                {searchTerm.trim() 
-                  ? `ไม่พบห้องที่ตรงกับ "${searchTerm}"`
-                  : roomFilter === "all" 
-                    ? "ไม่มีห้องในระบบ" 
-                    : "ไม่มีพัสดุที่รอส่งมอบ"
-                }
-              </Text>
-              {searchTerm.trim() && (
-                <Text color="gray.400" fontSize="sm" mt={2}>
-                  ลองค้นหาด้วยหมายเลขห้องหรือชื่อผู้เช่า
+            <Center p={10}>
+              <VStack>
+                <Icon as={FaBox} fontSize="4xl" color="gray.300" mb={4} />
+                <Text color="gray.500" fontSize="lg">
+                  {searchTerm.trim() 
+                    ? `ไม่พบห้องที่ตรงกับ "${searchTerm}"`
+                    : roomFilter === "all" 
+                      ? "ไม่มีห้องในระบบ" 
+                      : "ไม่มีพัสดุที่รอส่งมอบ"
+                  }
                 </Text>
-              )}
-            </Box>
+                {searchTerm.trim() && (
+                  <Text color="gray.400" fontSize="sm" mt={2}>
+                    ลองค้นหาด้วยหมายเลขห้องหรือชื่อผู้เช่า
+                  </Text>
+                )}
+              </VStack>
+            </Center>
           ) : (
-            <Grid templateColumns={["1fr", "repeat(2, 1fr)", "repeat(3, 1fr)", "repeat(4, 1fr)"]} gap={4}>
+            <Grid templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(4, 1fr)" }} gap={6}>
               {filteredRooms.map((room) => (
                 <Box
                   key={room.id}
-                  bg="white"
+                  bg="gray.50"
                   borderRadius="xl"
                   p={4}
-                  boxShadow="sm"
+                  borderWidth="1px"
+                  borderColor="gray.200"
                   cursor="pointer"
                   transition="all 0.2s"
-                  _hover={{ boxShadow: "md", transform: "translateY(-2px)" }}
+                  _hover={{ boxShadow: "md", transform: "translateY(-2px)", borderColor: "blue.300" }}
                   onClick={() => handleRoomClick(room)}
-                  opacity={room.parcelCount === 0 ? 0.7 : 1}
                 >
                   <Flex justify="space-between" align="center" mb={3}>
                     <Text fontWeight="bold" color="blue.700" fontSize="lg">
