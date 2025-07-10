@@ -39,7 +39,7 @@ interface Room {
   ownerId?: string;
 }
 
-export default function Rooms({ currentUser }) {
+export default function Rooms() {
   const router = useRouter();
   const cancelRef = useRef(null);
   const toast = useToast();
@@ -89,26 +89,53 @@ export default function Rooms({ currentUser }) {
   const [newEquipmentCondition, setNewEquipmentCondition] = useState("ดี");
   const [newEquipmentNotes, setNewEquipmentNotes] = useState("");
   const [isMeterReadingModalOpen, setIsMeterReadingModalOpen] = useState(false);
-  
+  const [role, setRole] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any | null>(null); // Add currentUser state
   const [isUploadSlipModalOpen, setIsUploadSlipModalOpen] = useState(false);
   const [selectedRoomForSlip, setSelectedRoomForSlip] = useState<Room | null>(null);
   const [isSlipViewModalOpen, setIsSlipViewModalOpen] = useState(false);
   const [currentSlipUrl, setCurrentSlipUrl] = useState<string | null>(null);
 
-  
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        router.replace('/login')
+        return;
+      }
+      const snap = await getDoc(doc(db, "users", user.uid));
+      const userRole = snap.exists() ? snap.data().role : "user";
+      const firestoreData = snap.exists() ? snap.data() : {};
+
+      setUserId(user.uid);
+      setUserEmail(user.email);
+      setRole(userRole);
+      setCurrentUser({
+        uid: user.uid,
+        name: firestoreData.name || user.displayName || '',
+        email: firestoreData.email || user.email || '',
+        role: userRole,
+        photoURL: firestoreData.avatar || user.photoURL || undefined, // Ensure photoURL is taken from Firestore first, then Auth
+        roomNumber: firestoreData.roomNumber || undefined,
+      });
+      setLoading(false)
+    });
+    return () => unsub();
+  }, []);
 
   const fetchData = useCallback(async () => {
-    if (!currentUser?.uid || !currentUser?.role) return;
+    if (!userId || !role) return;
 
     setLoading(true);
     try {
       let roomsQuery;
-      if (currentUser.role === 'admin') {
+      if (role === 'admin') {
         roomsQuery = collection(db, "rooms");
-      } else if (currentUser.role === 'owner') {
-        roomsQuery = query(collection(db, "rooms"), where("ownerId", "==", currentUser.uid));
-      } else if (currentUser.role === 'user') {
-        roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", currentUser.uid));
+      } else if (role === 'owner') {
+        roomsQuery = query(collection(db, "rooms"), where("ownerId", "==", userId));
+      } else if (role === 'user') {
+        roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", userId));
       } else {
         setRooms([]);
         setLoading(false);
@@ -178,7 +205,7 @@ export default function Rooms({ currentUser }) {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, toast]);
+  }, [userId, role, toast]);
 
   useEffect(() => {
     fetchData();
@@ -264,7 +291,7 @@ export default function Rooms({ currentUser }) {
         billStatus: "paid",
         tenantId: tenantId,
         tenantEmail: roomData.tenantEmail || null,
-        ownerId: currentUser?.uid || undefined,
+        ownerId: userId || undefined,
       };
       
       await setDoc(doc(db, "rooms", sanitizedRoomId), room);
@@ -635,7 +662,7 @@ export default function Rooms({ currentUser }) {
               billStatus: status === 'vacant' ? 'vacant' : 'unpaid',
               tenantId: null,
               tenantEmail: (row as any).tenantEmail || null,
-              ownerId: currentUser?.uid || undefined,
+              ownerId: userId || undefined,
               extraServices: [], // Removed from import
             };
 
@@ -1148,7 +1175,14 @@ export default function Rooms({ currentUser }) {
   if (loading) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
 
   return (
-    <MainLayout role={currentUser?.role} currentUser={currentUser}>
+    <MainLayout role={role} currentUser={{
+      uid: userId || '',
+      name: currentUser?.name || '',
+      email: currentUser?.email || '',
+      role: role || '',
+      photoURL: currentUser?.photoURL || undefined,
+      roomNumber: currentUser?.roomNumber || undefined,
+    }}>
       <Box p={{ base: 2, md: 4 }}>
         <Flex
           direction={{ base: "column", md: "row" }}
@@ -1158,7 +1192,7 @@ export default function Rooms({ currentUser }) {
           flexWrap="wrap"
         >
           <Text fontWeight="bold" fontSize={["xl", "2xl"]} color="gray.700" mr={4} mb={{ base: 2, md: 0 }}>ห้องพัก</Text>
-          {(currentUser?.role === 'admin' || currentUser?.role === 'owner') && (
+          {(role === 'admin' || role === 'owner') && (
             <Box mb={{ base: 4, md: 0 }} mr={{ md: 4 }}>
               <Heading size="sm" mb={2} color="gray.600">การจัดการห้องพัก</Heading>
               <Wrap spacing={3}>
@@ -1267,7 +1301,7 @@ export default function Rooms({ currentUser }) {
                     key={room.id}
                     {...room}
                     tenantName={room.tenantName}
-                    userRole={currentUser?.role}
+                    role={role}
                     latestTotal={latestTotal}
                     electricity={electricity}
                     water={water}
@@ -1358,7 +1392,7 @@ export default function Rooms({ currentUser }) {
         </ModalContent>
       </Modal>
 
-      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} userRole={currentUser?.role} ownerId={currentUser?.uid || undefined} isCentered size={{ base: "full", md: "2xl" }} />
+      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} userRole={role} ownerId={userId || undefined} isCentered size={{ base: "full", md: "2xl" }} />
 
       <EditRoomModal
         isOpen={!!editRoom}

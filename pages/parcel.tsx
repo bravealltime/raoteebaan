@@ -992,7 +992,7 @@ export default function Parcel() {
                           type="file"
                           accept="image/*"
                           onChange={(e) => handleParcelFormChange(index, 'imageFile', e)}
-                          ref={(el) => {fileInputRefs.current[index] = el}}
+                          ref={(el) => (fileInputRefs.current[index] = el)}
                           style={{ display: 'none' }}
                         />
                         <HStack spacing={4}>

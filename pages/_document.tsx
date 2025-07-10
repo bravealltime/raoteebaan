@@ -6,7 +6,6 @@ export default function Document() {
       <Head />
       <body>
         <Main />
-        <script src="/Kanit-Regular-normal.js"></script>
         <NextScript />
       </body>
     </Html>

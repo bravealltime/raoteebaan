@@ -35,17 +35,8 @@ interface Room {
   latestBillId?: string;
 }
 
-interface User {
-  uid: string;
-  name: string;
-  email: string;
-  role: string;
-  avatar?: string;
-}
-
 export default function OwnerDashboard() {
   const [rooms, setRooms] = useState<Room[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -251,20 +242,6 @@ export default function OwnerDashboard() {
     }
     if (currentUser?.uid) fetchInbox();
   }, [currentUser]);
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      const usersCollection = collection(db, "users");
-      const usersSnapshot = await getDocs(usersCollection);
-      const usersList = usersSnapshot.docs.map(doc => ({
-        uid: doc.id,
-        ...doc.data()
-      })) as User[];
-      setUsers(usersList);
-    };
-
-    fetchUsers();
-  }, []);
 
   const handleDelete = async (id: string) => {
     setDeleteId(id);
@@ -839,7 +816,7 @@ export default function OwnerDashboard() {
 
       <AddRoomModal isOpen={isOpen} onClose={onClose} onAdd={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} isCentered size={{ base: "full", md: "2xl" }} />
       {editRoom && (
-        <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} users={users} isCentered size={{ base: "full", md: "2xl" }} />
+        <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} isCentered size={{ base: "full", md: "2xl" }} />
       )}
 
       <AlertDialog
