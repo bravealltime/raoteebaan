@@ -14,6 +14,8 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
   Button,
+  Heading,
+  HStack,
 } from "@chakra-ui/react";
 import { FaCog, FaBell, FaEnvelope, FaSignOutAlt } from "react-icons/fa";
 import { useRouter } from "next/router";
@@ -34,6 +36,31 @@ interface AppHeaderProps {
   currentUser?: User | null;
 }
 
+const getPageTitle = (pathname: string) => {
+  switch (pathname) {
+    case "/":
+      return "ห้องพัก";
+    case "/dashboard":
+      return "ภาพรวม";
+    case "/owner-dashboard":
+      return "ภาพรวม";
+    case "/tenant-dashboard":
+      return "แดชบอร์ด";
+    case "/inbox":
+      return "ข้อความ";
+    case "/parcel":
+      return "พัสดุ";
+    case "/admin-users":
+      return "จัดการผู้ใช้";
+    case "/profile":
+      return "โปรไฟล์";
+    default:
+      if (pathname.startsWith("/bill/")) return "รายละเอียดบิล";
+      if (pathname.startsWith("/history/")) return "ประวัติ";
+      return "TeeRao";
+  }
+};
+
 export default function AppHeader({ currentUser }: AppHeaderProps) {
   const router = useRouter();
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -41,6 +68,7 @@ export default function AppHeader({ currentUser }: AppHeaderProps) {
   const [profile, setProfile] = useState<{ name: string; avatar?: string; greeting?: string }>({ name: currentUser?.name || "xxx", avatar: currentUser?.photoURL });
   const [role, setRole] = useState<string | null>(null);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [pageTitle, setPageTitle] = useState("");
 
   useEffect(() => {
     if (currentUser) {
@@ -50,15 +78,12 @@ export default function AppHeader({ currentUser }: AppHeaderProps) {
         greeting: new Date().toLocaleString("th-TH", { dateStyle: "full", timeStyle: "short" }),
       });
       setRole(currentUser.role);
-    } else {
-      setProfile({
-        name: "xxx",
-        avatar: undefined,
-        greeting: new Date().toLocaleString("th-TH", { dateStyle: "full", timeStyle: "short" }),
-      });
-      setRole(null);
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    setPageTitle(getPageTitle(router.pathname));
+  }, [router.pathname]);
 
   useEffect(() => {
     if (!currentUser?.uid) return;
@@ -72,7 +97,6 @@ export default function AppHeader({ currentUser }: AppHeaderProps) {
       let unreadCount = 0;
       snapshot.forEach((doc) => {
         const convo = doc.data();
-        // Check if there is a last message, if the user is not the sender, and if it's unread
         if (convo.lastMessage && convo.lastMessage.senderId !== currentUser.uid && !convo.lastMessage.isRead) {
           unreadCount++;
         }
@@ -90,7 +114,7 @@ export default function AppHeader({ currentUser }: AppHeaderProps) {
       onClose();
     } catch (error) {
       console.error("Error signing out: ", error);
-      toast({ title: "Logout Failed", description: error.message, status: "error" });
+      // toast({ title: "Logout Failed", description: error.message, status: "error" });
     }
   };
 
@@ -98,66 +122,32 @@ export default function AppHeader({ currentUser }: AppHeaderProps) {
     <>
       <Flex
         as="header"
-        w="full"
-        px={[2, 4, 8]}
-        py={[2, 3]}
         align="center"
-        bg="whiteAlpha.800"
-        borderRadius="2xl"
-        boxShadow="0 4px 24px 0 rgba(33, 150, 243, 0.10)"
-        mt={[2, 4]}
-        mb={[4, 8]}
-        maxW="100vw"
-        minH="64px"
-        position="relative"
-        zIndex={10}
-        style={{ backdropFilter: "blur(12px)" }}
-        border="1.5px solid brand.50"
+        w="full"
+        p={4}
+        mb={6}
+        bg="transparent"
       >
-        <Text fontWeight="extrabold" fontSize={["lg", "2xl"]} color="blue.500" mr={6} letterSpacing={1}>
-          TeeRao
-        </Text>
+        <Heading size="lg" color="gray.700">{pageTitle}</Heading>
         <Spacer />
-        <Flex align="center" gap={3}>
-          <Avatar
-            size="md"
-            name={profile.name || ""}
-            src={profile.avatar}
-            border="2.5px solid white"
-            boxShadow="md"
-            bg="blue.100"
-            color="blue.700"
-            cursor="pointer"
-            onClick={() => router.push("/profile")}
+        <HStack spacing={4}>
+          <IconButton
+            aria-label="Notifications"
+            icon={<FaBell />}
+            variant="ghost"
+            fontSize="xl"
+            color="gray.600"
+            _hover={{ bg: "gray.200" }}
+            borderRadius="full"
           />
-          <Box textAlign="left" cursor="pointer" onClick={() => router.push("/profile")}>
-            <Text fontWeight="bold" fontSize="md" color="gray.800">
-              สวัสดีคุณ {profile.name || "xxx"}
-            </Text>
-            <Text fontSize="xs" color="gray.400">
-              {profile.greeting || "อาทิตย์ 21 มิ.ย. 2568"}
-            </Text>
-          </Box>
-          {role === "admin" && (
-            <IconButton
-              aria-label="Settings"
-              icon={<FaCog />}
-              variant="ghost"
-              fontSize="xl"
-              color="blue.500"
-              _hover={{ bg: "blue.50", color: "blue.600" }}
-              borderRadius="full"
-              onClick={() => router.push("/admin-users")}
-            />
-          )}
           <Box position="relative">
             <IconButton
               aria-label="Inbox"
               icon={<FaEnvelope />}
               variant="ghost"
               fontSize="xl"
-              color="blue.500"
-              _hover={{ bg: "blue.50", color: "blue.600" }}
+              color="gray.600"
+              _hover={{ bg: "gray.200" }}
               borderRadius="full"
               onClick={() => router.push("/inbox")}
             />
@@ -168,33 +158,14 @@ export default function AppHeader({ currentUser }: AppHeaderProps) {
                 right="-1px"
                 colorScheme="red"
                 borderRadius="full"
-                px="2"
-                fontSize="0.7em"
+                px="1.5"
+                fontSize="0.6em"
               >
                 {unreadMessageCount}
               </Badge>
             )}
           </Box>
-          <IconButton
-            aria-label="Notifications"
-            icon={<FaBell />}
-            variant="ghost"
-            fontSize="xl"
-            color="blue.500"
-            _hover={{ bg: "blue.50", color: "blue.600" }}
-            borderRadius="full"
-          />
-          <IconButton
-            aria-label="Logout"
-            icon={<FaSignOutAlt />}
-            variant="ghost"
-            fontSize="xl"
-            color="red.500"
-            _hover={{ bg: "red.50", color: "red.600" }}
-            borderRadius="full"
-            onClick={onOpen}
-          />
-        </Flex>
+        </HStack>
       </Flex>
 
       <AlertDialog

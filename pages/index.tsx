@@ -69,6 +69,8 @@ export default function Rooms() {
   
   const [searchRoom, setSearchRoom] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(12);
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
   const [equipmentList, setEquipmentList] = useState([
     { name: "เตียง", status: "ครบ", condition: "ดี", notes: "" },
@@ -1142,6 +1144,19 @@ export default function Rooms() {
     return matchSearch && matchFilter;
   });
 
+  const paginatedRooms = filteredRooms.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const totalPages = Math.ceil(filteredRooms.length / itemsPerPage);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -1271,8 +1286,8 @@ export default function Rooms() {
           initial="hidden"
           animate="visible"
         >
-          <SimpleGrid minChildWidth="280px" spacing={6} mt={8}>
-            {filteredRooms.map(room => {
+          <SimpleGrid minChildWidth="350px" spacing={8} mt={8}>
+            {paginatedRooms.map(room => {
               const electricity = roomBills[room.id]?.electricityTotal || room.electricity || 0;
               const water = roomBills[room.id]?.waterTotal || room.water || 0;
               const rent = room.rent || 0;
@@ -1308,6 +1323,49 @@ export default function Rooms() {
               );
             })}
           </SimpleGrid>
+          {totalPages > 1 && (
+            <Flex justify="center" align="center" mt={8} p={4} bg="white" borderRadius="xl" shadow="sm">
+              <HStack spacing={2}>
+                <Button 
+                  onClick={() => handlePageChange(1)} 
+                  isDisabled={currentPage === 1}
+                  variant="outline"
+                  size="sm"
+                >
+                  หน้าแรก
+                </Button>
+                <Button 
+                  onClick={() => handlePageChange(currentPage - 1)} 
+                  isDisabled={currentPage === 1}
+                  variant="outline"
+                  size="sm"
+                >
+                  ก่อนหน้า
+                </Button>
+                
+                <Text fontSize="sm" fontWeight="bold" color="gray.600">
+                  หน้า {currentPage} จาก {totalPages}
+                </Text>
+
+                <Button 
+                  onClick={() => handlePageChange(currentPage + 1)} 
+                  isDisabled={currentPage === totalPages}
+                  variant="outline"
+                  size="sm"
+                >
+                  ถัดไป
+                </Button>
+                <Button 
+                  onClick={() => handlePageChange(totalPages)} 
+                  isDisabled={currentPage === totalPages}
+                  variant="outline"
+                  size="sm"
+                >
+                  หน้าสุดท้าย
+                </Button>
+              </HStack>
+            </Flex>
+          )}
         </motion.div>
       </Box>
 

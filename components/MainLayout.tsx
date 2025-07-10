@@ -136,27 +136,23 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
 
   
   return (
-    <Box minH="100vh">
-      {currentUser ? (
-        <AppHeader currentUser={currentUser} />
-      ) : (
-        <SimpleHeader />
-      )}
-      <Flex minH="100vh" p={{ base: 4, md: 8 }}>
-        {showSidebar && <Sidebar role={role} />}
+    <Flex minH="100vh" bg="gray.100">
+      {showSidebar && <Sidebar role={role} currentUser={currentUser} />}
+      <Box flex={1} p={{ base: 4, md: 6 }}>
+        {currentUser && <AppHeader currentUser={currentUser} />}
         <AnimatePresence mode="wait">
           <motion.div
-            key={typeof window !== 'undefined' ? window.location.pathname : 'static'}
-            initial={{ opacity: 0, y: 24 }}
+            key={router.pathname}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -24 }}
-            transition={{ duration: 0.35, ease: "easeInOut" }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
             style={{ flex: 1 }}
           >
             {children}
           </motion.div>
         </AnimatePresence>
-      </Flex>
+      </Box>
 
       <Modal isOpen={isProofModalOpen || false} onClose={onProofModalClose || (() => {})} isCentered size="xl">
         <ModalOverlay />
@@ -170,6 +166,6 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
         </ModalContent>
       </Modal>
       <audio ref={notificationSoundRef} src="/sounds/notification.mp3" preload="auto" />
-    </Box>
+    </Flex>
   );
 }
