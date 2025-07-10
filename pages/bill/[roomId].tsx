@@ -9,6 +9,7 @@ import { FaFileInvoice, FaArrowLeft, FaDownload, FaUpload, FaEye, FaTrash, FaChe
 import Script from "next/script";
 import TenantLayout from "../../components/TenantLayout";
 import MainLayout from "../../components/MainLayout";
+import ReactDOMServer from "react-dom/server";
 
 export default function BillDetail() {
   const router = useRouter();
@@ -181,18 +182,100 @@ export default function BillDetail() {
     return () => clearTimeout(timer);
   }, [bill?.promptpay, bill?.total, qr]);
 
+  // PDF-only layout
+  const renderPDFContent = () => (
+    <Box bg="white" borderRadius="xl" p={10} m={0} boxShadow="md" minH="1122px" minW="794px" maxW="794px" style={{ fontFamily: 'Kanit, sans-serif' }}>
+      <VStack spacing={6} align="stretch" w="full">
+        <HStack justify="space-between" align="center" mb={2}>
+          <HStack spacing={3} align="center">
+            <Icon as={FaFileInvoice} w={10} h={10} color="blue.500" />
+            <Heading size="xl" color="blue.700" letterSpacing="wide">ใบแจ้งหนี้</Heading>
+          </HStack>
+          <Badge colorScheme={bill.billStatus === 'paid' ? 'green' : bill.billStatus === 'pending' ? 'yellow' : 'red'} fontSize="lg" px={6} py={2} borderRadius="full">
+            {bill.billStatus === 'paid' ? 'ชำระแล้ว' : bill.billStatus === 'pending' ? 'รอตรวจสอบ' : 'ค้างชำระ'}
+          </Badge>
+        </HStack>
+        <Divider />
+        <SimpleGrid columns={2} spacing={6} mt={2}>
+          <VStack align="start" spacing={1} fontSize="md">
+            <Text><b>ห้อง:</b> {bill.room}</Text>
+            <Text><b>ผู้เช่า:</b> {bill.tenant}</Text>
+            <Text><b>วันที่ออกบิล:</b> {bill.date}</Text>
+          </VStack>
+          <VStack align="end" spacing={1} fontSize="md">
+            <Text><b>เลขที่บิล:</b> {bill.id}</Text>
+            <Text><b>วันครบกำหนด:</b> <span style={{ color: '#e53e3e', fontWeight: 600 }}>{bill.dueDate}</span></Text>
+          </VStack>
+        </SimpleGrid>
+        <Divider mt={4} />
+        <Box mt={4}>
+          <Table variant="simple" size="md" w="full" borderWidth={1} borderColor="#e2e8f0">
+            <Thead bg="#f1f5f9">
+              <Tr>
+                <Th fontSize="md" color="gray.700" borderColor="#e2e8f0">รายการ</Th>
+                <Th fontSize="md" color="gray.700" borderColor="#e2e8f0" isNumeric>จำนวนเงิน (บาท)</Th>
+              </Tr>
+            </Thead>
+            <Tbody>
+              {bill.items.map((item: any, idx: number) => (
+                <Tr key={idx}>
+                  <Td borderColor="#e2e8f0">{item.label}</Td>
+                  <Td borderColor="#e2e8f0" isNumeric>{item.value.toLocaleString()}</Td>
+                </Tr>
+              ))}
+              <Tr>
+                <Td fontWeight="bold" fontSize="lg" borderColor="#e2e8f0">ยอดรวมสุทธิ</Td>
+                <Td fontWeight="bold" fontSize="lg" borderColor="#e2e8f0" isNumeric color="blue.700">{bill.total.toLocaleString()}</Td>
+              </Tr>
+            </Tbody>
+          </Table>
+        </Box>
+        <Divider mt={4} />
+        <HStack align="flex-end" justify="space-between" mt={8}>
+          <VStack align="start" spacing={2}>
+            <Text fontSize="md" color="gray.600">* กรุณาชำระเงินภายในวันครบกำหนด มิฉะนั้นจะมีค่าปรับตามเงื่อนไข</Text>
+            {bill.overdueDays > 0 && (
+              <Text fontSize="md" color="red.500">เลยกำหนด {bill.overdueDays} วัน</Text>
+            )}
+          </VStack>
+          <VStack align="center" spacing={2}>
+            {qr && (
+              <Image src={qr} alt="PromptPay QR Code" boxSize="140px" borderRadius="md" border="1px solid #e2e8f0" />
+            )}
+            <Text fontSize="sm" color="gray.500">PromptPay: {bill.promptpay}</Text>
+            <Text fontSize="sm" color="gray.500">ยอดเงิน: {bill.total.toLocaleString()} บาท</Text>
+          </VStack>
+        </HStack>
+      </VStack>
+    </Box>
+  );
+
   const handleExportPDF = async () => {
-    if (!pdfRef.current) return;
+    if (!bill) return;
     const html2pdf = (await import('html2pdf.js')).default;
-    html2pdf()
-      .set({
-        margin: 0.5,
-        filename: `invoice_${bill.room}_${bill.date}.pdf`,
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: "in", format: "a4", orientation: "portrait" },
-      })
-      .from(pdfRef.current)
-      .save();
+    // สร้าง element ซ่อนสำหรับ PDF
+    const container = document.createElement('div');
+    container.style.position = 'fixed';
+    container.style.left = '-9999px';
+    document.body.appendChild(container);
+    // ใช้ ReactDOMServer เพื่อ render เป็น HTML string
+    import('react-dom/server').then(({ renderToString }) => {
+      container.innerHTML = renderToString(renderPDFContent());
+      setTimeout(() => {
+        html2pdf()
+          .set({
+            margin: 0,
+            filename: `invoice_${bill.room}_${bill.date}.pdf`,
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: "pt", format: "a4", orientation: "portrait" },
+          })
+          .from(container)
+          .save()
+          .then(() => {
+            document.body.removeChild(container);
+          });
+      }, 200); // รอ DOM update เล็กน้อย
+    });
   };
 
   const handleUploadProof = async () => {
@@ -337,7 +420,7 @@ export default function BillDetail() {
   if (!bill) return <Box p={8}><Text>ไม่พบข้อมูลบิล</Text></Box>;
 
   const renderContent = () => (
-    <Box maxW="1200px" mx="auto" p={{ base: 2, md: 4 }} position="relative">
+    <Box ref={pdfRef} maxW="1200px" mx="auto" p={{ base: 2, md: 4 }} position="relative">
       <IconButton
         icon={<FaArrowLeft />}
         aria-label="ย้อนกลับ"
