@@ -511,7 +511,19 @@ const Inbox = () => {
 
   return (
     <MainLayout role={currentUser?.role} currentUser={currentUser} showSidebar={false}>
-      <Flex h="calc(100vh - 4rem)" bg="white" borderRadius="lg" boxShadow="md">
+      <Flex h="calc(100vh - 4rem)" bg="white" borderRadius="lg" boxShadow="md" position="relative">
+        <IconButton
+          aria-label="Go back to dashboard"
+          icon={<FaArrowLeft />}
+          position="absolute"
+          top={4}
+          left={4}
+          zIndex={1} // Ensure it's above other content
+          onClick={() => router.back()}
+          size="md"
+          variant="ghost"
+          colorScheme="gray"
+        />
         <VStack
           w={{ base: "100%", md: isSidebarExpanded ? "350px" : "80px" }}
           minW={{ base: "100%", md: isSidebarExpanded ? "350px" : "80px" }}
@@ -520,20 +532,13 @@ const Inbox = () => {
           borderRight={{ md: "1px solid" }}
           borderColor="gray.200"
           p={{ base: 2, md: 4 }}
+          pt={{ base: 2, md: 12 }} // Add top padding to make space for the back button
           spacing={4}
           align="stretch"
           transition="width 0.2s ease-in-out, min-width 0.2s ease-in-out"
         >
           <Flex justify="space-between" align="center" mb={2}>
             <HStack spacing={2} flex={1} overflow="hidden">
-              <IconButton
-                aria-label="Go back"
-                icon={<FaArrowLeft />}
-                isRound
-                size="sm"
-                variant="ghost"
-                onClick={() => router.back()}
-              />
               {isSidebarExpanded && (
                 <Heading size="lg" whiteSpace="nowrap">Inbox</Heading>
               )}
@@ -641,20 +646,11 @@ const Inbox = () => {
             <>
               <HStack
                 p={{ base: 2, md: 4 }}
+                pt={{ base: 2, md: 12 }} // Add top padding to make space for the back button
                 borderBottom="1px solid"
                 borderColor="gray.200"
                 bg="gray.50"
               >
-                {/* ปุ่มย้อนกลับสำหรับ mobile view */}
-                <IconButton
-                  aria-label="ย้อนกลับไปหน้ารายชื่อแชท"
-                  icon={<FaArrowLeft />}
-                  display={{ base: "inline-flex", md: "none" }}
-                  onClick={() => setSelectedConversationId(null)}
-                  variant="ghost"
-                  size="md"
-                  mr={2}
-                />
                 {selectedConversation ? (
                   <>
                     {(() => {

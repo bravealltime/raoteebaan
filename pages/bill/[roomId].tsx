@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
-import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogCloseButton, SimpleGrid, Badge, Divider, Center } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogCloseButton, SimpleGrid, Badge, Divider, Center, IconButton } from "@chakra-ui/react";
 import { db, auth } from "../../lib/firebase";
 import { collection, query, where, orderBy, limit, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
@@ -337,9 +337,20 @@ export default function BillDetail() {
   if (!bill) return <Box p={8}><Text>ไม่พบข้อมูลบิล</Text></Box>;
 
   const renderContent = () => (
-    <Box maxW="1200px" mx="auto" p={{ base: 2, md: 4 }}>
+    <Box maxW="1200px" mx="auto" p={{ base: 2, md: 4 }} position="relative">
+      <IconButton
+        icon={<FaArrowLeft />}
+        aria-label="ย้อนกลับ"
+        position="absolute"
+        top={4}
+        left={4}
+        colorScheme="blue"
+        variant="ghost"
+        borderRadius="full"
+        onClick={() => router.back()}
+      />
       <VStack spacing={6} align="stretch">
-        <Flex justify="space-between" align={{ base: "flex-start", md: "center" }} direction={{ base: "column", md: "row" }} gap={4}>
+        <Flex justify="space-between" align={{ base: "flex-start", md: "center" }} direction={{ base: "column", md: "row" }} gap={4} pt={8}>
           <Box>
             <Heading size={{ base: "md", lg: "lg" }} color="gray.700">ใบแจ้งหนี้ - ห้อง {roomId}</Heading>
             <Text color="gray.500">สำหรับ {bill.tenant}</Text>
