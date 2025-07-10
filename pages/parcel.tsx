@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
-import { auth, db } from "../lib/firebase";
+import { auth, db, storage } from "../lib/firebase";
 import { 
   doc, 
   getDoc, 
@@ -16,6 +16,7 @@ import {
   onSnapshot,
   deleteField
 } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { 
   Box, 
   Flex, 
@@ -53,7 +54,9 @@ import {
   HStack,
   Divider,
   SimpleGrid,
-  IconButton
+  IconButton,
+  Image,
+  AspectRatio
 } from "@chakra-ui/react";
 import { 
   FaBox, 
@@ -64,7 +67,8 @@ import {
   FaEye,
   FaEdit,
   FaTrash,
-  FaSearch
+  FaSearch,
+  FaCamera
 } from "react-icons/fa";
 import { onAuthStateChanged } from "firebase/auth";
 import MainLayout from "../components/MainLayout";
@@ -82,6 +86,7 @@ interface Parcel {
   deliveredDate?: Timestamp;
   notes?: string;
   trackingNumber?: string;
+  imageUrl?: string;
 }
 
 interface Room {
@@ -108,12 +113,15 @@ export default function Parcel() {
   const [stats, setStats] = useState<ParcelStats>({ total: 0, pending: 0, received: 0, delivered: 0, overdue: 0 });
   const [loading, setLoading] = useState(true);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [roomParcels, setRoomParcels] = useState<Parcel[]>([]);
   const [roomFilter, setRoomFilter] = useState<"all" | "with-parcels">("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isAddOpen, onOpen: onAddOpen, onClose: onAddClose } = useDisclosure();
+  const { isOpen: isImageOpen, onOpen: onImageOpen, onClose: onImageClose } = useDisclosure();
   const toast = useToast();
+  const fileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Add Parcel form state
   const [newParcels, setNewParcels] = useState([{
@@ -122,7 +130,8 @@ export default function Parcel() {
     sender: "",
     description: "",
     trackingNumber: "",
-    notes: ""
+    notes: "",
+    imageFile: null as File | null
   }]);
 
   useEffect(() => {
@@ -321,14 +330,19 @@ export default function Parcel() {
       sender: "",
       description: "",
       trackingNumber: "",
-      notes: ""
+      notes: "",
+      imageFile: null
     }]);
     onAddOpen();
   };
 
   const handleParcelFormChange = (index, field, value) => {
     const updatedParcels = [...newParcels];
-    updatedParcels[index][field] = value;
+    if (field === 'imageFile') {
+      updatedParcels[index][field] = value.target.files[0];
+    } else {
+      updatedParcels[index][field] = value;
+    }
     setNewParcels(updatedParcels);
   };
 
@@ -339,7 +353,8 @@ export default function Parcel() {
       sender: "",
       description: "",
       trackingNumber: "",
-      notes: ""
+      notes: "",
+      imageFile: null
     }]);
   };
 
@@ -367,7 +382,7 @@ export default function Parcel() {
       for (const newParcel of newParcels) {
         const selectedRoomData = rooms.find(room => room.id === newParcel.roomId);
         
-        await addDoc(collection(db, "parcels"), {
+        const docRef = await addDoc(collection(db, "parcels"), {
           roomId: newParcel.roomId,
           roomNumber: newParcel.roomId,
           tenantName: selectedRoomData?.tenantName || "-",
@@ -378,8 +393,17 @@ export default function Parcel() {
           notes: newParcel.notes || "",
           status: "received",
           receivedDate: Timestamp.now(),
-          createdBy: currentUser.uid
+          createdBy: currentUser.uid,
+          imageUrl: ""
         });
+
+        let imageUrl = "";
+        if (newParcel.imageFile) {
+          const imageRef = ref(storage, `parcels/${docRef.id}/${newParcel.imageFile.name}`);
+          await uploadBytes(imageRef, newParcel.imageFile);
+          imageUrl = await getDownloadURL(imageRef);
+          await updateDoc(docRef, { imageUrl });
+        }
       }
 
       toast({
@@ -395,7 +419,8 @@ export default function Parcel() {
         sender: "",
         description: "",
         trackingNumber: "",
-        notes: ""
+        notes: "",
+        imageFile: null
       }]);
       onAddClose();
     } catch (error) {
@@ -572,7 +597,8 @@ export default function Parcel() {
                     sender: "",
                     description: "",
                     trackingNumber: "",
-                    notes: ""
+                    notes: "",
+                    imageFile: null
                   }]);
                   onAddOpen();
                 }}
@@ -733,7 +759,7 @@ export default function Parcel() {
         </Box>
 
         {/* Room Parcel Details Modal */}
-        <Modal isOpen={isOpen} onClose={onClose} size={{ base: "full", md: "4xl" }} isCentered>
+        <Modal isOpen={isOpen} onClose={onClose} size={{ base: "full", md: "6xl" }} isCentered>
           <ModalOverlay />
           <ModalContent>
             <ModalHeader>
@@ -756,6 +782,7 @@ export default function Parcel() {
                 <Table variant="simple">
                   <Thead>
                     <Tr>
+                      <Th>หลักฐาน</Th>
                       <Th>ผู้รับ</Th>
                       <Th>ผู้ส่ง</Th>
                       <Th>รายละเอียด</Th>
@@ -767,6 +794,21 @@ export default function Parcel() {
                   <Tbody>
                     {roomParcels.map((parcel) => (
                       <Tr key={parcel.id}>
+                        <Td>
+                          {parcel.imageUrl ? (
+                            <Image 
+                              src={parcel.imageUrl} 
+                              alt="หลักฐานพัสดุ" 
+                              boxSize="50px" 
+                              objectFit="cover" 
+                              borderRadius="md"
+                              cursor="pointer"
+                              onClick={() => { setSelectedImage(parcel.imageUrl); onImageOpen(); }}
+                            />
+                          ) : (
+                            <Text fontSize="xs" color="gray.400">ไม่มีรูป</Text>
+                          )}
+                        </Td>
                         <Td>
                           <Text fontWeight="medium">{parcel.recipient}</Text>
                           {parcel.trackingNumber && (
@@ -858,13 +900,14 @@ export default function Parcel() {
             <ModalBody pb={6}>
               <VStack spacing={6} maxH="60vh" overflowY="auto" p={1}>
                 {newParcels.map((parcel, index) => (
-                  <Box key={index} w="full" p={4} borderWidth={1} borderRadius="lg" position="relative">
-                    <VStack spacing={4}>
-                      <HStack w="full" justify="space-between">
-                        <Text fontWeight="bold" color="gray.600">พัสดุชิ้นที่ {index + 1}</Text>
+                  <Box key={index} w="full" p={5} borderWidth={1} borderRadius="xl" position="relative" bg="white" shadow="sm">
+                    <VStack spacing={4} align="stretch">
+                      <HStack w="full" justify="space-between" pb={2} borderBottomWidth={1} borderColor="gray.100">
+                        <Text fontWeight="bold" color="blue.700" fontSize="lg">พัสดุชิ้นที่ {index + 1}</Text>
                         {newParcels.length > 1 && (
                           <IconButton
-                            size="xs"
+                            size="sm"
+                            variant="ghost"
                             colorScheme="red"
                             aria-label="Remove parcel form"
                             icon={<FaTrash />}
@@ -872,13 +915,15 @@ export default function Parcel() {
                           />
                         )}
                       </HStack>
-                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4} w="full">
+                      
+                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
                         <Box>
-                          <Text mb={1} fontSize="sm" fontWeight="medium">ห้อง*</Text>
+                          <Text mb={1} fontSize="sm" fontWeight="medium" color="gray.600">ห้อง*</Text>
                           <Select
                             placeholder="เลือกห้อง"
                             value={parcel.roomId}
                             onChange={(e) => handleParcelFormChange(index, 'roomId', e.target.value)}
+                            bg="gray.50"
                           >
                             {rooms.filter(room => room.status === "occupied").map((room) => (
                               <option key={room.id} value={room.id}>
@@ -888,46 +933,85 @@ export default function Parcel() {
                           </Select>
                         </Box>
                         <Box>
-                          <Text mb={1} fontSize="sm" fontWeight="medium">ชื่อผู้รับ*</Text>
+                          <Text mb={1} fontSize="sm" fontWeight="medium" color="gray.600">ชื่อผู้รับ*</Text>
                           <Input
                             value={parcel.recipient}
                             onChange={(e) => handleParcelFormChange(index, 'recipient', e.target.value)}
                             placeholder="ชื่อผู้รับพัสดุ"
+                            bg="gray.50"
                           />
                         </Box>
+                      </Grid>
+
+                      <Box>
+                        <Text mb={1} fontSize="sm" fontWeight="medium" color="gray.600">ผู้ส่ง/บริษัท*</Text>
+                        <Input
+                          value={parcel.sender}
+                          onChange={(e) => handleParcelFormChange(index, 'sender', e.target.value)}
+                          placeholder="ชื่อผู้ส่งหรือบริษัท"
+                          bg="gray.50"
+                        />
+                      </Box>
+                      
+                      <Box>
+                        <Text mb={1} fontSize="sm" fontWeight="medium" color="gray.600">รายละเอียดพัสดุ*</Text>
+                        <Input
+                          value={parcel.description}
+                          onChange={(e) => handleParcelFormChange(index, 'description', e.target.value)}
+                          placeholder="รายละเอียดสินค้าหรือพัสดุ"
+                          bg="gray.50"
+                        />
+                      </Box>
+
+                      <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
                         <Box>
-                          <Text mb={1} fontSize="sm" fontWeight="medium">ผู้ส่ง/บริษัท*</Text>
-                          <Input
-                            value={parcel.sender}
-                            onChange={(e) => handleParcelFormChange(index, 'sender', e.target.value)}
-                            placeholder="ชื่อผู้ส่งหรือบริษัท"
-                          />
-                        </Box>
-                        <Box>
-                          <Text mb={1} fontSize="sm" fontWeight="medium">รายละเอียดพัสดุ*</Text>
-                          <Input
-                            value={parcel.description}
-                            onChange={(e) => handleParcelFormChange(index, 'description', e.target.value)}
-                            placeholder="รายละเอียดสินค้าหรือพัสดุ"
-                          />
-                        </Box>
-                        <Box>
-                          <Text mb={1} fontSize="sm" fontWeight="medium">หมายเลขติดตาม (ถ้ามี)</Text>
+                          <Text mb={1} fontSize="sm" fontWeight="medium" color="gray.600">หมายเลขติดตาม (ถ้ามี)</Text>
                           <Input
                             value={parcel.trackingNumber}
                             onChange={(e) => handleParcelFormChange(index, 'trackingNumber', e.target.value)}
                             placeholder="หมายเลขติดตาม"
+                            bg="gray.50"
                           />
                         </Box>
                         <Box>
-                          <Text mb={1} fontSize="sm" fontWeight="medium">หมายเหตุ (ถ้ามี)</Text>
+                          <Text mb={1} fontSize="sm" fontWeight="medium" color="gray.600">หมายเหตุ (ถ้ามี)</Text>
                           <Input
                             value={parcel.notes}
                             onChange={(e) => handleParcelFormChange(index, 'notes', e.target.value)}
                             placeholder="หมายเหตุเพิ่มเติม"
+                            bg="gray.50"
                           />
                         </Box>
                       </Grid>
+
+                      <Box>
+                        <Text mb={2} fontSize="sm" fontWeight="medium" color="gray.600">รูปภาพหลักฐาน (ถ้ามี)</Text>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleParcelFormChange(index, 'imageFile', e)}
+                          ref={(el) => (fileInputRefs.current[index] = el)}
+                          style={{ display: 'none' }}
+                        />
+                        <HStack spacing={4}>
+                          <Button
+                            leftIcon={<FaCamera />}
+                            onClick={() => fileInputRefs.current[index]?.click()}
+                            variant="outline"
+                            colorScheme="blue"
+                          >
+                            เลือกรูปภาพ
+                          </Button>
+                          {parcel.imageFile && (
+                            <HStack spacing={2} align="center">
+                              <Icon as={FaCheckCircle} color="green.500" />
+                              <Text fontSize="sm" color="gray.700" noOfLines={1}>
+                                {parcel.imageFile.name}
+                              </Text>
+                            </HStack>
+                          )}
+                        </HStack>
+                      </Box>
                     </VStack>
                   </Box>
                 ))}
@@ -957,6 +1041,21 @@ export default function Parcel() {
             </ModalBody>
           </ModalContent>
         </Modal>
+
+        {/* Image Preview Modal */}
+        <Modal isOpen={isImageOpen} onClose={onImageClose} size="xl" isCentered>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>รูปภาพหลักฐาน</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <Center>
+                <Image src={selectedImage || ""} alt="หลักฐานพัสดุ" maxH="80vh" />
+              </Center>
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+
       </Box>
     </MainLayout>
   );
