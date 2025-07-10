@@ -511,19 +511,7 @@ const Inbox = () => {
 
   return (
     <MainLayout role={currentUser?.role} currentUser={currentUser} showSidebar={false}>
-      <Flex h="calc(100vh - 4rem)" bg="white" borderRadius="lg" boxShadow="md" position="relative">
-        <IconButton
-          aria-label="Go back to dashboard"
-          icon={<FaArrowLeft />}
-          position="absolute"
-          top={4}
-          left={4}
-          zIndex={1} // Ensure it's above other content
-          onClick={() => router.back()}
-          size="md"
-          variant="ghost"
-          colorScheme="gray"
-        />
+      <Flex h="calc(100vh - 4rem)" bg="white" borderRadius="lg" boxShadow="md">
         <VStack
           w={{ base: "100%", md: isSidebarExpanded ? "350px" : "80px" }}
           minW={{ base: "100%", md: isSidebarExpanded ? "350px" : "80px" }}
@@ -568,7 +556,7 @@ const Inbox = () => {
               />
             )}
           </Flex>
-          <VStack as="nav" spacing={1} align="stretch" overflowY="auto">
+          <VStack as="nav" spacing={1} align="stretch" overflowY="auto" pt={4}>
             {conversations.length > 0 ? (
               conversations.map((convo) => {
                 if (!convo) return null;
@@ -642,6 +630,17 @@ const Inbox = () => {
         </VStack>
 
         <Flex flex={1} direction="column" bg="white">
+          <HStack p={4} borderBottom="1px solid" borderColor="gray.200" bg="gray.50">
+            <IconButton
+              aria-label="Go back"
+              icon={<FaArrowLeft />}
+              isRound
+              size="md"
+              variant="ghost"
+              onClick={() => router.back()}
+            />
+            <Spacer />
+          </HStack>
           {selectedConversation ? (
             <>
               <HStack
