@@ -655,29 +655,31 @@ const Inbox = () => {
                 spacing={3}
               >
                 {/* Avatar & Info */}
-                <Avatar size="sm" name={getOtherParticipant(selectedConversation)?.name} src={getOtherParticipant(selectedConversation)?.photoURL} ml={1} />
-                <VStack align="start" spacing={0} flex={1} minW={0}>
-                  <Text fontWeight="bold" fontSize="sm" noOfLines={1}>
-                    {getOtherParticipant(selectedConversation)?.name}
-                  </Text>
-                  <HStack spacing={2}>
-                    <Circle
-                      size="10px"
-                      bg={onlineStatus[getOtherParticipant(selectedConversation)?.uid || ""]?.state === "online" ? "green.400" : "gray.300"}
-                    />
-                    <Text fontSize="xs" color="gray.500">
-                      {onlineStatus[getOtherParticipant(selectedConversation)?.uid || ""]?.state === "online"
-                        ? "ออนไลน์"
-                        : "ออฟไลน์"}
+                <Avatar size="md" name={getOtherParticipant(selectedConversation)?.name} src={getOtherParticipant(selectedConversation)?.photoURL} ml={1} />
+                <VStack align="start" spacing={0.5} flex={1} minW={0}>
+                  <HStack spacing={2} alignItems="center" minW={0}>
+                    <Text fontWeight="bold" fontSize={{ base: "md", md: "lg" }} noOfLines={1} maxW={{ base: "120px", md: "200px" }}>
+                      {getOtherParticipant(selectedConversation)?.name}
                     </Text>
-                    {getOtherParticipant(selectedConversation)?.roomNumber && (
-                      <Text fontSize="xs" color="gray.500">
-                        · ห้อง {getOtherParticipant(selectedConversation)?.roomNumber}
+                    <HStack spacing={1} alignItems="center">
+                      <Circle
+                        size="10px"
+                        bg={onlineStatus[getOtherParticipant(selectedConversation)?.uid || ""]?.state === "online" ? "green.400" : "gray.300"}
+                      />
+                      <Text fontSize="xs" color={onlineStatus[getOtherParticipant(selectedConversation)?.uid || ""]?.state === "online" ? "green.500" : "gray.500"}>
+                        {onlineStatus[getOtherParticipant(selectedConversation)?.uid || ""]?.state === "online"
+                          ? "ออนไลน์"
+                          : "ออฟไลน์"}
                       </Text>
-                    )}
+                    </HStack>
                   </HStack>
+                  {getOtherParticipant(selectedConversation)?.roomNumber && (
+                    <Text fontSize="xs" color="gray.500" mt={0.5}>
+                      ห้อง {getOtherParticipant(selectedConversation)?.roomNumber}
+                    </Text>
+                  )}
                   {otherUserTyping && (
-                    <Text fontSize="xs" color="blue.500" fontStyle="italic">
+                    <Text fontSize="xs" color="blue.500" fontStyle="italic" mt={0.5}>
                       กำลังพิมพ์...
                     </Text>
                   )}
