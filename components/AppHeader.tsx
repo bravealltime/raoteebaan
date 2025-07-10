@@ -17,7 +17,7 @@ import {
   Heading,
   HStack,
 } from "@chakra-ui/react";
-import { FaCog, FaBell, FaEnvelope, FaSignOutAlt } from "react-icons/fa";
+import { FaCog, FaBell, FaEnvelope, FaSignOutAlt, FaBars } from "react-icons/fa";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { auth, db } from "../lib/firebase";
@@ -34,6 +34,7 @@ interface User {
 
 interface AppHeaderProps {
   currentUser?: User | null;
+  onOpenMobileSidebar?: () => void; // New prop
 }
 
 const getPageTitle = (pathname: string) => {
@@ -61,7 +62,7 @@ const getPageTitle = (pathname: string) => {
   }
 };
 
-export default function AppHeader({ currentUser }: AppHeaderProps) {
+export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeaderProps) {
   const router = useRouter();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = React.useRef<HTMLButtonElement>(null);
@@ -128,6 +129,18 @@ export default function AppHeader({ currentUser }: AppHeaderProps) {
         mb={6}
         bg="transparent"
       >
+        {/* Hamburger Icon for mobile */}
+        <IconButton
+          aria-label="Open Menu"
+          icon={<FaBars />}
+          variant="ghost"
+          fontSize="xl"
+          color="gray.600"
+          _hover={{ bg: "gray.200" }}
+          borderRadius="full"
+          onClick={onOpenMobileSidebar}
+          display={{ base: "flex", md: "none" }} // Only show on mobile
+        />
         <Heading size="lg" color="gray.700">{pageTitle}</Heading>
         <Spacer />
         <HStack spacing={4}>

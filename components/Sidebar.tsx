@@ -7,9 +7,10 @@ import { motion } from "framer-motion";
 interface SidebarProps {
   role: string | null;
   currentUser?: any | null;
+  onCloseMobileSidebar?: () => void; // New prop
 }
 
-const NavItem = ({ href, icon, children }) => {
+const NavItem = ({ href, icon, children, onCloseMobileSidebar }) => {
   const router = useRouter();
   const isActive = router.pathname === href || (href !== "/" && router.pathname.startsWith(href));
 
@@ -18,6 +19,7 @@ const NavItem = ({ href, icon, children }) => {
       <motion.a
         whileHover={{ x: 2 }}
         style={{ textDecoration: "none", width: "100%" }}
+        onClick={onCloseMobileSidebar} // Close sidebar on navigation
       >
         <Button
           as="div"
@@ -43,7 +45,7 @@ const NavItem = ({ href, icon, children }) => {
   );
 };
 
-export default function Sidebar({ role, currentUser }: SidebarProps) {
+export default function Sidebar({ role, currentUser, onCloseMobileSidebar }: SidebarProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -96,13 +98,12 @@ export default function Sidebar({ role, currentUser }: SidebarProps) {
       position="sticky"
       top={0}
       h="100vh"
-      display={{ base: "none", md: "flex" }}
     >
       <Heading size="md" color="blue.600" mb={8} mt={2} alignSelf="center">TeeRao</Heading>
       
       <VStack spacing={2} align="stretch" flex={1}>
         {navItems.map((item) => (
-          <NavItem key={item.href} href={item.href} icon={item.icon}>
+          <NavItem key={item.href} href={item.href} icon={item.icon} onCloseMobileSidebar={onCloseMobileSidebar}>
             {item.label}
           </NavItem>
         ))}

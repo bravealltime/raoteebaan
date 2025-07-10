@@ -1,9 +1,9 @@
-import { Flex, Box, Modal, ModalOverlay, ModalContent, ModalCloseButton, ModalBody, Image, Text, useToast } from "@chakra-ui/react";
+import { Flex, Box, Modal, ModalOverlay, ModalContent, ModalCloseButton, ModalBody, Image, Text, useToast, useBreakpointValue } from "@chakra-ui/react";
 import AppHeader from "./AppHeader";
 import Sidebar from "./Sidebar";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { Conversation } from "../types/chat";
@@ -24,6 +24,10 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
   const notificationSoundRef = useRef<HTMLAudioElement>(null);
   const prevConversationsRef = useRef<Conversation[]>([]);
   const isInitialLoad = useRef(true);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const isMobile = useBreakpointValue({ base: true, md: false });
+
+  const onCloseMobileSidebar = () => setIsMobileSidebarOpen(false);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -107,9 +111,9 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
   
   return (
     <Flex minH="100vh" bg="gray.100">
-      {showSidebar && <Sidebar role={role} currentUser={currentUser} />}
+      {showSidebar && !isMobile && <Sidebar role={role} currentUser={currentUser} />}
       <Box flex={1} p={{ base: 4, md: 6 }}>
-        {currentUser && <AppHeader currentUser={currentUser} />}
+        {currentUser && <AppHeader currentUser={currentUser} onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)} />}
         <AnimatePresence mode="wait">
           <motion.div
             key={router.pathname}
@@ -123,6 +127,17 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
           </motion.div>
         </AnimatePresence>
       </Box>
+
+      {/* Mobile Sidebar Modal */}
+      <Modal isOpen={isMobileSidebarOpen} onClose={onCloseMobileSidebar} size="full" motionPreset="slideInLeft">
+        <ModalOverlay />
+        <ModalContent maxW="300px" ml={0} h="100vh" borderRadius="none">
+          <ModalCloseButton />
+          <ModalBody p={0}>
+            <Sidebar role={role} currentUser={currentUser} onCloseMobileSidebar={onCloseMobileSidebar} />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
 
       <Modal isOpen={isProofModalOpen || false} onClose={onProofModalClose || (() => {})} isCentered size="xl">
         <ModalOverlay />
