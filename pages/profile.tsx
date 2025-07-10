@@ -1,4 +1,4 @@
-import { Box, Heading, Text, Flex, Avatar, Button, VStack, Divider, Badge, IconButton, Input, FormControl, FormLabel, useToast } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Avatar, Button, VStack, Divider, Badge, IconButton, Input, FormControl, FormLabel, useToast, SimpleGrid, HStack } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import { auth, storage } from "../lib/firebase";
