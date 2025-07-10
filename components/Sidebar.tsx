@@ -19,10 +19,10 @@ const NavItem = ({ href, icon, children, onCloseMobileSidebar }) => {
       <motion.a
         whileHover={{ x: 2 }}
         style={{ textDecoration: "none", width: "100%" }}
-        onClick={onCloseMobileSidebar} // Close sidebar on navigation
-      >
+        >
         <Button
           as="div"
+          onClick={onCloseMobileSidebar} // Close sidebar on navigation
           leftIcon={icon}
           colorScheme={isActive ? "blue" : "gray"}
           variant={isActive ? "solid" : "ghost"}

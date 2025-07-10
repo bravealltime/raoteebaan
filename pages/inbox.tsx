@@ -30,6 +30,7 @@ import {
   ModalContent,
   ModalCloseButton,
   ModalBody,
+  useBreakpointValue,
 } from "@chakra-ui/react";
 import { onAuthStateChanged } from "firebase/auth";
 import {
@@ -101,6 +102,7 @@ const Inbox = () => {
   const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
   const [zoomImageUrl, setZoomImageUrl] = useState<string | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const isMobile = useBreakpointValue({ base: true, md: false });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -258,10 +260,10 @@ const Inbox = () => {
   }, [messages]);
 
   useEffect(() => {
-    if (conversations.length > 0 && !selectedConversationId) {
+    if (!isMobile && conversations.length > 0 && !selectedConversationId) {
       setSelectedConversationId(conversations[0].id);
     }
-  }, [conversations, selectedConversationId]);
+  }, [conversations, selectedConversationId, isMobile]);
 
   const setMyTypingStatus = useCallback((typing: boolean) => {
     if (!currentUser || !selectedConversationId) return;
@@ -509,258 +511,250 @@ const Inbox = () => {
     );
   }
 
+  // Start of Inbox component JSX
   return (
     <MainLayout role={currentUser?.role} currentUser={currentUser} showSidebar={false}>
-      <Flex h="calc(100vh - 4rem)" bg="white" borderRadius="lg" boxShadow="md">
-        <VStack
-          w={{ base: "100%", md: isSidebarExpanded ? "350px" : "80px" }}
-          minW={{ base: "100%", md: isSidebarExpanded ? "350px" : "80px" }}
-          display={{ base: selectedConversationId ? "none" : "flex", md: "flex" }}
-          bg="gray.50"
-          borderRight={{ md: "1px solid" }}
-          borderColor="gray.200"
-          p={{ base: 2, md: 4 }}
-          pt={{ base: 2, md: 12 }} // Add top padding to make space for the back button
-          spacing={4}
-          align="stretch"
-          transition="width 0.2s ease-in-out, min-width 0.2s ease-in-out"
-        >
-          <Flex justify="space-between" align="center" mb={2}>
-            <HStack spacing={2} flex={1} overflow="hidden">
-              {isSidebarExpanded && (
-                <Heading size="lg" whiteSpace="nowrap">Inbox</Heading>
-              )}
-              {isSidebarExpanded && unreadMessageCount > 0 && (
-                <Badge colorScheme="red" borderRadius="full" px={2} py={0.5} fontSize="sm">
-                  {unreadMessageCount}
-                </Badge>
-              )}
-            </HStack>
-            <IconButton
-              aria-label="Toggle Sidebar"
-              icon={isSidebarExpanded ? <FaArrowLeft /> : <FaArrowRight />}
-              isRound
-              size="sm"
-              variant="ghost"
-              onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-              ml={2}
-            />
-            {isSidebarExpanded && (
+      <Flex h="calc(100vh - 4rem)" bg="gray.50" borderRadius="lg" boxShadow="md" overflow="hidden">
+        {/* Sidebar: แสดงเฉพาะ desktop หรือ mobile ที่ยังไม่ได้เลือกแชท */}
+        {(!isMobile || !selectedConversationId) && (
+          <VStack
+            w={{ base: "100%", md: isSidebarExpanded ? "320px" : "80px" }}
+            minW={{ base: "100%", md: isSidebarExpanded ? "320px" : "80px" }}
+            maxW={{ base: "100%", md: isSidebarExpanded ? "320px" : "80px" }}
+            bg="white"
+            borderRight={{ md: "1px solid" }}
+            borderColor="gray.200"
+            p={{ base: 2, md: 4 }}
+            spacing={4}
+            align="stretch"
+            transition="width 0.2s, min-width 0.2s, max-width 0.2s"
+            boxShadow={{ base: "md", md: "none" }}
+            zIndex={2}
+          >
+            <Flex justify="space-between" align="center" mb={2}>
+              <HStack spacing={2} flex={1} overflow="hidden">
+                {isSidebarExpanded && (
+                  <Heading size="md" whiteSpace="nowrap">แชทของคุณ</Heading>
+                )}
+                {isSidebarExpanded && unreadMessageCount > 0 && (
+                  <Badge colorScheme="red" borderRadius="full" px={2} py={0.5} fontSize="sm" ml={1}>
+                    {unreadMessageCount}
+                  </Badge>
+                )}
+              </HStack>
               <IconButton
-                aria-label="New Conversation"
-                icon={<FaPlus />}
+                aria-label="ขยาย/ย่อ Sidebar"
+                icon={isSidebarExpanded ? <FaArrowLeft /> : <FaArrowRight />}
                 isRound
                 size="sm"
                 variant="ghost"
-                onClick={onOpen}
+                onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+                ml={2}
+                display={{ base: "none", md: "inline-flex" }}
               />
-            )}
-          </Flex>
-          <VStack as="nav" spacing={1} align="stretch" overflowY="auto" pt={4}>
-            {conversations.length > 0 ? (
-              conversations.map((convo) => {
-                if (!convo) return null;
-                const otherUser = getOtherParticipant(convo);
-                const isOnline = otherUser
-                  ? onlineStatus[otherUser.uid]?.state === "online"
-                  : false;
-                const isSelected =
-                  selectedConversation?.id === convo.id;
-                const isUnread = convo.lastMessage && convo.lastMessage.senderId !== currentUser?.uid && !convo.lastMessage.isRead;
-                return (
-                  <HStack
-                    key={convo.id}
-                    p={3}
-                    borderRadius="lg"
-                    cursor="pointer"
-                    bg={isSelected ? "blue.500" : (isUnread ? "blue.50" : "transparent")}
-                    color={isSelected ? "white" : "inherit"}
-                    _hover={{ bg: isSelected ? "blue.600" : (isUnread ? "blue.100" : "gray.200") }}
-                    onClick={() => setSelectedConversationId(convo.id)}
-                    transition="background 0.2s ease-in-out"
-                    justifyContent={isSidebarExpanded ? "flex-start" : "center"}
-                  >
-                    <Avatar name={otherUser?.name} src={otherUser?.photoURL}>
-                      
-                      <Circle
-                        size="12px"
-                        bg={isOnline ? "green.500" : "gray.400"}
-                        border="2px solid white"
-                        position="absolute"
-                        bottom="0"
-                        right="0"
-                      />
-                    </Avatar>
-                    {isSidebarExpanded && (
-                      <VStack align="start" spacing={0} flex={1}>
-                        <Text fontWeight={isUnread ? "extrabold" : "bold"}>{otherUser?.name}</Text>
-                        {otherUser?.roomNumber && (
-                          <Text fontSize="xs" color={isSelected ? "gray.300" : "gray.500"}>
-                            Room: {otherUser.roomNumber}
+              {isSidebarExpanded && (
+                <IconButton
+                  aria-label="เริ่มแชทใหม่"
+                  icon={<FaPlus />}
+                  isRound
+                  size="sm"
+                  colorScheme="blue"
+                  variant="solid"
+                  onClick={onOpen}
+                  ml={2}
+                />
+              )}
+            </Flex>
+            <VStack as="nav" spacing={1} align="stretch" overflowY="auto" pt={2} maxH="calc(100vh - 10rem)">
+              {conversations.length > 0 ? (
+                conversations.map((convo) => {
+                  if (!convo) return null;
+                  const otherUser = getOtherParticipant(convo);
+                  const isOnline = otherUser
+                    ? onlineStatus[otherUser.uid]?.state === "online"
+                    : false;
+                  const isSelected =
+                    selectedConversation?.id === convo.id;
+                  const isUnread = convo.lastMessage && convo.lastMessage.senderId !== currentUser?.uid && !convo.lastMessage.isRead;
+                  return (
+                    <HStack
+                      key={convo.id}
+                      p={3}
+                      borderRadius="lg"
+                      cursor="pointer"
+                      bg={isSelected ? "blue.500" : (isUnread ? "blue.50" : "transparent")}
+                      color={isSelected ? "white" : "inherit"}
+                      _hover={{ bg: isSelected ? "blue.600" : (isUnread ? "blue.100" : "gray.100") }}
+                      onClick={() => setSelectedConversationId(convo.id)}
+                      transition="background 0.2s"
+                      justifyContent={isSidebarExpanded ? "flex-start" : "center"}
+                      alignItems="center"
+                      spacing={3}
+                    >
+                      <Box position="relative">
+                        <Avatar size="sm" name={otherUser?.name} src={otherUser?.photoURL} />
+                        <Circle
+                          size="10px"
+                          bg={isOnline ? "green.400" : "gray.300"}
+                          border="2px solid white"
+                          position="absolute"
+                          bottom={0}
+                          right={0}
+                        />
+                      </Box>
+                      {isSidebarExpanded && (
+                        <VStack align="start" spacing={0} flex={1} minW={0}>
+                          <Text fontWeight={isUnread ? "extrabold" : "bold"} fontSize="sm" noOfLines={1}>{otherUser?.name}</Text>
+                          <Text fontSize="xs" color={isSelected ? "gray.200" : "gray.500"} noOfLines={1}>
+                            {convo.lastMessage?.text || "-"}
                           </Text>
-                        )}
-                        <Text
-                          fontSize="sm"
-                          color={isSelected ? "gray.200" : "gray.500"}
-                          noOfLines={1}
-                          fontWeight={isUnread ? "bold" : "normal"}
-                        >
-                          {convo.lastMessage?.text}
-                        </Text>
-                      </VStack>
-                    )}
-                    {isSidebarExpanded && (
-                      <Badge colorScheme={getRoleColorScheme(otherUser?.role || "")}>
-                        {otherUser?.role === "admin" ? "🛡️ ผู้ดูแลระบบ" : 
-                         otherUser?.role === "juristic" ? "🏢 นิติ" : 
-                         otherUser?.role === "technician" ? "🛠️ ช่าง" : 
-                         otherUser?.role === "owner" ? "🏠 เจ้าของห้อง" : 
-                         "👤 ลูกบ้าน"}
-                      </Badge>
-                    )}
-                  </HStack>
-                );
-              })
-            ) : (
-              <Text color="gray.500" textAlign="center" mt={10}>
-                No conversations yet. Start one by clicking the + button.
-              </Text>
-            )}
+                        </VStack>
+                      )}
+                      {isSidebarExpanded && isUnread && (
+                        <Badge colorScheme="red" borderRadius="full" fontSize="xs" px={2} py={0.5}>ใหม่</Badge>
+                      )}
+                    </HStack>
+                  );
+                })
+              ) : (
+                <Box textAlign="center" color="gray.400" py={10}>
+                  <Text fontSize="lg">ยังไม่มีแชท</Text>
+                  <Text fontSize="sm">กดปุ่ม <b>+</b> เพื่อเริ่มแชทใหม่</Text>
+                </Box>
+              )}
+            </VStack>
           </VStack>
-        </VStack>
-
-        <Flex flex={1} direction="column" bg="white">
-          <HStack p={4} borderBottom="1px solid" borderColor="gray.200" bg="gray.50">
-            <IconButton
-              aria-label="Go back"
-              icon={<FaArrowLeft />}
-              isRound
-              size="md"
-              variant="ghost"
-              onClick={() => router.back()}
-            />
-            <Spacer />
-          </HStack>
+        )}
+        {/* Chat Content: แสดงเสมอ แต่ mobile จะเต็มจอเมื่อเลือกแชท */}
+        <Flex flex={1} direction="column" bg="gray.50" minH={0}>
+          {/* ปุ่มย้อนกลับ: แสดงเฉพาะ mobile และเมื่อเลือกแชทแล้ว */}
+          {isMobile && selectedConversationId && (
+            <HStack p={4} borderBottom="1px solid" borderColor="gray.200" bg="white" spacing={2}>
+              <IconButton
+                aria-label="ย้อนกลับไปหน้ารายชื่อแชท"
+                icon={<FaArrowLeft />}
+                display={{ base: "inline-flex", md: "none" }}
+                onClick={() => setSelectedConversationId(null)}
+                variant="ghost"
+                size="md"
+                colorScheme="blue"
+                mr={1}
+              />
+              <Text fontWeight="bold" fontSize="md">แชท</Text>
+              <Spacer />
+            </HStack>
+          )}
           {selectedConversation ? (
             <>
               <HStack
                 p={{ base: 2, md: 4 }}
-                pt={{ base: 2, md: 12 }} // Add top padding to make space for the back button
                 borderBottom="1px solid"
                 borderColor="gray.200"
-                bg="gray.50"
+                bg="white"
+                alignItems="center"
+                spacing={3}
               >
-                {selectedConversation ? (
-                  <>
-                    {(() => {
-                      const otherParticipantInHeader = getOtherParticipant(selectedConversation);
-                      return (
-                        <>
-                          <Avatar name={otherParticipantInHeader?.name} src={otherParticipantInHeader?.photoURL} />
-                          
-                          <VStack align="start" spacing={0}>
-                            <Text fontWeight="bold">
-                              {otherParticipantInHeader?.name}
-                            </Text>
-                            <HStack>
-                              <Circle
-                                size="10px"
-                                bg={
-                                  onlineStatus[
-                                    otherParticipantInHeader?.uid || ""
-                                  ]?.state === "online"
-                                    ? "green.500"
-                                    : "gray.400"
-                                }
-                              />
-                              <Text fontSize="sm" color="gray.500">
-                                {onlineStatus[
-                                  otherParticipantInHeader?.uid || ""
-                                ]?.state === "online"
-                                  ? "Online"
-                                  : "Offline"}
-                              </Text>
-                              {otherParticipantInHeader?.roomNumber && (
-                                <Text fontSize="sm" color="gray.500">
-                                  · Room: {otherParticipantInHeader.roomNumber}
-                                </Text>
-                              )}
-                            </HStack>
-                            {otherUserTyping && (
-                              <Text fontSize="sm" color="blue.500" fontStyle="italic">
-                                {otherParticipantInHeader?.name} is typing...
-                              </Text>
-                            )}
-                          </VStack>
-                          <Spacer />
-                          <Badge colorScheme={getRoleColorScheme(otherParticipantInHeader?.role || "")}>
-                            {otherParticipantInHeader?.role === "admin" ? "🛡️ ผู้ดูแลระบบ" : 
-                             otherParticipantInHeader?.role === "juristic" ? "🏢 นิติ" : 
-                             otherParticipantInHeader?.role === "technician" ? "🛠️ ช่าง" : 
-                             otherParticipantInHeader?.role === "owner" ? "🏠 เจ้าของห้อง" : 
-                             "👤 ลูกบ้าน"}
-                          </Badge>
-                          <IconButton
-                            aria-label="Delete Conversation"
-                            icon={<FaTrash />}
-                            onClick={handleDeleteClick}
-                            size="sm"
-                            colorScheme="red"
-                            variant="ghost"
-                          />
-                        </>
-                      );
-                    })()}
-                  </>
-                ) : (
-                  <Text>Select a conversation</Text>
-                )}
+                {/* Avatar & Info */}
+                <Avatar size="sm" name={getOtherParticipant(selectedConversation)?.name} src={getOtherParticipant(selectedConversation)?.photoURL} ml={1} />
+                <VStack align="start" spacing={0} flex={1} minW={0}>
+                  <Text fontWeight="bold" fontSize="sm" noOfLines={1}>
+                    {getOtherParticipant(selectedConversation)?.name}
+                  </Text>
+                  <HStack spacing={2}>
+                    <Circle
+                      size="10px"
+                      bg={onlineStatus[getOtherParticipant(selectedConversation)?.uid || ""]?.state === "online" ? "green.400" : "gray.300"}
+                    />
+                    <Text fontSize="xs" color="gray.500">
+                      {onlineStatus[getOtherParticipant(selectedConversation)?.uid || ""]?.state === "online"
+                        ? "ออนไลน์"
+                        : "ออฟไลน์"}
+                    </Text>
+                    {getOtherParticipant(selectedConversation)?.roomNumber && (
+                      <Text fontSize="xs" color="gray.500">
+                        · ห้อง {getOtherParticipant(selectedConversation)?.roomNumber}
+                      </Text>
+                    )}
+                  </HStack>
+                  {otherUserTyping && (
+                    <Text fontSize="xs" color="blue.500" fontStyle="italic">
+                      กำลังพิมพ์...
+                    </Text>
+                  )}
+                </VStack>
+                <Spacer />
+                <Badge colorScheme={getRoleColorScheme(getOtherParticipant(selectedConversation)?.role || "")}
+                  fontSize="xs" px={2} py={0.5} borderRadius="full">
+                  {getOtherParticipant(selectedConversation)?.role === "admin" ? "ผู้ดูแล" :
+                    getOtherParticipant(selectedConversation)?.role === "juristic" ? "นิติ" :
+                    getOtherParticipant(selectedConversation)?.role === "technician" ? "ช่าง" :
+                    getOtherParticipant(selectedConversation)?.role === "owner" ? "เจ้าของห้อง" :
+                    "ลูกบ้าน"}
+                </Badge>
+                <IconButton
+                  aria-label="ลบแชทนี้"
+                  icon={<FaTrash />}
+                  onClick={handleDeleteClick}
+                  size="sm"
+                  colorScheme="red"
+                  variant="ghost"
+                  ml={2}
+                />
               </HStack>
-
               <VStack
                 flex={1}
-                p={6}
+                p={{ base: 2, md: 6 }}
                 spacing={4}
                 overflowY="auto"
                 bg="gray.100"
+                minH={0}
+                align="stretch"
               >
-                {messages.map((msg) => (
-                  <Flex
-                    key={msg.id}
-                    w="full"
-                    justify={
-                      msg.senderId === currentUser?.uid
-                        ? "flex-end"
-                        : "flex-start"
-                    }
-                  >
-                    <Box
-                      bg={
-                        msg.senderId === currentUser?.uid
-                          ? "blue.500"
-                          : "white"
-                      }
-                      color={
-                        msg.senderId === currentUser?.uid ? "white" : "black"
-                      }
-                      px={4}
-                      py={2}
-                      borderRadius="xl"
-                      maxW="65%"
-                      boxShadow="sm"
+                {messages.length === 0 ? (
+                  <Box textAlign="center" color="gray.400" py={10}>
+                    <Text fontSize="lg">ยังไม่มีข้อความ</Text>
+                    <Text fontSize="sm">เริ่มต้นสนทนาได้เลย!</Text>
+                  </Box>
+                ) : (
+                  messages.map((msg) => (
+                    <Flex
+                      key={msg.id}
+                      w="full"
+                      justify={msg.senderId === currentUser?.uid ? "flex-end" : "flex-start"}
                     >
-                      {msg.text && <Text>{msg.text}</Text>}
-                      {msg.imageUrl && <Image src={msg.imageUrl} maxW="200px" borderRadius="md" mt={msg.text ? 2 : 0} cursor="pointer" onClick={() => { setZoomImageUrl(msg.imageUrl || null); onImageModalOpen(); }} />}
-                    </Box>
-                  </Flex>
-                ))}
+                      <Box
+                        bg={msg.senderId === currentUser?.uid ? "blue.500" : "white"}
+                        color={msg.senderId === currentUser?.uid ? "white" : "black"}
+                        px={4}
+                        py={2}
+                        borderRadius="xl"
+                        maxW="70%"
+                        boxShadow="sm"
+                        fontSize="sm"
+                        wordBreak="break-word"
+                        position="relative"
+                      >
+                        {msg.text && <Text>{msg.text}</Text>}
+                        {msg.imageUrl && (
+                          <Image
+                            src={msg.imageUrl}
+                            maxW="200px"
+                            borderRadius="md"
+                            mt={msg.text ? 2 : 0}
+                            cursor="pointer"
+                            onClick={() => { setZoomImageUrl(msg.imageUrl || null); onImageModalOpen(); }}
+                          />
+                        )}
+                      </Box>
+                    </Flex>
+                  ))
+                )}
                 <div ref={messagesEndRef} />
               </VStack>
-
-              <Box p={4} bg="gray.50">
-                <HStack>
+              <Box p={4} bg="white" borderTop="1px solid" borderColor="gray.200">
+                <HStack spacing={2}>
                   <IconButton
-                    aria-label="Upload Image"
+                    aria-label="แนบรูปภาพ"
                     icon={<FaImage />}
                     onClick={() => imageInputRef.current?.click()}
                     size="md"
@@ -773,17 +767,17 @@ const Inbox = () => {
                   <InputGroup size="md">
                     <Input
                       variant="filled"
-                      placeholder="Type a message..."
+                      placeholder="พิมพ์ข้อความ..."
                       value={newMessage}
                       onChange={handleTyping}
-                      onKeyPress={(e) =>
-                        e.key === "Enter" && handleSendMessage()
-                      }
+                      onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
                       borderRadius="full"
+                      fontSize="sm"
+                      bg="gray.50"
                     />
                     <InputRightElement>
                       <IconButton
-                        aria-label="Send"
+                        aria-label="ส่งข้อความ"
                         icon={<FaPaperPlane />}
                         onClick={() => handleSendMessage()}
                         size="sm"
@@ -794,14 +788,14 @@ const Inbox = () => {
                       />
                     </InputRightElement>
                   </InputGroup>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={imageInputRef}
+                    onChange={handleImageUpload}
+                    style={{ display: "none" }}
+                  />
                 </HStack>
-                <input
-                  type="file"
-                  accept="image/*"
-                  ref={imageInputRef}
-                  onChange={handleImageUpload}
-                  style={{ display: "none" }}
-                />
               </Box>
             </>
           ) : selectedConversationId ? (
@@ -814,7 +808,7 @@ const Inbox = () => {
               bg="gray.50"
             >
               <Spinner size="xl" color="blue.500" />
-              <Text mt={4}>Loading conversation...</Text>
+              <Text mt={4}>กำลังโหลดแชท...</Text>
             </Flex>
           ) : (
             <Flex
@@ -827,21 +821,23 @@ const Inbox = () => {
             >
               <FaPaperPlane size="4em" />
               <Heading mt={4} size="lg">
-                Your Messages
+                กล่องข้อความ
               </Heading>
-              <Text mt={2}>
-                Select a conversation to see messages or start a new one.
+              <Text mt={2} fontSize="sm">
+                เลือกแชทเพื่อดูข้อความ หรือเริ่มแชทใหม่
               </Text>
             </Flex>
           )}
         </Flex>
       </Flex>
+      {/* ส่วนอื่น ๆ เช่น Modal, AlertDialog ... */}
       <NewConversationModal
         isOpen={isOpen}
         onClose={onClose}
         currentUser={currentUser}
         onSelectUser={handleSelectUser}
       />
+      {/* ...Modal, AlertDialog, etc... */}
 
       <AlertDialog
         isOpen={isAlertDialogOpen}
