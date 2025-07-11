@@ -1,11 +1,11 @@
-import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure, Table, Thead, Tbody, Tr, Th, Td, TableContainer } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc } from "firebase/firestore";
+import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp } from "firebase/firestore";
 import TenantLayout from "../components/TenantLayout";
-import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice } from "react-icons/fa";
+import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen } from "react-icons/fa";
 
 interface UserData {
   name: string;
@@ -42,6 +42,15 @@ interface BillHistory {
   paidDate?: string;
 }
 
+interface Parcel {
+    id: string;
+    recipient: string;
+    sender: string;
+    status: "pending" | "received" | "delivered";
+    receivedDate: Timestamp;
+    imageUrl?: string;
+}
+
 export default function TenantDashboard() {
   const router = useRouter();
   const toast = useToast();
@@ -49,9 +58,12 @@ export default function TenantDashboard() {
   
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [billHistory, setBillHistory] = useState<BillHistory[]>([]);
+  const [undeliveredParcels, setUndeliveredParcels] = useState<Parcel[]>([]);
   const [loading, setLoading] = useState(true);
   
   const { isOpen: isAlertOpen, onOpen: onAlertOpen, onClose: onAlertClose } = useDisclosure();
+  const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [alertRoomId, setAlertRoomId] = useState<string | null>(null);
 
@@ -79,8 +91,9 @@ export default function TenantDashboard() {
           if (!snapshot.empty) {
             const roomDoc = snapshot.docs[0];
             const currentRoomData = roomDoc.data();
+            const roomId = roomDoc.id;
             setRoomData({
-              id: roomDoc.id,
+              id: roomId,
               tenantName: currentRoomData.tenantName || "",
               area: currentRoomData.area || 0,
               rent: currentRoomData.rent || 0,
@@ -91,10 +104,12 @@ export default function TenantDashboard() {
               billStatus: currentRoomData.billStatus || "pending",
               overdueDays: currentRoomData.overdueDays || 0,
             });
-            fetchBillHistory(roomDoc.id);
+            fetchBillHistory(roomId);
+            fetchUndeliveredParcels(roomId);
           } else {
             setRoomData(null);
             setBillHistory([]);
+            setUndeliveredParcels([]);
           }
           setLoading(false);
         });
@@ -171,6 +186,37 @@ export default function TenantDashboard() {
     }
   };
 
+  const fetchUndeliveredParcels = (roomId: string) => {
+    const parcelsQuery = query(
+        collection(db, "parcels"),
+        where("roomId", "==", roomId),
+        where("status", "!=", "delivered"),
+        orderBy("status"),
+        orderBy("receivedDate", "desc")
+    );
+
+    const unsubscribe = onSnapshot(parcelsQuery, (snapshot) => {
+        const parcelsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Parcel);
+        setUndeliveredParcels(parcelsData);
+    }, (error) => {
+        console.error("Error fetching parcels:", error);
+        toast({
+            title: "เกิดข้อผิดพลาด",
+            description: "ไม่สามารถโหลดข้อมูลพัสดุได้",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+        });
+    });
+
+    return unsubscribe;
+  };
+
+  const handleImageClick = (imageUrl: string) => {
+    setSelectedImageUrl(imageUrl);
+    onImageModalOpen();
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "paid":
@@ -206,8 +252,6 @@ export default function TenantDashboard() {
       </TenantLayout>
     );
   }
-
-  
 
   return (
     <TenantLayout currentUser={currentUser}>
@@ -300,6 +344,48 @@ export default function TenantDashboard() {
           </Card>
         )}
 
+        {/* Undelivered Parcels Card */}
+        {undeliveredParcels.length > 0 && (
+            <Card mb={6} boxShadow="md" borderRadius="lg" bg="white" p={{ base: 4, md: 6 }}>
+                <CardHeader pb={4}>
+                    <Heading size="md" color="blue.600">
+                        <Icon as={FaBoxOpen} mr={2} /> พัสดุที่ยังไม่ได้รับ ({undeliveredParcels.length})
+                    </Heading>
+                </CardHeader>
+                <CardBody>
+                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+                        {undeliveredParcels.map((parcel) => (
+                            <Box key={parcel.id} p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50">
+                                <Flex spacing={4}>
+                                    {parcel.imageUrl && (
+                                        <Image
+                                            src={parcel.imageUrl}
+                                            alt="Parcel image"
+                                            boxSize="100px"
+                                            objectFit="cover"
+                                            borderRadius="md"
+                                            mr={4}
+                                            cursor="pointer"
+                                            onClick={() => handleImageClick(parcel.imageUrl!)}
+                                        />
+                                    )}
+                                    <VStack align="flex-start" spacing={1} flex="1">
+                                        <Text fontWeight="bold">จาก: {parcel.sender}</Text>
+                                        <Text fontSize="sm" color="gray.600">
+                                            วันที่มาถึง: {parcel.receivedDate.toDate().toLocaleDateString('th-TH')}
+                                        </Text>
+                                        <Badge colorScheme={parcel.status === 'received' ? 'blue' : 'orange'}>
+                                            {parcel.status === 'received' ? 'รอรับที่นิติ' : 'รอรับ'}
+                                        </Badge>
+                                    </VStack>
+                                </Flex>
+                            </Box>
+                        ))}
+                    </SimpleGrid>
+                </CardBody>
+            </Card>
+        )}
+
         {/* Bill History Card */}
         <Card boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 2, md: 4 }} py={{ base: 4, md: 6 }}>
           <CardHeader>
@@ -366,7 +452,7 @@ export default function TenantDashboard() {
             </Heading>
           </CardHeader>
           <CardBody>
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
               <Button
                 leftIcon={<FaCreditCard size={22} />}
                 colorScheme="green"
@@ -390,17 +476,6 @@ export default function TenantDashboard() {
                 onClick={() => roomData?.id && router.push(`/history/${roomData.id}`)}
               >
                 ประวัติบิลทั้งหมด
-              </Button>
-              <Button
-                leftIcon={<FaFileInvoice size={22} />}
-                colorScheme="blue"
-                size="lg"
-                borderRadius="xl"
-                variant="solid"
-                _hover={{ boxShadow: "md", transform: "scale(1.05)" }}
-                onClick={() => router.push("/inbox")}
-              >
-                กล่องข้อความ
               </Button>
               <Button
                 leftIcon={<FaUser size={22} />}
@@ -447,6 +522,19 @@ export default function TenantDashboard() {
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
+
+        <Modal isOpen={isImageModalOpen} onClose={onImageModalClose} size="xl" isCentered>
+            <ModalOverlay />
+            <ModalContent>
+                <ModalHeader>รูปภาพพัสดุ</ModalHeader>
+                <ModalCloseButton />
+                <ModalBody>
+                    <Center>
+                        <Image src={selectedImageUrl || ""} alt="Parcel Image" maxH="80vh" />
+                    </Center>
+                </ModalBody>
+            </ModalContent>
+        </Modal>
     </TenantLayout>
   );
 }

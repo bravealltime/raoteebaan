@@ -521,6 +521,7 @@ const Inbox = () => {
             w={{ base: "100%", md: isSidebarExpanded ? "320px" : "80px" }}
             minW={{ base: "100%", md: isSidebarExpanded ? "320px" : "80px" }}
             maxW={{ base: "100%", md: isSidebarExpanded ? "320px" : "80px" }}
+            h="100%"
             bg="white"
             borderRight={{ md: "1px solid" }}
             borderColor="gray.200"
@@ -532,40 +533,41 @@ const Inbox = () => {
             zIndex={2}
           >
             <Flex justify="space-between" align="center" mb={2}>
-              <HStack spacing={2} flex={1} overflow="hidden">
+              <HStack spacing={2} align="center">
                 {isSidebarExpanded && (
-                  <Heading size="md" whiteSpace="nowrap">แชทของคุณ</Heading>
+                  <Heading size="md" whiteSpace="nowrap">ข้อความ</Heading>
                 )}
+              </HStack>
+
+              <HStack spacing={2}>
                 {isSidebarExpanded && unreadMessageCount > 0 && (
-                  <Badge colorScheme="red" borderRadius="full" px={2} py={0.5} fontSize="sm" ml={1}>
+                  <Badge colorScheme="red" borderRadius="full" px={2} py={0.5} fontSize="sm">
                     {unreadMessageCount}
                   </Badge>
                 )}
-              </HStack>
-              <IconButton
-                aria-label="ขยาย/ย่อ Sidebar"
-                icon={isSidebarExpanded ? <FaArrowLeft /> : <FaArrowRight />}
-                isRound
-                size="sm"
-                variant="ghost"
-                onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-                ml={2}
-                display={{ base: "none", md: "inline-flex" }}
-              />
-              {isSidebarExpanded && (
                 <IconButton
-                  aria-label="เริ่มแชทใหม่"
-                  icon={<FaPlus />}
+                  aria-label="ขยาย/ย่อ Sidebar"
+                  icon={isSidebarExpanded ? <FaArrowLeft /> : <FaArrowRight />}
                   isRound
                   size="sm"
-                  colorScheme="blue"
-                  variant="solid"
-                  onClick={onOpen}
-                  ml={2}
+                  variant="ghost"
+                  onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+                  display={{ base: "none", md: "inline-flex" }}
                 />
-              )}
+                {isSidebarExpanded && (
+                  <IconButton
+                    aria-label="เริ่มแชทใหม่"
+                    icon={<FaPlus />}
+                    isRound
+                    size="sm"
+                    colorScheme="blue"
+                    variant="solid"
+                    onClick={onOpen}
+                  />
+                )}
+              </HStack>
             </Flex>
-            <VStack as="nav" spacing={1} align="stretch" overflowY="auto" pt={2} maxH="calc(100vh - 10rem)">
+            <VStack as="nav" spacing={1} align="stretch" overflowY="auto" pt={2} flex={1}>
               {conversations.length > 0 ? (
                 conversations.map((convo) => {
                   if (!convo) return null;
@@ -623,6 +625,11 @@ const Inbox = () => {
                 </Box>
               )}
             </VStack>
+            <Flex pt={4} borderTop="1px solid" borderColor="gray.200">
+                <Button leftIcon={<FaArrowLeft />} onClick={() => router.back()} variant="ghost" w="full" justifyContent={isSidebarExpanded ? "flex-start" : "center"}>
+                    {isSidebarExpanded && <Text>ย้อนกลับ</Text>}
+                </Button>
+            </Flex>
           </VStack>
         )}
         {/* Chat Content: แสดงเสมอ แต่ mobile จะเต็มจอเมื่อเลือกแชท */}
