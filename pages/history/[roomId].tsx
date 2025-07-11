@@ -8,7 +8,7 @@ import { FaArrowLeft, FaCalculator, FaBolt, FaTint, FaTrash } from "react-icons/
 import MainLayout from "../../components/MainLayout";
 import TenantLayout from "../../components/TenantLayout";
 import { db, auth } from "../../lib/firebase";
-import { collection, addDoc, query, where, orderBy, limit, getDocs, deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, query, where, orderBy, limit, getDocs, deleteDoc, doc, getDoc, setDoc, updateDoc, Timestamp } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
 export default function HistoryRoom() {
@@ -168,26 +168,13 @@ export default function HistoryRoom() {
       const total = electricityTotal + waterTotal + rent + service + extraServicesTotal;
 
       const billData = {
-        roomId: String(roomId),
-        date: new Date(date),
-        dueDate: new Date(dueDate),
-        createdAt: new Date(),
-        status: 'unpaid',
-        electricityMeterCurrent: newElecMeter,
-        electricityMeterPrev: prevElec,
-        electricityRate: Number(elecRate),
-        electricityUnit,
-        electricityTotal,
-        waterMeterCurrent: newWaterMeter,
-        waterMeterPrev: prevWater,
-        waterRate: Number(waterRate),
-        waterUnit,
-        waterTotal,
-        rent,
-        service,
-        extraServices: latestRoomData?.extraServices || [],
-        tenantName: latestRoomData?.tenantName || '-',
-        total,
+        ...newBill,
+        createdAt: Timestamp.fromDate(new Date()),
+        date: Timestamp.fromDate(new Date(newBill.date)),
+        dueDate: Timestamp.fromDate(new Date(newBill.dueDate)),
+        status: "unpaid",
+        roomId: roomId,
+        tenantId: room.tenantId || null,
       };
 
       await addDoc(collection(db, "bills"), billData);

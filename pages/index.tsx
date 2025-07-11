@@ -1,7 +1,7 @@
 import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Tooltip, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox, Image, Table, Thead, Tbody, Tr, Th, Td, FormControl, FormLabel, InputGroup, InputRightElement, CloseButton, VStack, HStack, Wrap, WrapItem, Spacer } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent, useCallback } from "react";
 import { db, auth } from "../lib/firebase";
-import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, addDoc, updateDoc, writeBatch } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, addDoc, updateDoc, writeBatch, Timestamp } from "firebase/firestore";
 import RoomCard from "../components/RoomCard";
 import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
@@ -494,8 +494,13 @@ export default function Rooms() {
           return;
         }
 
-        const newElec = hasNewElec ? Number(reading.electricity) : prevElec;
-        const newWater = hasNewWater ? Number(reading.water) : prevWater;
+        const newElec = hasNewElec ? parseFloat(String(reading.electricity)) : prevElec;
+        const newWater = hasNewWater ? parseFloat(String(reading.water)) : prevWater;
+
+        if (isNaN(newElec) || isNaN(newWater)) {
+          warnings.push(`ห้อง ${reading.roomId}: กรุณากรอกเลขมิเตอร์เป็นตัวเลขเท่านั้น`);
+          return;
+        }
 
         if ((hasNewElec && newElec < prevElec) || (hasNewWater && newWater < prevWater)) {
           warnings.push(`ห้อง ${reading.roomId}: เลขมิเตอร์ใหม่น้อยกว่าของเก่า`);
@@ -513,12 +518,12 @@ export default function Rooms() {
         const extraServicesTotal = (roomData.extraServices || []).reduce((sum: number, s: { value: number }) => sum + s.value, 0);
         const total = elecTotal + waterTotal + rent + service + extraServicesTotal;
 
-        const newBill = {
+        const newBill: any = {
           roomId: reading.roomId,
           tenantId: roomData.tenantId || null,
-          createdAt: new Date(),
-          date: new Date(recordDate),
-          dueDate: new Date(dueDate),
+          createdAt: Timestamp.fromDate(new Date()),
+          date: Timestamp.fromDate(new Date(recordDate)),
+          dueDate: Timestamp.fromDate(new Date(dueDate)),
           status: "unpaid",
           
           electricityMeterCurrent: newElec,
@@ -537,9 +542,14 @@ export default function Rooms() {
           service,
           extraServices: roomData.extraServices || [],
           total,
-          electricityImageUrl: reading.electricityImageUrl || undefined, // Add electricity image URL here
-          waterImageUrl: reading.waterImageUrl || undefined, // Add water image URL here
         };
+
+        if (reading.electricityImageUrl) {
+          newBill.electricityImageUrl = reading.electricityImageUrl;
+        }
+        if (reading.waterImageUrl) {
+          newBill.waterImageUrl = reading.waterImageUrl;
+        }
 
         // Debug log for newBill
         
