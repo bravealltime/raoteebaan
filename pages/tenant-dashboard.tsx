@@ -80,6 +80,7 @@ export default function TenantDashboard() {
             name: firestoreData.name || user.displayName || "",
             email: user.email || "",
             role: firestoreData.role || "user",
+            status: firestoreData.status || "active",
             photoURL: firestoreData.avatar || user.photoURL || undefined,
             roomId: firestoreData.roomId,
           };
