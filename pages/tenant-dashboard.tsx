@@ -375,7 +375,7 @@ export default function TenantDashboard() {
                                             วันที่มาถึง: {parcel.receivedDate.toDate().toLocaleDateString('th-TH')}
                                         </Text>
                                         <Badge colorScheme={parcel.status === 'received' ? 'blue' : 'orange'}>
-                                            {parcel.status === 'received' ? 'รอรับที่นิติ' : 'รอรับ'}
+                                            {parcel.status === 'received' ? 'พัสดุมาถึงแล้ว (รอรับที่นิติ)' : 'รอพัสดุจัดส่งมาที่อาคาร'}
                                         </Badge>
                                     </VStack>
                                 </Flex>
