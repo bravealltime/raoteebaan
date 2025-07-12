@@ -126,7 +126,7 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
         </ModalContent>
       </Modal>
       <ProfileModal isOpen={isProfileOpen} onClose={onProfileClose} />
-      {currentUser && <ChatWidget />}
+      {currentUser && router.pathname !== '/inbox' && <ChatWidget />}
       <audio ref={notificationSoundRef} src="/sounds/notification.mp3" preload="auto" />
     </Flex>
   );
