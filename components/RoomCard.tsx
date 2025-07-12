@@ -1,4 +1,4 @@
-import { Box, Flex, Text, Badge, Button, Divider, Icon, Tooltip, IconButton } from "@chakra-ui/react";
+import { Box, Flex, Text, Badge, Button, Divider, Icon, Tooltip, IconButton, Spacer } from "@chakra-ui/react";
 import { FaChevronRight, FaDoorOpen, FaPlus, FaUser, FaCalendarAlt, FaFileInvoice, FaTrash, FaCog, FaUpload, FaCheckCircle, FaEye } from "react-icons/fa";
 import { motion } from "framer-motion";
 
@@ -52,7 +52,7 @@ export default function RoomCard({ id, status, tenantName, area, latestTotal, cu
       minW="220px"
       maxW="260px"
       w="full"
-      minH="320px"
+      h="380px"
       display="flex"
       flexDirection="column"
       gap={1}
@@ -88,13 +88,15 @@ export default function RoomCard({ id, status, tenantName, area, latestTotal, cu
       </Flex>
       <Box bg="blue.50" borderRadius="lg" py={2} px={2} my={1} zIndex={1} boxShadow="sm">
         <Text color="gray.800" fontWeight="bold" fontSize="2xl" textAlign="center">฿{latestTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Text>
-        {broughtForward > 0 && (
-          <Tooltip label={`ยอดเดือนนี้: ฿${(currentMonthTotal || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })} + ยอดยกมา: ฿${broughtForward.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`}>
-            <Text color="gray.500" fontSize="xs" textAlign="center" mt={1}>
-              (ยอดเดือนนี้: ฿{(currentMonthTotal || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })})
-            </Text>
-          </Tooltip>
-        )}
+        <Box h="20px"> 
+          {broughtForward > 0 && (
+            <Tooltip label={`ยอดเดือนนี้: ฿${(currentMonthTotal || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })} + ยอดยกมา: ฿${broughtForward.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`}>
+              <Text color="gray.500" fontSize="xs" textAlign="center" mt={1}>
+                (ยอดเดือนนี้: ฿{(currentMonthTotal || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })})
+              </Text>
+            </Tooltip>
+          )}
+        </Box>
       </Box>
       <Divider my={1} borderColor="gray.100" />
       <Flex align="center" gap={2} mb={1} zIndex={1} justify="space-between">
@@ -103,9 +105,12 @@ export default function RoomCard({ id, status, tenantName, area, latestTotal, cu
         <Tooltip label="ค่าเช่า" fontSize="xs"><Text color="gray.500" fontSize="xs">เช่า: ฿{rent.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Text></Tooltip>
         <Tooltip label="ค่าบริการ" fontSize="xs"><Text color="gray.500" fontSize="xs">บริการ: ฿{service.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Text></Tooltip>
       </Flex>
-      {overdueDays > 0 && (
-        <Text color="red.400" fontSize="xs" fontWeight="bold" zIndex={1}>เกินกำหนด {overdueDays} วัน</Text>
-      )}
+      <Box h="20px">
+        {overdueDays > 0 && (
+          <Text color="red.400" fontSize="xs" fontWeight="bold" zIndex={1}>เกินกำหนด {overdueDays} วัน</Text>
+        )}
+      </Box>
+      <Spacer /> 
       <Divider my={1} borderColor="gray.100" />
       <Flex
         align="center"
