@@ -1382,6 +1382,7 @@ export default function Rooms() {
           onClose={() => setIsUploadSlipModalOpen(false)}
           onConfirm={handleConfirmUploadSlip}
           roomName={selectedRoomForSlip.id}
+          ownerId={selectedRoomForSlip.ownerId || ''}
           isCentered
           size={{ base: "full", md: "xl" }}
         />

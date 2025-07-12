@@ -17,7 +17,8 @@ import {
   Heading,
   HStack,
 } from "@chakra-ui/react";
-import { FaCog, FaBell, FaEnvelope, FaSignOutAlt, FaBars } from "react-icons/fa";
+import { FaEnvelope, FaBars } from "react-icons/fa";
+import NotificationBell from './NotificationBell';
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { auth, db } from "../lib/firebase";
@@ -150,15 +151,7 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
         <Heading size="lg" color="gray.700">{pageTitle}</Heading>
         <Spacer />
         <HStack spacing={4}>
-          <IconButton
-            aria-label="Notifications"
-            icon={<FaBell />}
-            variant="ghost"
-            fontSize="xl"
-            color="gray.600"
-            _hover={{ bg: "gray.200" }}
-            borderRadius="full"
-          />
+          <NotificationBell currentUser={currentUser} />
           <Box position="relative">
             <IconButton
               aria-label="Inbox"

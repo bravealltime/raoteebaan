@@ -57,7 +57,7 @@ export default function UploadSlipModal({ isOpen, onClose, onConfirm, roomName, 
     setIsDragging(false);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!selectedFile) {
       toast({ title: "Please select a file", status: "error" });
       return;
@@ -66,6 +66,16 @@ export default function UploadSlipModal({ isOpen, onClose, onConfirm, roomName, 
       toast({ title: "Please enter a valid amount", status: "error" });
       return;
     }
+
+    await addDoc(collection(db, "notifications"), {
+        userId: ownerId,
+        message: `ผู้เช่าห้อง ${roomName} ได้อัปโหลดสลิปการชำระเงินแล้ว`, 
+        type: "payment",
+        link: `/`,
+        isRead: false,
+        createdAt: Timestamp.now(),
+    });
+
     onConfirm(selectedFile, parseFloat(amount));
     onClose();
   };

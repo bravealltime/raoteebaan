@@ -82,7 +82,7 @@ export default function MeterReadingModal({ isOpen, onClose, onSave, rooms, prev
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const dataToSave = {
       rates,
       recordDate,
@@ -95,8 +95,21 @@ export default function MeterReadingModal({ isOpen, onClose, onSave, rooms, prev
         waterImageUrl: uploadedWaterImageUrls[roomId] || undefined,
       })),
     };
-    // Debug log for uploaded image URLs and data to save
     
+    for (const reading of dataToSave.readings) {
+        const room = rooms.find(r => r.id === reading.roomId);
+        if (room && room.tenantId) {
+            await addDoc(collection(db, "notifications"), {
+                userId: room.tenantId,
+                message: `มีบิลใหม่สำหรับห้อง ${room.id} ของคุณ`, 
+                type: "bill",
+                link: `/bill/${room.id}`,
+                isRead: false,
+                createdAt: Timestamp.now(),
+            });
+        }
+    }
+
     onSave(dataToSave);
     onClose();
   };
