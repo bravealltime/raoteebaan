@@ -51,7 +51,9 @@ interface Parcel {
     imageUrl?: string;
 }
 
-export default function TenantDashboard() {
+import withAuthProtection from "../lib/withAuthProtection";
+
+function TenantDashboard() {
   const router = useRouter();
   const toast = useToast();
   const [currentUser, setCurrentUser] = useState<any>(null);

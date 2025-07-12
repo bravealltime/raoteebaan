@@ -35,7 +35,9 @@ interface Room {
   latestBillId?: string;
 }
 
-export default function Dashboard() {
+import withAuthProtection from "../lib/withAuthProtection";
+
+function Dashboard() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);

@@ -67,15 +67,11 @@ import {
   FaEnvelope,
   FaUserTag,
 } from "react-icons/fa";
-import AppHeader from "../components/AppHeader";
-import Sidebar from "../components/Sidebar";
-import { onAuthStateChanged } from "firebase/auth";
 import MainLayout from "../components/MainLayout";
+import withAuthProtection from "../lib/withAuthProtection";
 
-export default function AdminUsers() {
+function AdminUsers({ currentUser }) {
   const router = useRouter();
-  const [role, setRole] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
   const [bills, setBills] = useState<any[]>([]);
@@ -104,35 +100,8 @@ export default function AdminUsers() {
   const [isManagePermissionsOpen, setIsManagePermissionsOpen] = useState(false);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) {
-        router.replace("/login");
-        return;
-      }
-      const snap = await getDoc(doc(db, "users", u.uid));
-      const userRole = snap.exists() ? snap.data().role : "user";
-      setRole(userRole);
-      setCurrentUser({ uid: u.uid, ...snap.data(), photoURL: snap.data()?.avatar || u.photoURL || undefined });
-      if (userRole !== "admin") {
-        if (userRole === "owner") {
-          router.replace("/");
-          return;
-        }
-        if (userRole === "employee") {
-          router.replace("/employee-dashboard");
-          return;
-        }
-        router.replace("/dashboard");
-      }
-    });
-    return () => unsub();
+    fetchData();
   }, []);
-
-  useEffect(() => {
-    if (role === "admin") {
-      fetchData();
-    }
-  }, [role]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -368,16 +337,8 @@ export default function AdminUsers() {
     setIsAddOpen(false);
   };
 
-  if (role === null)
-    return (
-      <Center minH="100vh">
-        <Spinner color="blue.400" />
-      </Center>
-    );
-  if (role !== "admin") return null;
-
   return (
-    <MainLayout role={role} currentUser={currentUser}>
+    <MainLayout role={currentUser?.role} currentUser={currentUser}>
       <Box p={{ base: 2, md: 4 }}>
         <Heading
           color="gray.700"
@@ -1205,4 +1166,6 @@ export default function AdminUsers() {
     </MainLayout>
   );
 }
+
+export default withAuthProtection(AdminUsers, ['admin']);
  
