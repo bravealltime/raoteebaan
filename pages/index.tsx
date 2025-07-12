@@ -39,13 +39,11 @@ interface Room {
   ownerId?: string;
 }
 
-import withAuthProtection from "../lib/withAuthProtection";
-
 // ... (the rest of the imports)
 
 // ... (the rest of the component code)
 
-export default withAuthProtection(Rooms, ['admin', 'owner']);
+function RoomsPage() {
   const router = useRouter();
   const cancelRef = useRef(null);
   const toast = useToast();
@@ -2069,3 +2067,5 @@ export default withAuthProtection(Rooms, ['admin', 'owner']);
     </MainLayout>
   );
 }
+
+export default RoomsPage;
