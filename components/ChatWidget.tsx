@@ -124,7 +124,7 @@ const ChatWidget = () => {
   }
 
   return (
-    <Box position="fixed" bottom="20px" left="20px" zIndex="1400">
+    <Box position="fixed" bottom="20px" right="20px" zIndex="1400">
       <ScaleFade initialScale={0.9} in={isOpen}>
         <Box
           width={{ base: "90vw", sm: "350px" }}
