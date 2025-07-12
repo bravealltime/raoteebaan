@@ -692,8 +692,11 @@ export default function Dashboard() {
             
             toast({ title: `ยืนยันการชำระเงินห้อง ${room.id} สำเร็จ`, status: "success" });
             
-            // Refresh the page to update the data
-            window.location.reload();
+            // Update local state instead of reloading
+            setRooms(prevRooms => prevRooms.map(r => 
+              r.id === room.id ? { ...r, billStatus: 'paid', proofUrl: null } : r
+            ));
+            onProofModalClose(); // Close the proof modal if it's open
           }
         } catch (error) {
           console.error("Error confirming payment:", error);
