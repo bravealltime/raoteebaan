@@ -16,7 +16,7 @@ const ChatList: React.FC<ChatListProps> = ({ conversations, onSelectConversation
   return (
     <VStack spacing={2} align="stretch" p={2}>
       {conversations.map((convo) => {
-        const otherParticipant = convo.otherParticipant;
+        const otherParticipant = convo.participants.find(p => p.uid !== currentUser.uid);
         if (!otherParticipant) return null;
 
         const isUnread = convo.lastMessage && convo.lastMessage.senderId !== currentUser.uid && !convo.lastMessage.isRead;

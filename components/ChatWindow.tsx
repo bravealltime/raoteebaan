@@ -16,9 +16,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, currentUser, onCl
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const otherParticipant = conversation.otherParticipant;
+  const otherParticipant = conversation.participants.find(p => p.uid !== currentUser.uid);
+
+  console.log("ChatWindow: otherParticipant", otherParticipant);
 
   useEffect(() => {
+    console.log("ChatWindow: Setting up onSnapshot listener for conversation ID:", conversation.id);
     const q = query(
       collection(db, 'conversations', conversation.id, 'messages'),
       orderBy('timestamp', 'asc')
@@ -27,6 +30,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, currentUser, onCl
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       const msgs = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Message[];
       setMessages(msgs);
+      console.log("ChatWindow: Fetched messages:", msgs);
 
       // Mark messages as read
       const batch = writeBatch(db);
@@ -41,13 +45,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, currentUser, onCl
 
       if (messagesToMarkAsRead > 0) {
         await batch.commit();
+        console.log("ChatWindow: Marked", messagesToMarkAsRead, "messages as read.");
         // Also update the lastMessage in the conversation
         const convoRef = doc(db, "conversations", conversation.id);
         await setDoc(convoRef, { lastMessage: { isRead: true } }, { merge: true });
       }
+    }, (error) => {
+      console.error("ChatWindow: Error fetching messages:", error);
     });
 
-    return () => unsubscribe();
+    return () => {
+      console.log("ChatWindow: Unsubscribing from messages listener.");
+      unsubscribe();
+    };
   }, [conversation.id, currentUser.uid]);
 
   useEffect(() => {
@@ -64,19 +74,30 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, currentUser, onCl
       isRead: false,
     };
 
-    await addDoc(collection(db, 'conversations', conversation.id, 'messages'), messageData);
+    try {
+      await addDoc(collection(db, 'conversations', conversation.id, 'messages'), messageData);
+      console.log("ChatWindow: Message sent successfully.");
 
-    await setDoc(doc(db, 'conversations', conversation.id), {
-      lastMessage: { text: newMessage, senderId: currentUser.uid, isRead: false },
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
+      await setDoc(doc(db, 'conversations', conversation.id), {
+        lastMessage: { text: newMessage, senderId: currentUser.uid, isRead: false },
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+      console.log("ChatWindow: Conversation updated with last message.");
+
+    } catch (error) {
+      console.error("ChatWindow: Error sending message:", error);
+    }
 
     setNewMessage('');
   };
 
   if (!otherParticipant) {
+    console.log("ChatWindow: No other participant, showing spinner.");
     return <Spinner />;
   }
+
+  console.log("ChatWindow: Rendering with otherParticipant:", otherParticipant);
+  console.log("ChatWindow: Current messages:", messages);
 
   return (
     <Flex direction="column" h="100%">
