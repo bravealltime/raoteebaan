@@ -17,6 +17,8 @@ import { onAuthStateChanged } from "firebase/auth";
 import MainLayout from "../components/MainLayout";
 import InvoiceModal from "../components/InvoiceModal";
 import RoomPaymentCardList, { RoomPaymentCard } from "../components/RoomPaymentCard";
+import RoomStatusChart from '../components/RoomStatusChart';
+import PaymentStatusChart from '../components/PaymentStatusChart';
 
 interface Room {
   id: string;
@@ -67,6 +69,10 @@ function Dashboard() {
   const [inboxCount, setInboxCount] = useState(0);
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<any[]>([]);
+  const [roomStatusData, setRoomStatusData] = useState<any[]>([]);
+  const [paymentStatusData, setPaymentStatusData] = useState<any[]>([]);
+  const [monthlyIncome, setMonthlyIncome] = useState(0);
+  const [monthlyPaid, setMonthlyPaid] = useState(0);
 
   const filterLabels: Record<string, string> = {
     all: 'ทั้งหมด',
@@ -173,6 +179,21 @@ function Dashboard() {
           };
         }));
         setRooms(data);
+
+        // Process data for charts
+        const occupied = data.filter(r => r.status === 'occupied').length;
+        const vacant = data.filter(r => r.status === 'vacant').length;
+        setRoomStatusData([
+          { name: 'มีผู้เช่า', value: occupied },
+          { name: 'ห้องว่าง', value: vacant },
+        ]);
+
+        const paid = data.filter(r => r.billStatus === 'paid').length;
+        const unpaid = data.filter(r => r.billStatus === 'unpaid').length;
+        setPaymentStatusData([
+          { name: 'สถานะ', paid: paid, unpaid: unpaid },
+        ]);
+
       } catch (e) {
         toast({ title: "โหลดข้อมูลห้องพักล้มเหลว", status: "error" });
         setRooms([]);
@@ -254,6 +275,32 @@ function Dashboard() {
       setInboxCount(unread.length);
     }
     if (currentUser?.uid) fetchInbox();
+
+    async function fetchMonthlyBills() {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const billsRef = collection(db, "bills");
+      const q = query(billsRef, where("createdAt", ">=", startOfMonth), where("createdAt", "<=", endOfMonth));
+      const snap = await getDocs(q);
+
+      let totalIncome = 0;
+      let totalPaid = 0;
+
+      snap.docs.forEach(doc => {
+        const bill = doc.data();
+        totalIncome += bill.total || 0;
+        if (bill.status === 'paid') {
+          totalPaid += bill.total || 0;
+        }
+      });
+
+      setMonthlyIncome(totalIncome);
+      setMonthlyPaid(totalPaid);
+    }
+
+    fetchMonthlyBills();
   }, [currentUser]);
 
   const handleDelete = async (id: string) => {
@@ -750,13 +797,24 @@ function Dashboard() {
       <Container maxW="container.xl" py={{ base: 2, md: 4 }}>
         <VStack spacing={6} align="stretch">
           {/* Summary Cards */}
-          <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 6 }} spacing={{ base: 4, md: 6 }}>
+          <SimpleGrid columns={{ base: 1, sm: 2, md: 4, lg: 4 }} spacing={{ base: 4, md: 6 }}>
             <SummaryCard icon={FaHome} label="ห้องทั้งหมด" value={totalRooms} />
             <SummaryCard icon={FaBed} label="ห้องมีผู้เช่า" value={availableRooms} />
             <SummaryCard icon={FaBed} label="ห้องว่าง" value={vacantRooms} color="green.500" />
+            <SummaryCard icon={FaFileInvoiceDollar} label="รอตรวจสอบ" value={paymentsUnderReview} color="yellow.500" />
             <SummaryCard icon={FaInbox} label="กล่องข้อความ" value={inboxCount} />
             <SummaryCard icon={FaBox} label="พัสดุ" value={parcelCount} />
-            <SummaryCard icon={FaFileInvoiceDollar} label="รอตรวจสอบ" value={paymentsUnderReview} color="yellow.500" />
+            <SummaryCard icon={FaFileInvoiceDollar} label="รายรับที่ต้องได้เดือนนี้" value={`${monthlyIncome.toLocaleString()} บาท`} color="blue.500" />
+            <SummaryCard icon={FaCheckCircle} label="รายรับที่ได้เดือนนี้" value={`${monthlyPaid.toLocaleString()} บาท`} color="green.500" />
+          </SimpleGrid>
+
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={{ base: 4, md: 6 }} mb={6}>
+            <Box bg="white" borderRadius="xl" p={{ base: 3, md: 5 }} boxShadow="sm">
+              <RoomStatusChart data={roomStatusData} />
+            </Box>
+            <Box bg="white" borderRadius="xl" p={{ base: 3, md: 5 }} boxShadow="sm">
+              <PaymentStatusChart data={paymentStatusData} />
+            </Box>
           </SimpleGrid>
 
           {/* Main Content */}
