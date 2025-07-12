@@ -157,7 +157,7 @@ export default function RoomCard({ id, status, tenantName, area, latestTotal, cu
         <Text color={note.includes('ค้างชำระ') ? 'red.500' : note.includes('รอการตรวจสอบ') ? 'orange.500' : 'gray.600'} fontSize="md" textAlign="center" fontWeight="semibold">{note}</Text>
       </Box>
       {/* Actions Section */}
-      <Flex align="center" justify="center" gap={2} w="full" px={4} pb={2}>
+      <Flex align="center" justify="space-evenly" gap={4} w="full" px={4} pb={2}>
         {role === 'user' ? (
           <Flex direction="column" w="full" gap={1}>
             {billStatus === 'unpaid' && (
@@ -180,30 +180,30 @@ export default function RoomCard({ id, status, tenantName, area, latestTotal, cu
               </Flex>
             ) : (
               <>
-                <Flex direction="column" align="center" gap={1}>
+                <Flex direction="column" align="center" gap={1} mx={1.5} minW="64px">
                   <Tooltip label="เพิ่มข้อมูลใหม่" fontSize="xs" hasArrow placement="top">
-                    <IconButton aria-label="เพิ่มข้อมูล" icon={<FaPlus />} colorScheme="teal" variant="ghost" borderRadius="full" size="sm" _hover={{ bg: "teal.100", color: "teal.600", transform: "scale(1.08)" }} onClick={onAddData} />
+                    <IconButton aria-label="เพิ่มข้อมูล" icon={<FaPlus fontSize="1.5rem" />} colorScheme="teal" variant="ghost" borderRadius="lg" size="md" w="48px" h="48px" _hover={{ bg: "teal.100", color: "teal.600", transform: "scale(1.08)", borderRadius: "lg" }} onClick={onAddData} />
                   </Tooltip>
                   <Text fontSize="sm" color="gray.800" fontWeight="medium">เพิ่ม</Text>
                 </Flex>
-                <Flex direction="column" align="center" gap={1}>
+                <Flex direction="column" align="center" gap={1} mx={1.5} minW="64px">
                   <Tooltip label="ดูใบแจ้งค่าใช้จ่าย" fontSize="xs" hasArrow placement="top">
-                    <IconButton aria-label="ดูใบแจ้งค่าใช้จ่าย" icon={<FaFileInvoice />} colorScheme="blue" variant="ghost" borderRadius="full" size="sm" _hover={{ bg: "blue.50", color: "blue.600", transform: "scale(1.08)" }} onClick={onViewBill} />
+                    <IconButton aria-label="ดูใบแจ้งค่าใช้จ่าย" icon={<FaFileInvoice fontSize="1.5rem" />} colorScheme="blue" variant="ghost" borderRadius="lg" size="md" w="48px" h="48px" _hover={{ bg: "blue.50", color: "blue.600", transform: "scale(1.08)", borderRadius: "lg" }} onClick={onViewBill} />
                   </Tooltip>
                   <Text fontSize="sm" color="gray.800" fontWeight="medium">บิล</Text>
                 </Flex>
                 {onSettings && (
-                  <Flex direction="column" align="center" gap={1}>
+                  <Flex direction="column" align="center" gap={1} mx={1.5} minW="64px">
                     <Tooltip label="ตั้งค่าห้อง" fontSize="xs" hasArrow placement="top">
-                      <IconButton aria-label="ตั้งค่าห้อง" icon={<FaCog />} size="sm" colorScheme="gray" variant="ghost" borderRadius="full" _hover={{ bg: "gray.200", color: "gray.700", transform: "scale(1.08)" }} onClick={onSettings} />
+                      <IconButton aria-label="ตั้งค่าห้อง" icon={<FaCog fontSize="1.5rem" />} size="md" colorScheme="gray" variant="ghost" borderRadius="lg" w="48px" h="48px" _hover={{ bg: "gray.200", color: "gray.700", transform: "scale(1.08)", borderRadius: "lg" }} onClick={onSettings} />
                     </Tooltip>
                     <Text fontSize="sm" color="gray.800" fontWeight="medium">ตั้งค่า</Text>
                   </Flex>
                 )}
                 {onDelete && (
-                  <Flex direction="column" align="center" gap={1}>
+                  <Flex direction="column" align="center" gap={1} mx={1.5} minW="64px">
                     <Tooltip label="ลบห้องนี้" fontSize="xs" hasArrow placement="top">
-                      <IconButton aria-label="ลบห้องนี้" icon={<FaTrash />} size="sm" colorScheme="red" variant="ghost" borderRadius="full" _hover={{ bg: "red.100", color: "red.700", transform: "scale(1.08)" }} onClick={onDelete} />
+                      <IconButton aria-label="ลบห้องนี้" icon={<FaTrash fontSize="1.5rem" />} size="md" colorScheme="red" variant="ghost" borderRadius="lg" w="48px" h="48px" _hover={{ bg: "red.100", color: "red.700", transform: "scale(1.08)", borderRadius: "lg" }} onClick={onDelete} />
                     </Tooltip>
                     <Text fontSize="sm" color="gray.800" fontWeight="medium">ลบ</Text>
                   </Flex>
