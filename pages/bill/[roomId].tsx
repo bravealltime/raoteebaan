@@ -123,7 +123,7 @@ export default function BillDetail() {
             dueDate: formatDate(dueDate),
             room: d.roomId,
             tenant: d.tenantName || roomData?.tenantName || "-",
-            total,
+            total: total + (d.broughtForward || 0), // Add broughtForward to total
             items,
             promptpay: promptpay,
             rent: latestRent,
@@ -136,6 +136,7 @@ export default function BillDetail() {
             meterImageUrl: d.meterImageUrl || null,
             electricityImageUrl: d.electricityImageUrl || null,
             waterImageUrl: d.waterImageUrl || null,
+            broughtForward: d.broughtForward || 0, // Add this line
           };
 
           setBill(finalBill);
@@ -477,6 +478,12 @@ export default function BillDetail() {
                 <Text color="red.500" fontWeight="bold">{bill.dueDate}</Text>
               </HStack>
               <Divider />
+              {bill.broughtForward > 0 && (
+                <HStack justify="space-between" color="orange.500">
+                  <Text fontWeight="bold">ยอดยกมาจากเดือนก่อน</Text>
+                  <Text>{bill.broughtForward.toLocaleString()} บาท</Text>
+                </HStack>
+              )}
               {bill.items.map((item: any, index: number) => (
                 <HStack key={index} justify="space-between">
                   <VStack align="start" spacing={0}>

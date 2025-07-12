@@ -22,8 +22,9 @@ interface InvoiceModalProps {
     area: number;
     status: "occupied" | "vacant";
     overdueDays: number;
-    billStatus: "paid" | "unpaid" | "pending" | "complete";
+    billStatus: "paid" | "unpaid" | "pending" | "complete" | "rolled-over";
     slipUrl?: string; // เพิ่ม slipUrl ที่นี่
+    broughtForward?: number; // ยอดยกมา
   };
 }
 
@@ -205,6 +206,12 @@ export default function InvoiceModal({ isOpen, onClose, bill }: InvoiceModalProp
                     </Tr>
                   </Thead>
                   <Tbody>
+                    {bill.broughtForward && bill.broughtForward > 0 && (
+                      <Tr>
+                        <Td>ยอดยกมาจากเดือนก่อน</Td>
+                        <Td isNumeric color="orange.500">{bill.broughtForward.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Td>
+                      </Tr>
+                    )}
                     {bill.items.map((item, idx) => (
                       <Tr key={idx}>
                         <Td>{item.label}</Td>

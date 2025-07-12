@@ -8,6 +8,7 @@ interface RoomCardProps {
   tenantName: string;
   area: number;
   latestTotal: number;
+  currentMonthTotal?: number; // Make it optional for backward compatibility
   electricity: number;
   water: number;
   rent: number;
@@ -36,8 +37,10 @@ const statusMap = {
 
 const MotionBox = motion(Box);
 
-export default function RoomCard({ id, status, tenantName, area, latestTotal, electricity, water, rent, service, overdueDays, dueDate, billStatus = "paid", role, onViewBill, onAddData, onDelete, onSettings, onUploadProof, onViewProof, onMarkAsPaid, onDeleteProof }: RoomCardProps) {
+export default function RoomCard({ id, status, tenantName, area, latestTotal, currentMonthTotal, electricity, water, rent, service, overdueDays, dueDate, billStatus = "paid", role, onViewBill, onAddData, onDelete, onSettings, onUploadProof, onViewProof, onMarkAsPaid, onDeleteProof }: RoomCardProps) {
   const statusInfo = statusMap[billStatus] || statusMap.paid;
+  const broughtForward = latestTotal - (currentMonthTotal || 0);
+
   return (
     <MotionBox
       bg="white"
@@ -77,11 +80,21 @@ export default function RoomCard({ id, status, tenantName, area, latestTotal, el
         {dueDate && <Text color="blue.400" fontSize="xs" ml={2}>ครบกำหนด: {dueDate}</Text>}
       </Flex>
       <Divider my={1} borderColor="gray.100" />
-      <Flex align="center" gap={2} mb={1} zIndex={1}>
+      <Flex align="center" gap={2} mb={1} zIndex={1} justify="space-between">
         <Badge bg={statusInfo.bg} color={statusInfo.text} borderRadius="full" fontSize="xs" px={2}>{statusInfo.label}</Badge>
+        {overdueDays > 30 && billStatus === 'unpaid' && (
+            <Badge colorScheme="red" borderRadius="full" px={2} fontSize="xs">ค้างชำระ > 30 วัน</Badge>
+        )}
       </Flex>
       <Box bg="blue.50" borderRadius="lg" py={2} px={2} my={1} zIndex={1} boxShadow="sm">
         <Text color="gray.800" fontWeight="bold" fontSize="2xl" textAlign="center">฿{latestTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Text>
+        {broughtForward > 0 && (
+          <Tooltip label={`ยอดเดือนนี้: ฿${(currentMonthTotal || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })} + ยอดยกมา: ฿${broughtForward.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`}>
+            <Text color="gray.500" fontSize="xs" textAlign="center" mt={1}>
+              (ยอดเดือนนี้: ฿{(currentMonthTotal || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })})
+            </Text>
+          </Tooltip>
+        )}
       </Box>
       <Divider my={1} borderColor="gray.100" />
       <Flex align="center" gap={2} mb={1} zIndex={1} justify="space-between">

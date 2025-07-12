@@ -462,9 +462,6 @@ export default function Rooms() {
     const warnings: string[] = [];
     let successCount = 0;
 
-    // Debug log for readings array
-    
-
     const toastId = toast({
       title: "กำลังบันทึกข้อมูล...",
       status: "info",
@@ -473,9 +470,9 @@ export default function Rooms() {
     });
 
     try {
+      const batch = writeBatch(db);
+
       const billPromises = readings.map(async (reading: any) => {
-        // Debug log for each reading
-        
         const roomDocRef = doc(db, "rooms", reading.roomId);
         const roomSnap = await getDoc(roomDocRef);
         if (!roomSnap.exists()) {
@@ -491,7 +488,7 @@ export default function Rooms() {
         const hasNewWater = reading.water && String(reading.water).trim() !== '';
 
         if (!hasNewElec && !hasNewWater) {
-          return;
+          return; // Skip if no new meter readings
         }
 
         const newElec = hasNewElec ? parseFloat(String(reading.electricity)) : prevElec;
@@ -507,6 +504,23 @@ export default function Rooms() {
           return;
         }
 
+        // --- Start: Calculate Brought Forward Amount ---
+        let broughtForward = 0;
+        const previousUnpaidBills: string[] = [];
+        const unpaidBillsQuery = query(
+          collection(db, "bills"),
+          where("roomId", "==", reading.roomId),
+          where("status", "==", "unpaid")
+        );
+        const unpaidBillsSnap = await getDocs(unpaidBillsQuery);
+        unpaidBillsSnap.forEach(billDoc => {
+          broughtForward += billDoc.data().total || 0;
+          previousUnpaidBills.push(billDoc.id);
+          // Mark old bill as 'rolled-over' in the same batch
+          batch.update(billDoc.ref, { status: "rolled-over" });
+        });
+        // --- End: Calculate Brought Forward Amount ---
+
         const electricityUnit = newElec - prevElec;
         const waterUnit = newWater - prevWater;
 
@@ -516,9 +530,15 @@ export default function Rooms() {
         const rent = roomData.rent || 0;
         const service = roomData.service || 0;
         const extraServicesTotal = (roomData.extraServices || []).reduce((sum: number, s: { value: number }) => sum + s.value, 0);
-        const total = elecTotal + waterTotal + rent + service + extraServicesTotal;
+        
+        // The total for THIS billing period
+        const currentPeriodTotal = elecTotal + waterTotal + rent + service + extraServicesTotal;
+        // The final total including any outstanding balance
+        const finalTotal = currentPeriodTotal + broughtForward;
 
+        const newBillRef = doc(collection(db, "bills"));
         const newBill: any = {
+          id: newBillRef.id,
           roomId: reading.roomId,
           tenantId: roomData.tenantId || null,
           createdAt: Timestamp.fromDate(new Date()),
@@ -541,33 +561,32 @@ export default function Rooms() {
           rent,
           service,
           extraServices: roomData.extraServices || [],
-          total,
+          
+          broughtForward: broughtForward, // Add brought forward amount
+          previousUnpaidBills: previousUnpaidBills, // Add reference to old bills
+          total: finalTotal, // Total is now the sum of current and previous balance
         };
 
-        if (reading.electricityImageUrl) {
-          newBill.electricityImageUrl = reading.electricityImageUrl;
-        }
-        if (reading.waterImageUrl) {
-          newBill.waterImageUrl = reading.waterImageUrl;
-        }
+        if (reading.electricityImageUrl) newBill.electricityImageUrl = reading.electricityImageUrl;
+        if (reading.waterImageUrl) newBill.waterImageUrl = reading.waterImageUrl;
 
-        // Debug log for newBill
-        
+        batch.set(newBillRef, newBill);
 
-        await addDoc(collection(db, "bills"), newBill);
-
-        await updateDoc(roomDocRef, {
-          latestTotal: total,
+        batch.update(roomDocRef, {
+          latestTotal: finalTotal,
           billStatus: "unpaid",
           overdueDays: 0,
-          electricity: elecTotal,
-          water: waterTotal,
+          electricity: elecTotal, // Storing current period's value
+          water: waterTotal,     // Storing current period's value
         });
         
         successCount++;
       });
 
       await Promise.all(billPromises);
+      
+      // Commit all the batched writes at once
+      await batch.commit();
 
       toast.update(toastId, {
         title: "บันทึกข้อมูลสำเร็จ!",
@@ -1303,16 +1322,17 @@ export default function Rooms() {
                 ? room.extraServices.reduce((sum, svc) => sum + Number(svc.value || 0), 0)
                 : 0;
               const service = baseService + extraServicesTotal;
-              const latestTotal = electricity + water + rent + service;
+              const currentMonthTotal = electricity + water + rent + service;
 
               return (
                 <motion.div variants={itemVariants}>
                   <RoomCard
                     key={room.id}
-                    {...room}
+                    {...room} // This passes the full room object, including the correct latestTotal
                     tenantName={room.tenantName}
                     role={role}
-                    latestTotal={latestTotal}
+                    // latestTotal is now correctly sourced from the room object via {...room}
+                    currentMonthTotal={currentMonthTotal} // Pass the newly calculated current month's total
                     electricity={electricity}
                     water={water}
                     rent={rent}
