@@ -1,5 +1,5 @@
 
-import { Flex, Box, Text, Avatar, Menu, MenuButton, MenuList, MenuItem, MenuDivider, useToast, Image, Modal, ModalOverlay, ModalContent, ModalCloseButton, ModalBody } from "@chakra-ui/react";
+import { Flex, Box, Text, Avatar, Menu, MenuButton, MenuList, MenuItem, MenuDivider, useToast, Image, Modal, ModalOverlay, ModalContent, ModalCloseButton, ModalBody, useDisclosure } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import { useEffect, useRef } from "react";
 import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
@@ -8,6 +8,7 @@ import { signOut } from "firebase/auth";
 import { Conversation } from "../types/chat";
 import { FaSignOutAlt, FaUserCircle, FaInbox } from "react-icons/fa";
 import { AnimatePresence, motion } from "framer-motion";
+import ProfileModal from './ProfileModal';
 
 interface TenantLayoutProps {
   children: React.ReactNode;
@@ -23,6 +24,7 @@ export default function TenantLayout({ children, currentUser, isProofModalOpen, 
   const notificationSoundRef = useRef<HTMLAudioElement>(null);
   const prevConversationsRef = useRef<Conversation[]>([]);
   const isInitialLoad = useRef(true);
+  const { isOpen: isProfileOpen, onOpen: onProfileOpen, onClose: onProfileClose } = useDisclosure();
 
   useEffect(() => {
     if (!currentUser) return;
@@ -106,7 +108,7 @@ export default function TenantLayout({ children, currentUser, isProofModalOpen, 
             <Menu>
               <MenuButton as={Avatar} size="sm" name={currentUser.name} src={currentUser.photoURL} cursor="pointer" />
               <MenuList>
-                <MenuItem onClick={() => router.push('/profile')} icon={<FaUserCircle />}>
+                <MenuItem onClick={onProfileOpen} icon={<FaUserCircle />}>
                   โปรไฟล์
                 </MenuItem>
                 <MenuItem onClick={() => router.push('/inbox')} icon={<FaInbox />}>
@@ -147,6 +149,7 @@ export default function TenantLayout({ children, currentUser, isProofModalOpen, 
           </ModalBody>
         </ModalContent>
       </Modal>
+      <ProfileModal isOpen={isProfileOpen} onClose={onProfileClose} />
       <audio ref={notificationSoundRef} src="/sounds/notification.mp3" preload="auto" />
     </Flex>
   );

@@ -1,4 +1,4 @@
-import { Flex, Box, Modal, ModalOverlay, ModalContent, ModalCloseButton, ModalBody, Image, Text, useToast, useBreakpointValue } from "@chakra-ui/react";
+import { Flex, Box, Modal, ModalOverlay, ModalContent, ModalCloseButton, ModalBody, Image, Text, useToast, useBreakpointValue, useDisclosure } from "@chakra-ui/react";
 import AppHeader from "./AppHeader";
 import Sidebar from "./Sidebar";
 import { AnimatePresence, motion } from "framer-motion";
@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { collection, query, where, onSnapshot, orderBy } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { Conversation } from "../types/chat";
+import ProfileModal from './ProfileModal';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -26,6 +27,7 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
   const isInitialLoad = useRef(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const isMobile = useBreakpointValue({ base: true, md: false });
+  const { isOpen: isProfileOpen, onOpen: onProfileOpen, onClose: onProfileClose } = useDisclosure();
 
   const onCloseMobileSidebar = () => setIsMobileSidebarOpen(false);
 
@@ -81,39 +83,11 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
     }
   }, [currentUser, router.query.conversationId, toast]);
 
-  const SimpleHeader = () => (
-    <Flex
-      as="header"
-      w="full"
-      px={[2, 4, 8]}
-      py={[2, 3]}
-      align="center"
-      bg="whiteAlpha.800"
-      borderRadius="2xl"
-      boxShadow="0 4px 24px 0 rgba(33, 150, 243, 0.10)"
-      mt={[2, 4]}
-      mb={[4, 8]}
-      maxW="100vw"
-      minH="64px"
-      position="relative"
-      zIndex={10}
-      style={{ backdropFilter: "blur(12px)" }}
-      border="1.5px solid brand.50"
-    >
-      <Text fontWeight="extrabold" fontSize={["lg", "2xl"]} color="blue.500" mr={6} letterSpacing={1}>
-        TeeRao
-      </Text>
-    </Flex>
-  );
-
-  
-
-  
   return (
     <Flex minH="100vh" bg="gray.100">
-      {showSidebar && !isMobile && <Sidebar role={role} currentUser={currentUser} />}
+      {showSidebar && !isMobile && <Sidebar role={role} currentUser={currentUser} onProfileOpen={onProfileOpen} />}
       <Box flex={1} p={{ base: 4, md: 6 }}>
-        {currentUser && <AppHeader currentUser={currentUser} onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)} />}
+        {currentUser && <AppHeader currentUser={currentUser} onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)} onProfileOpen={onProfileOpen} />}
         <AnimatePresence mode="wait">
           <motion.div
             key={router.pathname}
@@ -134,7 +108,7 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
         <ModalContent maxW="300px" ml={0} h="100vh" borderRadius="none">
           <ModalCloseButton />
           <ModalBody p={0}>
-            <Sidebar role={role} currentUser={currentUser} onCloseMobileSidebar={onCloseMobileSidebar} />
+            <Sidebar role={role} currentUser={currentUser} onCloseMobileSidebar={onCloseMobileSidebar} onProfileOpen={onProfileOpen} />
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -150,6 +124,7 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
           </ModalBody>
         </ModalContent>
       </Modal>
+      <ProfileModal isOpen={isProfileOpen} onClose={onProfileClose} />
       <audio ref={notificationSoundRef} src="/sounds/notification.mp3" preload="auto" />
     </Flex>
   );

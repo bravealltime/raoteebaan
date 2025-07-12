@@ -21,7 +21,8 @@ import { FaCog, FaBell, FaEnvelope, FaSignOutAlt, FaBars } from "react-icons/fa"
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { auth, db } from "../lib/firebase";
-import { collection, query, onSnapshot, where } from "firebase/firestore";
+import { collection, query, onSnapshot, where, doc } from "firebase/firestore";
+import ProfileModal from './ProfileModal'; // Import the new modal
 
 interface User {
   uid: string;
@@ -53,8 +54,8 @@ const getPageTitle = (pathname: string) => {
       return "พัสดุ";
     case "/admin-users":
       return "จัดการผู้ใช้";
-    case "/profile":
-      return "โปรไฟล์";
+    // case "/profile": // No longer a page
+    //   return "โปรไฟล์";
     default:
       if (pathname.startsWith("/bill/")) return "รายละเอียดบิล";
       if (pathname.startsWith("/history/")) return "ประวัติ";
@@ -64,7 +65,8 @@ const getPageTitle = (pathname: string) => {
 
 export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeaderProps) {
   const router = useRouter();
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isLogoutOpen, onOpen: onLogoutOpen, onClose: onLogoutClose } = useDisclosure();
+  const { isOpen: isProfileOpen, onOpen: onProfileOpen, onClose: onProfileClose } = useDisclosure(); // New disclosure for Profile Modal
   const cancelRef = React.useRef<HTMLButtonElement>(null);
   const [profile, setProfile] = useState<{ name: string; avatar?: string; greeting?: string }>({ name: currentUser?.name || "xxx", avatar: currentUser?.photoURL });
   const [role, setRole] = useState<string | null>(null);
@@ -73,12 +75,18 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
 
   useEffect(() => {
     if (currentUser) {
-      setProfile({
-        name: currentUser.name || "xxx",
-        avatar: currentUser.photoURL,
-        greeting: new Date().toLocaleString("th-TH", { dateStyle: "full", timeStyle: "short" }),
+      const unsub = onSnapshot(doc(db, "users", currentUser.uid), (doc) => {
+        if (doc.exists()) {
+          const userData = doc.data();
+          setProfile({
+            name: userData.name || currentUser.name || "xxx",
+            avatar: userData.avatar || currentUser.photoURL,
+            greeting: new Date().toLocaleString("th-TH", { dateStyle: "full", timeStyle: "short" }),
+          });
+          setRole(userData.role);
+        }
       });
-      setRole(currentUser.role);
+      return () => unsub();
     }
   }, [currentUser]);
 
@@ -112,10 +120,9 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
     try {
       await auth.signOut();
       router.push('/login');
-      onClose();
+      onLogoutClose();
     } catch (error) {
       console.error("Error signing out: ", error);
-      // toast({ title: "Logout Failed", description: error.message, status: "error" });
     }
   };
 
@@ -129,7 +136,6 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
         mb={6}
         bg="transparent"
       >
-        {/* Hamburger Icon for mobile */}
         <IconButton
           aria-label="Open Menu"
           icon={<FaBars />}
@@ -139,7 +145,7 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
           _hover={{ bg: "gray.200" }}
           borderRadius="full"
           onClick={onOpenMobileSidebar}
-          display={{ base: "flex", md: "none" }} // Only show on mobile
+          display={{ base: "flex", md: "none" }}
         />
         <Heading size="lg" color="gray.700">{pageTitle}</Heading>
         <Spacer />
@@ -178,13 +184,20 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
               </Badge>
             )}
           </Box>
+          <Avatar 
+            size="sm" 
+            name={profile.name} 
+            src={profile.avatar} 
+            cursor="pointer"
+            onClick={onProfileOpen} // Open modal on click
+          />
         </HStack>
       </Flex>
 
       <AlertDialog
-        isOpen={isOpen}
+        isOpen={isLogoutOpen}
         leastDestructiveRef={cancelRef}
-        onClose={onClose}
+        onClose={onLogoutClose}
         isCentered
       >
         <AlertDialogOverlay>
@@ -196,7 +209,7 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
               คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?
             </AlertDialogBody>
             <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onClose}>
+              <Button ref={cancelRef} onClick={onLogoutClose}>
                 ยกเลิก
               </Button>
               <Button colorScheme="red" onClick={handleLogout} ml={3}>
@@ -206,6 +219,9 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
+      
+      {/* Render the ProfileModal */}
+      <ProfileModal isOpen={isProfileOpen} onClose={onProfileClose} />
     </>
   );
 } 

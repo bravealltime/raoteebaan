@@ -7,7 +7,8 @@ import { motion } from "framer-motion";
 interface SidebarProps {
   role: string | null;
   currentUser?: any | null;
-  onCloseMobileSidebar?: () => void; // New prop
+  onCloseMobileSidebar?: () => void;
+  onProfileOpen: () => void;
 }
 
 const NavItem = ({ href, icon, children, onCloseMobileSidebar }) => {
@@ -45,7 +46,7 @@ const NavItem = ({ href, icon, children, onCloseMobileSidebar }) => {
   );
 };
 
-export default function Sidebar({ role, currentUser, onCloseMobileSidebar }: SidebarProps) {
+export default function Sidebar({ role, currentUser, onCloseMobileSidebar, onProfileOpen }: SidebarProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -114,7 +115,7 @@ export default function Sidebar({ role, currentUser, onCloseMobileSidebar }: Sid
       <Divider my={4} />
 
       <VStack spacing={4} align="stretch">
-        <Flex align="center" p={2} borderRadius="md" _hover={{ bg: "gray.100" }} cursor="pointer" onClick={() => router.push('/profile')}>
+        <Flex align="center" p={2} borderRadius="md" _hover={{ bg: "gray.100" }} cursor="pointer" onClick={onProfileOpen}>
           <Avatar size="sm" name={currentUser?.name} src={currentUser?.photoURL} />
           <Box ml={3}>
             <Text fontWeight="bold" fontSize="sm">{currentUser?.name || "User"}</Text>
