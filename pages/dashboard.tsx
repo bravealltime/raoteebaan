@@ -35,8 +35,6 @@ interface Room {
   latestBillId?: string;
 }
 
-import withAuthProtection from "../lib/withAuthProtection";
-
 function Dashboard() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -881,3 +879,5 @@ const SummaryCard: React.FC<{ icon: React.ElementType; label: string; value: str
     </Box>
   </Flex>
 ); 
+
+export default Dashboard; 

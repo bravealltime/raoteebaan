@@ -26,6 +26,7 @@ const ChatWidget = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [hasUnread, setHasUnread] = useState(false);
   const { isOpen, onToggle, onClose } = useDisclosure();
+  const [isOffline, setIsOffline] = useState(false);
 
   // Effect to get current user
   useEffect(() => {
@@ -87,7 +88,8 @@ const ChatWidget = () => {
           return {
             id: docData.id,
             ...conversationData,
-            otherParticipant,
+            updatedAt: conversationData.updatedAt,
+            participants: [currentUser, otherParticipant].filter(Boolean),
           } as Conversation;
         })
       );
@@ -101,6 +103,19 @@ const ChatWidget = () => {
 
     return () => unsubscribe();
   }, [currentUser, isOpen, onToggle]);
+
+  // Check for offline
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    setIsOffline(!navigator.onLine);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation);
@@ -119,16 +134,37 @@ const ChatWidget = () => {
     return null; 
   }
 
+  if (isOffline) {
+    return (
+      <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}>
+        <ScaleFade initialScale={0.9} in={true}>
+          <Box
+            width={{ base: "90vw", sm: "320px" }}
+            bg="white"
+            boxShadow="2xl"
+            borderRadius="lg"
+            p={4}
+            textAlign="center"
+          >
+            <Text color="red.500" fontWeight="bold">ไม่สามารถเชื่อมต่ออินเทอร์เน็ต</Text>
+            <Text fontSize="sm" color="gray.500">กรุณาตรวจสอบการเชื่อมต่อของคุณ</Text>
+          </Box>
+        </ScaleFade>
+      </Box>
+    );
+  }
+
   if (!currentUser) {
     return null; 
   }
 
   return (
-    <Box position="fixed" bottom="20px" right="20px" zIndex="1400">
+    <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}>
       <ScaleFade initialScale={0.9} in={isOpen}>
         <Box
-          width={{ base: "90vw", sm: "350px" }}
-          height={{ base: "70vh", sm: "500px" }}
+          width={{ base: "95vw", sm: "340px" }}
+          maxW="100vw"
+          height={{ base: "65vh", sm: "480px" }}
           bg="white"
           boxShadow="2xl"
           borderRadius="lg"
@@ -138,7 +174,9 @@ const ChatWidget = () => {
         >
           <Flex p={3} borderBottom="1px solid" borderColor="gray.200" alignItems="center" bg="blue.500" color="white">
             <Text fontWeight="bold">
-              {selectedConversation ? `Chat with ${selectedConversation.otherParticipant?.name}` : 'Messages'}
+              {selectedConversation && selectedConversation.participants && selectedConversation.participants.length > 1
+                ? `Chat with ${selectedConversation.participants.find((p) => p.uid !== currentUser.uid)?.name}`
+                : 'Messages'}
             </Text>
             <IconButton
               aria-label="Close chat"
@@ -178,6 +216,11 @@ const ChatWidget = () => {
             colorScheme="blue"
             boxShadow="lg"
             onClick={onToggle}
+            position="absolute"
+            right={0}
+            bottom={0}
+            m={1}
+            zIndex={1700}
           >
             {hasUnread && (
               <Circle
