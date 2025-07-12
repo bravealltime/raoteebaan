@@ -8,6 +8,7 @@ import { collection, query, where, onSnapshot, orderBy } from "firebase/firestor
 import { db } from "../lib/firebase";
 import { Conversation } from "../types/chat";
 import ProfileModal from './ProfileModal';
+import ChatWidget from "./ChatWidget";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -125,6 +126,7 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
         </ModalContent>
       </Modal>
       <ProfileModal isOpen={isProfileOpen} onClose={onProfileClose} />
+      {currentUser && <ChatWidget />}
       <audio ref={notificationSoundRef} src="/sounds/notification.mp3" preload="auto" />
     </Flex>
   );
