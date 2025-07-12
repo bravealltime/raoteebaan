@@ -9,6 +9,7 @@ import { Conversation } from "../types/chat";
 import { FaSignOutAlt, FaUserCircle, FaInbox } from "react-icons/fa";
 import { AnimatePresence, motion } from "framer-motion";
 import ProfileModal from './ProfileModal';
+import ChatWidget from "./ChatWidget";
 
 interface TenantLayoutProps {
   children: React.ReactNode;
@@ -150,6 +151,7 @@ export default function TenantLayout({ children, currentUser, isProofModalOpen, 
         </ModalContent>
       </Modal>
       <ProfileModal isOpen={isProfileOpen} onClose={onProfileClose} />
+      {currentUser && <ChatWidget />}
       <audio ref={notificationSoundRef} src="/sounds/notification.mp3" preload="auto" />
     </Flex>
   );

@@ -9,6 +9,7 @@ import {
   ScaleFade,
   Circle,
   Text,
+  Tooltip,
 } from '@chakra-ui/react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, where, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
@@ -168,26 +169,28 @@ const ChatWidget = () => {
       </ScaleFade>
 
       {!isOpen && (
-        <IconButton
-          aria-label="Open chat"
-          icon={<FaComments />}
-          isRound
-          size="lg"
-          colorScheme="blue"
-          boxShadow="lg"
-          onClick={onToggle}
-        >
-          {hasUnread && (
-            <Circle
-              size="10px"
-              bg="red.500"
-              position="absolute"
-              top="2px"
-              right="2px"
-              border="2px solid white"
-            />
-          )}
-        </IconButton>
+        <Tooltip label="กล่องข้อความ" aria-label="กล่องข้อความ" placement="left" hasArrow>
+          <IconButton
+            aria-label="Open chat"
+            icon={<FaComments />}
+            isRound
+            size="lg"
+            colorScheme="blue"
+            boxShadow="lg"
+            onClick={onToggle}
+          >
+            {hasUnread && (
+              <Circle
+                size="10px"
+                bg="red.500"
+                position="absolute"
+                top="2px"
+                right="2px"
+                border="2px solid white"
+              />
+            )}
+          </IconButton>
+        </Tooltip>
       )}
     </Box>
   );
