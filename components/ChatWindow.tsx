@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { Box, Flex, Text, Input, IconButton, VStack, Avatar, HStack, Spinner, Button } from '@chakra-ui/react';
+import { Box, Flex, Text, Input, IconButton, VStack, Avatar, HStack, Spinner, Button, Image, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton } from '@chakra-ui/react';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, doc, setDoc, writeBatch } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { User, Conversation, Message } from '../types/chat';
@@ -17,6 +17,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, currentUser, onCl
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const otherParticipant = conversation.participants.find(p => p.uid !== currentUser.uid);
+
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  const openImageModal = (imageUrl: string) => {
+    setSelectedImage(imageUrl);
+    setIsImageModalOpen(true);
+  };
+
+  const closeImageModal = () => {
+    setSelectedImage(null);
+    setIsImageModalOpen(false);
+  };
 
   console.log("ChatWindow: otherParticipant", otherParticipant);
 
@@ -119,7 +132,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, currentUser, onCl
               borderRadius="lg"
               maxW="80%"
             >
-              {msg.text}
+              {msg.text && <Text>{msg.text}</Text>}
+              {msg.imageUrl && (
+                <Image
+                  src={msg.imageUrl}
+                  maxH="200px"
+                  objectFit="contain"
+                  mt={msg.text ? 2 : 0}
+                  cursor="pointer"
+                  onClick={() => openImageModal(msg.imageUrl!)}
+                />
+              )}
             </Box>
           </Flex>
         ))}
@@ -141,6 +164,16 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, currentUser, onCl
           isDisabled={!newMessage.trim()}
         />
       </HStack>
+
+      <Modal isOpen={isImageModalOpen} onClose={closeImageModal} size="xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalCloseButton />
+          <ModalBody p={0}>
+            {selectedImage && <Image src={selectedImage} objectFit="contain" w="full" h="full" />}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Flex>
   );
 };
