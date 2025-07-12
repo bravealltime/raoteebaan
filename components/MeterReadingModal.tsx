@@ -6,6 +6,8 @@ import { useState, useEffect, useRef } from "react";
 import { FaCamera } from "react-icons/fa";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { motion } from "framer-motion";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 interface MeterReadingModalProps {
   isOpen: boolean;
