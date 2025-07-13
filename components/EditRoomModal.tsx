@@ -216,127 +216,141 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, us
             <Text color="gray.500" fontSize="sm" mb={4}>
               ปรับข้อมูลห้อง, ผู้เช่า, ค่าเช่า และบริการต่าง ๆ ได้ที่นี่
             </Text>
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} alignItems="flex-start">
-              <VStack spacing={3} align="stretch">
-                <Text fontWeight="bold" color="blue.500">ข้อมูลห้อง</Text>
-                <FormControl>
-                  <FormLabel fontSize="sm">เลขห้อง</FormLabel>
-                  <Input value={room.id} isReadOnly disabled bg="gray.100" />
-                </FormControl>
-                <FormControl>
-                  <FormLabel fontSize="sm">ขนาด (ตร.ม.)</FormLabel>
-                  <Input placeholder="เช่น 28" type="number" value={room.area} onChange={e => handleNumericChange('area', e.target.value)} />
-                </FormControl>
-                <FormControl display="flex" alignItems="center" mt={2}>
-                  <FormLabel htmlFor="status-toggle" mb="0" fontSize="sm">สถานะห้อง</FormLabel>
-                  <Switch id="status-toggle" colorScheme="green" isChecked={room.status === "occupied"} onChange={e => handleInputChange('status', e.target.checked ? "occupied" : "vacant")} />
-                  <Text ml={3} color={room.status === "occupied" ? 'green.600' : 'gray.600'} fontWeight="medium">
-                    {room.status === "occupied" ? "มีคนอยู่" : "ว่าง"}
-                  </Text>
-                </FormControl>
-                 <FormControl>
-                  <FormLabel fontSize="sm">สถานะบิล</FormLabel>
-                  <Select value={room.billStatus} onChange={e => handleInputChange('billStatus', e.target.value)}>
-                    <option value="paid">ชำระแล้ว (Paid)</option>
-                    <option value="unpaid">ยังไม่ชำระ (Unpaid)</option>
-                    <option value="pending">รอตรวจสอบ (Pending)</option>
-                  </Select>
-                </FormControl>
-
-                <Text fontWeight="bold" color="blue.500" mt={4}>ข้อมูลผู้เช่า</Text>
-                <FormControl display="flex" alignItems="center" justifyContent="space-between" bg="gray.50" p={2} borderRadius="md">
-                  <FormLabel htmlFor="create-new-tenant-toggle" mb="0" fontSize="sm" fontWeight="bold" color="teal.600">
-                    <Icon as={FaUserPlus} mr={2} />
-                    สร้างผู้เช่าใหม่?
-                  </FormLabel>
-                  <Switch id="create-new-tenant-toggle" colorScheme="teal" isChecked={createNewTenant} onChange={(e) => handleToggleCreateNew(e.target.checked)} />
-                </FormControl>
-
-                <Box opacity={createNewTenant ? 0.4 : 1} transition="opacity 0.2s">
-                  <FormControl isDisabled={createNewTenant}>
-                    <FormLabel fontSize="sm">เลือกผู้เช่าที่มีอยู่</FormLabel>
-                    <Select placeholder="-- ห้องว่าง --" value={room.tenantId || ''} onChange={handleTenantChange}>
-                      {users.map(user => (
-                        <option key={user.uid} value={user.uid}>{user.name} ({user.email})</option>
-                      ))}
-                    </Select>
-                  </FormControl>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6} alignItems="flex-start">
+              {/* Left Column */}
+              <VStack spacing={4} align="stretch">
+                <Box>
+                  <Text fontWeight="bold" color="blue.500" mb={2}>ข้อมูลห้อง</Text>
+                  <VStack spacing={3} align="stretch" bg="gray.50" p={4} borderRadius="lg">
+                    <FormControl>
+                      <FormLabel fontSize="sm">เลขห้อง</FormLabel>
+                      <Input value={room.id} isReadOnly disabled bg="white" />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel fontSize="sm">ขนาด (ตร.ม.)</FormLabel>
+                      <Input placeholder="เช่น 28" type="number" value={room.area} onChange={e => handleNumericChange('area', e.target.value)} />
+                    </FormControl>
+                    <FormControl display="flex" alignItems="center" justifyContent="space-between">
+                      <FormLabel htmlFor="status-toggle" mb="0" fontSize="sm">สถานะห้อง</FormLabel>
+                      <HStack>
+                        <Text color={room.status === "occupied" ? 'green.600' : 'gray.600'} fontWeight="medium">
+                          {room.status === "occupied" ? "มีคนอยู่" : "ว่าง"}
+                        </Text>
+                        <Switch id="status-toggle" colorScheme="green" isChecked={room.status === "occupied"} onChange={e => handleInputChange('status', e.target.checked ? "occupied" : "vacant")} />
+                      </HStack>
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel fontSize="sm">สถานะบิล</FormLabel>
+                      <Select value={room.billStatus} onChange={e => handleInputChange('billStatus', e.target.value)}>
+                        <option value="paid">ชำระแล้ว (Paid)</option>
+                        <option value="unpaid">ยังไม่ชำระ (Unpaid)</option>
+                        <option value="pending">รอตรวจสอบ (Pending)</option>
+                      </Select>
+                    </FormControl>
+                  </VStack>
                 </Box>
 
-                <Box opacity={!createNewTenant ? 0.4 : 1} transition="opacity 0.2s">
-                    <VStack spacing={3} align="stretch">
-                        <FormControl isDisabled={!createNewTenant}>
-                            <FormLabel fontSize="sm">ชื่อผู้เช่าใหม่</FormLabel>
-                            <Input placeholder="เช่น สมหญิง รักดี" value={room.tenantName || ''} onChange={e => handleInputChange('tenantName', e.target.value)} />
-                        </FormControl>
-                        <FormControl isDisabled={!createNewTenant}>
-                            <FormLabel fontSize="sm">อีเมลผู้เช่าใหม่</FormLabel>
-                            <Input placeholder="new.tenant@example.com" value={room.tenantEmail || ''} onChange={e => handleInputChange('tenantEmail', e.target.value)} />
-                        </FormControl>
-                    </VStack>
-                </Box>
+                <Box>
+                  <Text fontWeight="bold" color="blue.500" mb={2}>ข้อมูลผู้เช่า</Text>
+                  <VStack spacing={3} align="stretch" bg="gray.50" p={4} borderRadius="lg">
+                    <FormControl display="flex" alignItems="center" justifyContent="space-between" bg="white" p={2} borderRadius="md">
+                      <FormLabel htmlFor="create-new-tenant-toggle" mb="0" fontSize="sm" fontWeight="bold" color="teal.600">
+                        <Icon as={FaUserPlus} mr={2} />
+                        สร้างผู้เช่าใหม่?
+                      </FormLabel>
+                      <Switch id="create-new-tenant-toggle" colorScheme="teal" isChecked={createNewTenant} onChange={(e) => handleToggleCreateNew(e.target.checked)} />
+                    </FormControl>
 
-                 <Button 
-                  leftIcon={<FaPaperPlane />}
-                  colorScheme="purple"
-                  variant="outline"
-                  size="sm"
-                  mt={2}
-                  onClick={handleSendResetPassword}
-                  isDisabled={!room.tenantEmail}
-                >
-                  ส่งอีเมลรีเซ็ตรหัสผ่าน
-                </Button>
-              </VStack>
-              <VStack spacing={3} align="stretch">
-                <Text fontWeight="bold" color="blue.500">ค่าใช้จ่าย (ข้อมูลจากบิลล่าสุด)</Text>
-                <FormControl>
-                  <FormLabel fontSize="sm">ค่าไฟฟ้า</FormLabel>
-                  <Input placeholder="เช่น 350" type="number" value={room.electricity} onChange={e => handleNumericChange('electricity', e.target.value)} />
-                </FormControl>
-                <FormControl>
-                  <FormLabel fontSize="sm">ค่าน้ำ</FormLabel>
-                  <Input placeholder="เช่น 100" type="number" value={room.water} onChange={e => handleNumericChange('water', e.target.value)} />
-                </FormControl>
-                <FormControl>
-                  <FormLabel fontSize="sm">ค่าเช่า</FormLabel>
-                  <Input placeholder="เช่น 5000" type="number" value={room.rent} onChange={e => handleNumericChange('rent', e.target.value)} />
-                </FormControl>
-                <FormControl>
-                  <FormLabel fontSize="sm">ค่าบริการพื้นฐาน</FormLabel>
-                  <Input placeholder="เช่น 300" type="number" value={room.service} onChange={e => handleNumericChange('service', e.target.value)} />
-                </FormControl>
-                <FormControl>
-                  <FormLabel fontSize="sm">วันค้างชำระ</FormLabel>
-                  <Input placeholder="เช่น 0" type="number" value={room.overdueDays} onChange={e => handleNumericChange('overdueDays', e.target.value)} />
-                </FormControl>
-                
-                <Text fontWeight="bold" color="blue.500" mt={4}>บริการเสริม</Text>
-                {room.extraServices?.map((svc, idx) => (
-                  <HStack key={idx} spacing={2} align="center">
-                    <Input
-                      placeholder="ชื่อบริการ เช่น ที่จอดรถ"
-                      value={svc.label}
-                      onChange={e => handleServiceChange(idx, "label", e.target.value)}
-                    />
-                    <Input
-                      placeholder="จำนวนเงิน"
-                      type="number"
-                      value={svc.value}
-                      onChange={e => handleServiceChange(idx, "value", Number(e.target.value))}
-                    />
-                    <IconButton
-                      aria-label="Remove service"
-                      icon={<CloseButton />}
+                    <Box opacity={createNewTenant ? 0.4 : 1} transition="opacity 0.2s">
+                      <FormControl isDisabled={createNewTenant}>
+                        <FormLabel fontSize="sm">เลือกผู้เช่าที่มีอยู่</FormLabel>
+                        <Select placeholder="-- ห้องว่าง --" value={room.tenantId || ''} onChange={handleTenantChange}>
+                          {users.map(user => (
+                            <option key={user.uid} value={user.uid}>{user.name} ({user.email})</option>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+
+                    <Box opacity={!createNewTenant ? 0.4 : 1} transition="opacity 0.2s">
+                      <VStack spacing={3} align="stretch">
+                        <FormControl isDisabled={!createNewTenant}>
+                          <FormLabel fontSize="sm">ชื่อผู้เช่าใหม่</FormLabel>
+                          <Input placeholder="เช่น สมหญิง รักดี" value={room.tenantName || ''} onChange={e => handleInputChange('tenantName', e.target.value)} />
+                        </FormControl>
+                        <FormControl isDisabled={!createNewTenant}>
+                          <FormLabel fontSize="sm">อีเมลผู้เช่าใหม่</FormLabel>
+                          <Input placeholder="new.tenant@example.com" value={room.tenantEmail || ''} onChange={e => handleInputChange('tenantEmail', e.target.value)} />
+                        </FormControl>
+                      </VStack>
+                    </Box>
+
+                    <Button
+                      leftIcon={<FaPaperPlane />}
+                      colorScheme="purple"
+                      variant="outline"
                       size="sm"
-                      variant="ghost"
-                      onClick={() => handleRemoveService(idx)}
-                    />
-                  </HStack>
-                ))}
-                <Button onClick={handleAddService} colorScheme="teal" variant="outline" size="sm" borderRadius="lg" mt={1} alignSelf="flex-start">
-                  + เพิ่มบริการเสริม
-                </Button>
+                      mt={2}
+                      onClick={handleSendResetPassword}
+                      isDisabled={!room.tenantEmail}
+                    >
+                      ส่งอีเมลรีเซ็ตรหัสผ่าน
+                    </Button>
+                  </VStack>
+                </Box>
+              </VStack>
+
+              {/* Right Column */}
+              <VStack spacing={4} align="stretch">
+                <Box>
+                  <Text fontWeight="bold" color="blue.500" mb={2}>ค่าใช้จ่าย & บริการ</Text>
+                  <VStack spacing={3} align="stretch" bg="gray.50" p={4} borderRadius="lg">
+                    <FormControl>
+                      <FormLabel fontSize="sm">ค่าเช่า</FormLabel>
+                      <Input placeholder="เช่น 5000" type="number" value={room.rent} onChange={e => handleNumericChange('rent', e.target.value)} />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel fontSize="sm">ค่าบริการพื้นฐาน</FormLabel>
+                      <Input placeholder="เช่น 300" type="number" value={room.service} onChange={e => handleNumericChange('service', e.target.value)} />
+                    </FormControl>
+                    <FormControl>
+                      <FormLabel fontSize="sm">วันค้างชำระ</FormLabel>
+                      <Input placeholder="เช่น 0" type="number" value={room.overdueDays} onChange={e => handleNumericChange('overdueDays', e.target.value)} />
+                    </FormControl>
+                  </VStack>
+                </Box>
+                
+                <Box>
+                  <Text fontWeight="bold" color="blue.500" mb={2}>บริการเสริม</Text>
+                  <VStack spacing={3} align="stretch" bg="gray.50" p={4} borderRadius="lg">
+                    {room.extraServices?.map((svc, idx) => (
+                      <HStack key={idx} spacing={2} align="center">
+                        <Input
+                          placeholder="ชื่อบริการ เช่น ที่จอดรถ"
+                          value={svc.label}
+                          onChange={e => handleServiceChange(idx, "label", e.target.value)}
+                        />
+                        <Input
+                          placeholder="จำนวนเงิน"
+                          type="number"
+                          value={svc.value}
+                          onChange={e => handleServiceChange(idx, "value", Number(e.target.value))}
+                        />
+                        <IconButton
+                          aria-label="Remove service"
+                          icon={<CloseButton />}
+                          size="sm"
+                          variant="ghost"
+                          colorScheme="red"
+                          onClick={() => handleRemoveService(idx)}
+                        />
+                      </HStack>
+                    ))}
+                    <Button onClick={handleAddService} colorScheme="teal" variant="outline" size="sm" borderRadius="lg" mt={1} alignSelf="flex-start">
+                      + เพิ่มบริการเสริม
+                    </Button>
+                  </VStack>
+                </Box>
               </VStack>
             </SimpleGrid>
           </ModalBody>
