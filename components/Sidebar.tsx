@@ -69,6 +69,11 @@ export default function Sidebar({ role, currentUser, onCloseMobileSidebar, onPro
     { href: "/parcel", icon: <FaBox />, label: "พัสดุ" },
   ];
 
+  const employeeNavItems = [
+    { href: "/technician-dashboard", icon: <FaTachometerAlt />, label: "แดชบอร์ดช่าง" },
+    { href: "/inbox", icon: <FaInbox />, label: "ข้อความ" },
+  ];
+
   const userNavItems = [
     { href: "/tenant-dashboard", icon: <FaTachometerAlt />, label: "แดชบอร์ด" },
     { href: "/bill/my-room", icon: <FaHome />, label: "ห้องของฉัน" }, // Assuming dynamic route from user data
@@ -81,6 +86,8 @@ export default function Sidebar({ role, currentUser, onCloseMobileSidebar, onPro
     navItems = adminNavItems;
   } else if (role === "owner") {
     navItems = ownerNavItems;
+  } else if (role === "employee") {
+    navItems = employeeNavItems;
   } else if (role === "user") {
     // Adjust for dynamic room ID
     const myRoomHref = currentUser?.roomId ? `/bill/${currentUser.roomId}` : '/tenant-dashboard';

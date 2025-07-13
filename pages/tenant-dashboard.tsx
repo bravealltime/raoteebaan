@@ -5,7 +5,8 @@ import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp } from "firebase/firestore";
 import TenantLayout from "../components/TenantLayout";
-import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen } from "react-icons/fa";
+import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools } from "react-icons/fa";
+import ReportIssueModal from '../components/ReportIssueModal';
 
 interface UserData {
   name: string;
@@ -65,6 +66,7 @@ function TenantDashboard() {
   
   const { isOpen: isAlertOpen, onOpen: onAlertOpen, onClose: onAlertClose } = useDisclosure();
   const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
+  const { isOpen: isReportModalOpen, onOpen: onReportModalOpen, onClose: onReportModalClose } = useDisclosure();
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [alertRoomId, setAlertRoomId] = useState<string | null>(null);
@@ -491,6 +493,18 @@ function TenantDashboard() {
               >
                 โปรไฟล์ของฉัน
               </Button>
+              <Button
+                leftIcon={<FaTools size={22} />}
+                colorScheme="orange"
+                size="lg"
+                borderRadius="xl"
+                variant="solid"
+                isDisabled={!roomData}
+                _hover={{ boxShadow: "md", transform: "scale(1.05)" }}
+                onClick={onReportModalOpen}
+              >
+                แจ้งปัญหา
+              </Button>
             </SimpleGrid>
           </CardBody>
         </Card>
@@ -538,6 +552,14 @@ function TenantDashboard() {
                 </ModalBody>
             </ModalContent>
         </Modal>
+
+        {roomData && (
+          <ReportIssueModal 
+            isOpen={isReportModalOpen} 
+            onClose={onReportModalClose} 
+            roomId={roomData.id} 
+          />
+        )}
     </TenantLayout>
   );
 }

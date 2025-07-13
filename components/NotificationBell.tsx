@@ -56,8 +56,10 @@ export default function NotificationBell({ currentUser }: NotificationBellProps)
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!currentUser?.uid) {
+    if (!currentUser || !currentUser.uid) {
       setLoading(false);
+      setNotifications([]);
+      setUnreadCount(0);
       return;
     }
 
