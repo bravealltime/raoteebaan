@@ -4,8 +4,8 @@ import { motion } from "framer-motion";
 
 interface RoomCardProps {
   id: string;
-  status: "occupied" | "vacant";
   tenantName: string;
+  tenantEmail?: string | null;
   area: number;
   latestTotal: number;
   currentMonthTotal?: number; // Make it optional for backward compatibility
@@ -22,10 +22,10 @@ interface RoomCardProps {
   onDelete?: () => void;
   onSettings?: () => void;
   onUploadProof?: () => void;
-  onViewProof?: () => void;
+  onViewProof?: (slipUrl: string) => void;
   onMarkAsPaid?: () => void;
   onDeleteProof?: () => void;
-  proofUrl?: string;
+  slipUrl?: string;
 }
 
 const statusMap = {
@@ -37,7 +37,9 @@ const statusMap = {
 
 const MotionBox = motion(Box);
 
-export default function RoomCard({ id, status, tenantName, area, latestTotal, currentMonthTotal, electricity, water, rent, service, overdueDays, dueDate, billStatus = "paid", role, onViewBill, onAddData, onDelete, onSettings, onUploadProof, onViewProof, onMarkAsPaid, onDeleteProof }: RoomCardProps) {
+export default function RoomCard({ id, tenantName, tenantEmail, area, latestTotal, currentMonthTotal, electricity, water, rent, service, overdueDays, dueDate, billStatus = "paid", role, slipUrl, onViewBill, onAddData, onDelete, onSettings, onUploadProof, onViewProof, onMarkAsPaid, onDeleteProof }: RoomCardProps) {
+  const isOccupied = tenantEmail && tenantEmail.trim() !== "";
+  const status = isOccupied ? "occupied" : "vacant";
   const statusInfo = statusMap[billStatus] || statusMap.paid;
   const broughtForward = latestTotal - (currentMonthTotal || 0);
   // For demo: fake avatar url and last updated
@@ -165,7 +167,7 @@ export default function RoomCard({ id, status, tenantName, area, latestTotal, cu
             )}
             {billStatus === 'pending' && (
               <Flex direction="column" w="full" gap={1}>
-                <Button leftIcon={<FaEye />} colorScheme="orange" variant="solid" size="sm" w="full" borderRadius="lg" onClick={onViewProof}>ดูสลิป</Button>
+                <Button leftIcon={<FaEye />} colorScheme="orange" variant="solid" size="sm" w="full" borderRadius="lg" onClick={() => onViewProof && slipUrl && onViewProof(slipUrl)} isDisabled={!slipUrl}>ดูสลิป</Button>
                 <Button leftIcon={<FaTrash />} colorScheme="red" variant="outline" size="xs" w="full" borderRadius="lg" onClick={onDeleteProof}>ลบสลิป</Button>
               </Flex>
             )}
@@ -175,7 +177,7 @@ export default function RoomCard({ id, status, tenantName, area, latestTotal, cu
           <Flex gap={4} w="full" justify="center">
             {billStatus === 'pending' && (role === 'admin' || role === 'owner') ? (
               <Flex direction="column" w="full" gap={1}>
-                <Button leftIcon={<FaEye />} colorScheme="orange" variant="solid" size="sm" w="full" borderRadius="lg" onClick={onViewProof}>ดูสลิป</Button>
+                <Button leftIcon={<FaEye />} colorScheme="orange" variant="solid" size="sm" w="full" borderRadius="lg" onClick={() => onViewProof && slipUrl && onViewProof(slipUrl)} isDisabled={!slipUrl}>ดูสลิป</Button>
                 <Button leftIcon={<FaCheckCircle />} colorScheme="green" variant="solid" size="sm" w="full" borderRadius="lg" onClick={onMarkAsPaid}>ยืนยันรับเงิน</Button>
               </Flex>
             ) : (

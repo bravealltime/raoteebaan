@@ -834,26 +834,12 @@ function RoomsPage() {
     setIsUploadSlipModalOpen(true);
   };
 
-  const handleViewProof = async (room: Room) => {
-    const latestBillQuery = query(
-      collection(db, "bills"),
-      where("roomId", "==", room.id),
-      orderBy("createdAt", "desc"),
-      limit(1)
-    );
-    const billSnap = await getDocs(latestBillQuery);
-
-    if (billSnap.empty) {
-      toast({ title: "No bill found for this room.", status: "error" });
-      return;
-    }
-
-    const billData = billSnap.docs[0].data();
-    if (billData.slipUrl) {
-      setCurrentSlipUrl(billData.slipUrl);
+  const handleViewProof = (slipUrl: string) => {
+    if (slipUrl) {
+      setCurrentSlipUrl(slipUrl);
       setIsSlipViewModalOpen(true);
     } else {
-      toast({ title: "No proof of payment found for this bill.", status: "error" });
+      toast({ title: "ไม่พบสลิป", description: "ไม่พบ URL ของสลิปสำหรับบิลนี้", status: "error" });
     }
   };
 
@@ -1334,6 +1320,7 @@ function RoomsPage() {
                     key={room.id}
                     {...room} // This passes the full room object, including the correct latestTotal
                     tenantName={room.tenantName}
+                    tenantEmail={room.tenantEmail}
                     role={role}
                     // latestTotal is now correctly sourced from the room object via {...room}
                     currentMonthTotal={currentMonthTotal} // Pass the newly calculated current month's total
@@ -1346,7 +1333,8 @@ function RoomsPage() {
                     onAddData={() => handleAddData(room.id)}
                     onSettings={() => handleSettings(room.id)}
                     onUploadProof={() => handleOpenUploadSlipModal(room)}
-                    onViewProof={() => handleViewProof(room)}
+                    onViewProof={handleViewProof}
+                    slipUrl={roomBills[room.id]?.slipUrl}
                     onMarkAsPaid={() => handleMarkAsPaid(room.id)}
                     onDeleteProof={() => handleDeleteProof(room.id)}
                   />

@@ -230,14 +230,11 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, us
                       <FormLabel fontSize="sm">ขนาด (ตร.ม.)</FormLabel>
                       <Input placeholder="เช่น 28" type="number" value={room.area} onChange={e => handleNumericChange('area', e.target.value)} />
                     </FormControl>
-                    <FormControl display="flex" alignItems="center" justifyContent="space-between">
-                      <FormLabel htmlFor="status-toggle" mb="0" fontSize="sm">สถานะห้อง</FormLabel>
-                      <HStack>
-                        <Text color={room.status === "occupied" ? 'green.600' : 'gray.600'} fontWeight="medium">
-                          {room.status === "occupied" ? "มีคนอยู่" : "ว่าง"}
-                        </Text>
-                        <Switch id="status-toggle" colorScheme="green" isChecked={room.status === "occupied"} onChange={e => handleInputChange('status', e.target.checked ? "occupied" : "vacant")} />
-                      </HStack>
+                    <FormControl>
+                      <FormLabel fontSize="sm">สถานะห้อง</FormLabel>
+                      <Text color={room.tenantId ? 'green.600' : 'gray.600'} fontWeight="medium">
+                        {room.tenantId ? "มีคนอยู่" : "ว่าง"}
+                      </Text>
                     </FormControl>
                     <FormControl>
                       <FormLabel fontSize="sm">สถานะบิล</FormLabel>

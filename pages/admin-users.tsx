@@ -1,18 +1,19 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
 import {
   collection,
   getDocs,
   doc,
-  getDoc,
   setDoc,
   deleteDoc,
   query,
   where,
   addDoc,
   serverTimestamp,
+  getDoc,
 } from "firebase/firestore";
 import {
   Box,
@@ -68,10 +69,11 @@ import {
   FaUserTag,
 } from "react-icons/fa";
 import MainLayout from "../components/MainLayout";
-import withAuthProtection from "../lib/withAuthProtection";
 
-function AdminUsers({ currentUser }) {
+function AdminUsers() {
   const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
   const [rooms, setRooms] = useState<any[]>([]);
   const [bills, setBills] = useState<any[]>([]);
@@ -98,6 +100,25 @@ function AdminUsers({ currentUser }) {
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<any | null>(null);
   const [isManagePermissionsOpen, setIsManagePermissionsOpen] = useState(false);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (!u) {
+        setCurrentUser(null);
+        setLoadingUser(false);
+        router.replace("/login");
+        return;
+      }
+      const userRef = doc(db, "users", u.uid);
+      const snap = await getDoc(userRef);
+      setCurrentUser({
+        uid: u.uid,
+        ...snap.data(),
+      });
+      setLoadingUser(false);
+    });
+    return () => unsub();
+  }, [router]);
 
   useEffect(() => {
     fetchData();
@@ -336,6 +357,14 @@ function AdminUsers({ currentUser }) {
     setResetLink(null);
     setIsAddOpen(false);
   };
+
+  // Loading state for currentUser
+  if (loadingUser) {
+    return <Center minH="100vh"><Spinner /></Center>;
+  }
+  if (!currentUser) {
+    return <Center minH="100vh"><Text>กรุณาเข้าสู่ระบบ</Text></Center>;
+  }
 
   return (
     <MainLayout role={currentUser?.role} currentUser={currentUser}>
@@ -1167,5 +1196,5 @@ function AdminUsers({ currentUser }) {
   );
 }
 
-export default withAuthProtection(AdminUsers, ['admin']);
+export default AdminUsers;
  
