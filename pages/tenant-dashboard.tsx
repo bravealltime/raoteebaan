@@ -1,4 +1,4 @@
-import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import { auth, db } from "../lib/firebase";
@@ -462,55 +462,75 @@ function TenantDashboard() {
             </Heading>
           </CardHeader>
           <CardBody>
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-              <Button
-                leftIcon={<FaCreditCard size={22} />}
-                colorScheme="green"
-                size="lg"
-                borderRadius="xl"
-                variant="solid"
-                isDisabled={!roomData || roomData.billStatus !== 'unpaid'}
-                _hover={{ boxShadow: "md", transform: "scale(1.05)" }}
-                onClick={() => roomData?.id && router.push(`/bill/${roomData.id}`)}
-              >
-                ชำระบิลล่าสุด
-              </Button>
-              <Button
-                leftIcon={<FaCalendarAlt size={22} />}
-                colorScheme="purple"
-                size="lg"
-                borderRadius="xl"
-                variant="solid"
-                isDisabled={!roomData}
-                _hover={{ boxShadow: "md", transform: "scale(1.05)" }}
-                onClick={() => roomData?.id && router.push(`/history/${roomData.id}`)}
-              >
-                ประวัติบิลทั้งหมด
-              </Button>
-              <Button
-                leftIcon={<FaUser size={22} />}
-                colorScheme="gray"
-                size="lg"
-                borderRadius="xl"
-                variant="outline"
-                _hover={{ boxShadow: "md", transform: "scale(1.05)", bg: "gray.100" }}
-                onClick={onProfileOpen}
-              >
-                โปรไฟล์ของฉัน
-              </Button>
-              <Button
-                leftIcon={<FaTools size={22} />}
-                colorScheme="orange"
-                size="lg"
-                borderRadius="xl"
-                variant="solid"
-                isDisabled={!roomData}
-                _hover={{ boxShadow: "md", transform: "scale(1.05)" }}
-                onClick={onReportModalOpen}
-              >
-                แจ้งปัญหา
-              </Button>
-            </SimpleGrid>
+            <Flex wrap="wrap" justify="center" gap={6}>
+              <Flex direction="column" align="center" minW="100px">
+                <IconButton
+                  aria-label="ชำระบิลล่าสุด"
+                  colorScheme="green"
+                  isRound
+                  size="lg"
+                  boxSize={16}
+                  mb={2}
+                  boxShadow="md"
+                  fontSize="2xl"
+                  icon={<FaCreditCard />}
+                  isDisabled={!roomData || roomData.billStatus !== 'unpaid'}
+                  _hover={{ boxShadow: "lg", transform: "scale(1.08)" }}
+                  onClick={() => roomData?.id && router.push(`/bill/${roomData.id}`)}
+                />
+                <Text fontSize="sm" color="gray.700" fontWeight="medium">ชำระบิลล่าสุด</Text>
+              </Flex>
+              <Flex direction="column" align="center" minW="100px">
+                <IconButton
+                  aria-label="ประวัติบิลทั้งหมด"
+                  colorScheme="purple"
+                  isRound
+                  size="lg"
+                  boxSize={16}
+                  mb={2}
+                  boxShadow="md"
+                  fontSize="2xl"
+                  icon={<FaCalendarAlt />}
+                  isDisabled={!roomData}
+                  _hover={{ boxShadow: "lg", transform: "scale(1.08)" }}
+                  onClick={() => roomData?.id && router.push(`/history/${roomData.id}`)}
+                />
+                <Text fontSize="sm" color="gray.700" fontWeight="medium">ประวัติบิลทั้งหมด</Text>
+              </Flex>
+              <Flex direction="column" align="center" minW="100px">
+                <IconButton
+                  aria-label="โปรไฟล์"
+                  colorScheme="gray"
+                  isRound
+                  size="lg"
+                  boxSize={16}
+                  mb={2}
+                  boxShadow="md"
+                  fontSize="2xl"
+                  icon={<FaUser />}
+                  _hover={{ boxShadow: "lg", transform: "scale(1.08)", bg: "gray.100" }}
+                  onClick={onProfileOpen}
+                />
+                <Text fontSize="sm" color="gray.700" fontWeight="medium">โปรไฟล์</Text>
+              </Flex>
+              <Flex direction="column" align="center" minW="100px">
+                <IconButton
+                  aria-label="แจ้งปัญหา"
+                  colorScheme="orange"
+                  isRound
+                  size="lg"
+                  boxSize={16}
+                  mb={2}
+                  boxShadow="md"
+                  fontSize="2xl"
+                  icon={<FaTools />}
+                  isDisabled={!roomData}
+                  _hover={{ boxShadow: "lg", transform: "scale(1.08)" }}
+                  onClick={onReportModalOpen}
+                />
+                <Text fontSize="sm" color="gray.700" fontWeight="medium">แจ้งปัญหา</Text>
+              </Flex>
+            </Flex>
           </CardBody>
         </Card>
       </Box>
