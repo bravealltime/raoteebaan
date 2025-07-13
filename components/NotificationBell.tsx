@@ -12,6 +12,7 @@ import {
   VStack,
   Flex,
   Spinner,
+  Button,
 } from "@chakra-ui/react";
 import { FaBell } from "react-icons/fa";
 import { useState, useEffect } from "react";
@@ -50,6 +51,11 @@ interface NotificationBellProps {
 }
 
 export default function NotificationBell({ currentUser }: NotificationBellProps) {
+  // Defensive check: If currentUser is null or undefined, don't render anything.
+  if (!currentUser) {
+    return null;
+  }
+
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -157,7 +163,11 @@ export default function NotificationBell({ currentUser }: NotificationBellProps)
                   <VStack align="start" spacing={1}>
                     <Text>{notif.message}</Text>
                     <Text fontSize="xs" color="gray.500">
-                        <TimeAgo date={notif.createdAt.toDate()} formatter={formatter} />
+                        {notif.createdAt && typeof notif.createdAt.toDate === 'function' ? (
+                            <TimeAgo date={notif.createdAt.toDate()} formatter={formatter} />
+                        ) : (
+                            <span>ไม่พบวันที่</span>
+                        )}
                     </Text>
                   </VStack>
                 </MenuItem>

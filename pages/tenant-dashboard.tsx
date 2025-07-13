@@ -52,8 +52,6 @@ interface Parcel {
     imageUrl?: string;
 }
 
-import withAuthProtection from "../lib/withAuthProtection";
-
 function TenantDashboard() {
   const router = useRouter();
   const toast = useToast();
@@ -70,6 +68,7 @@ function TenantDashboard() {
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [alertRoomId, setAlertRoomId] = useState<string | null>(null);
+  const { isOpen: isProfileOpen, onOpen: onProfileOpen, onClose: onProfileClose } = useDisclosure();
 
   useEffect(() => {
     const authUnsubscribe = onAuthStateChanged(auth, (user) => {
@@ -130,6 +129,12 @@ function TenantDashboard() {
 
     return () => authUnsubscribe();
   }, [router, toast]);
+
+  useEffect(() => {
+    if (currentUser && currentUser.role && !["user", "tenant"].includes(currentUser.role)) {
+      router.replace("/login");
+    }
+  }, [currentUser, router]);
 
   useEffect(() => {
     if (!currentUser?.uid) return;
@@ -250,7 +255,7 @@ function TenantDashboard() {
 
   if (loading) {
     return (
-      <TenantLayout currentUser={currentUser}>
+      <TenantLayout currentUser={currentUser} isProfileOpen={isProfileOpen} onProfileOpen={onProfileOpen} onProfileClose={onProfileClose}>
         <Center h="50vh">
           <Spinner size="xl" color="brand.500" />
         </Center>
@@ -259,7 +264,7 @@ function TenantDashboard() {
   }
 
   return (
-    <TenantLayout currentUser={currentUser}>
+    <TenantLayout currentUser={currentUser} isProfileOpen={isProfileOpen} onProfileOpen={onProfileOpen} onProfileClose={onProfileClose}>
       <Box p={{ base: 2, md: 4 }} bg="gray.50" minH="100vh">
         <Heading size={{ base: "lg", md: "xl" }} mb={6} color="gray.700">
           แดชบอร์ดผู้เช่า
@@ -361,7 +366,7 @@ function TenantDashboard() {
                     <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
                         {undeliveredParcels.map((parcel) => (
                             <Box key={parcel.id} p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50">
-                                <Flex spacing={4}>
+                                <Flex gap={4}>
                                     {parcel.imageUrl && (
                                         <Image
                                             src={parcel.imageUrl}
@@ -489,7 +494,7 @@ function TenantDashboard() {
                 borderRadius="xl"
                 variant="outline"
                 _hover={{ boxShadow: "md", transform: "scale(1.05)", bg: "gray.100" }}
-                onClick={() => router.push("/profile")}
+                onClick={onProfileOpen}
               >
                 โปรไฟล์ของฉัน
               </Button>
@@ -563,3 +568,5 @@ function TenantDashboard() {
     </TenantLayout>
   );
 }
+
+export default TenantDashboard;

@@ -108,19 +108,23 @@ function Dashboard() {
         photoURL: firestoreData.avatar || u.photoURL || undefined,
         ownerId: firestoreData.ownerId || undefined,
       });
-        if (role !== "admin" && role !== "owner") return null;
-        if (userRole === "owner") {
-          router.replace("/owner-dashboard");
-          return;
-        }
-        if (userRole === "employee") {
-          router.replace("/employee-dashboard");
-          return;
-        }
-        if (userRole === "tenant") {
-          router.replace("/tenant-dashboard");
-          return;
-        }
+      // Redirect by userRole immediately
+      if (userRole === "owner") {
+        router.replace("/owner-dashboard");
+        return;
+      }
+      if (userRole === "employee") {
+        router.replace("/employee-dashboard");
+        return;
+      }
+      if (userRole === "tenant" || userRole === "user") {
+        router.replace("/tenant-dashboard");
+        return;
+      }
+      if (userRole !== "admin") {
+        router.replace("/login");
+        return;
+      }
     });
     return () => unsub();
   }, [router]);

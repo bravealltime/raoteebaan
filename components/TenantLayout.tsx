@@ -17,15 +17,17 @@ interface TenantLayoutProps {
   isProofModalOpen?: boolean;
   onProofModalClose?: () => void;
   proofImageUrl?: string | null;
+  isProfileOpen?: boolean;
+  onProfileOpen?: () => void;
+  onProfileClose?: () => void;
 }
 
-export default function TenantLayout({ children, currentUser, isProofModalOpen, onProofModalClose, proofImageUrl }: TenantLayoutProps) {
+export default function TenantLayout({ children, currentUser, isProofModalOpen, onProofModalClose, proofImageUrl, isProfileOpen, onProfileOpen, onProfileClose }: TenantLayoutProps) {
   const router = useRouter();
   const toast = useToast();
   const notificationSoundRef = useRef<HTMLAudioElement>(null);
   const prevConversationsRef = useRef<Conversation[]>([]);
   const isInitialLoad = useRef(true);
-  const { isOpen: isProfileOpen, onOpen: onProfileOpen, onClose: onProfileClose } = useDisclosure();
 
   useEffect(() => {
     if (!currentUser) return;
@@ -150,7 +152,7 @@ export default function TenantLayout({ children, currentUser, isProofModalOpen, 
           </ModalBody>
         </ModalContent>
       </Modal>
-      <ProfileModal isOpen={isProfileOpen} onClose={onProfileClose} />
+      <ProfileModal isOpen={!!isProfileOpen} onClose={onProfileClose || (() => {})} />
       {currentUser && <ChatWidget />}
       <audio ref={notificationSoundRef} src="/sounds/notification.mp3" preload="auto" />
     </Flex>
