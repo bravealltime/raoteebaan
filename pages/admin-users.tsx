@@ -67,6 +67,7 @@ import {
   FaFileInvoice,
   FaEnvelope,
   FaUserTag,
+  FaKey,
 } from "react-icons/fa";
 import MainLayout from "../components/MainLayout";
 
@@ -100,6 +101,8 @@ function AdminUsers() {
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<any | null>(null);
   const [isManagePermissionsOpen, setIsManagePermissionsOpen] = useState(false);
+  const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
+  const [userToReset, setUserToReset] = useState<any | null>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -234,6 +237,62 @@ function AdminUsers() {
     } finally {
       setAddLoading(false);
     }
+  };
+
+  const handleResetPassword = (user: any) => {
+    setUserToReset(user);
+    setIsConfirmResetOpen(true);
+  };
+
+  const confirmResetPassword = async () => {
+    if (!userToReset) return;
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) {
+        toast({
+          title: "Error",
+          description: "Authentication token not found.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      const response = await fetch("/api/send-reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ email: userToReset.email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "ส่งอีเมลรีเซ็ตรหัสผ่านสำเร็จ",
+          description: `ลิงก์สำหรับรีเซ็ตรหัสผ่านถูกส่งไปที่ ${userToReset.email} แล้ว`,
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+        });
+      } else {
+        toast({
+          title: "ส่งอีเมลรีเซ็ตรหัสผ่านไม่สำเร็จ",
+          description: data.error,
+          status: "error",
+        });
+      }
+    } catch (e) {
+      toast({
+        title: "ส่งอีเมลรีเซ็ตรหัสผ่านไม่สำเร็จ",
+        description: "เกิดข้อผิดพลาดในการเชื่อมต่อ",
+        status: "error",
+      });
+    }
+    setIsConfirmResetOpen(false);
   };
 
   const handleEditClick = (user: any) => {
@@ -616,6 +675,16 @@ function AdminUsers() {
                             onClick={() => handleStartConversation(u)}
                           />
                           <IconButton
+                            aria-label="reset-password"
+                            icon={<FaKey />}
+                            colorScheme="yellow"
+                            variant="ghost"
+                            borderRadius="full"
+                            size="sm"
+                            mr={2}
+                            onClick={() => handleResetPassword(u)}
+                          />
+                          <IconButton
                             aria-label="edit"
                             icon={<FaEdit />}
                             colorScheme="blue"
@@ -701,10 +770,10 @@ function AdminUsers() {
                 borderRadius="lg"
               >
                 <option value="admin">🛡️ ผู้ดูแลระบบ</option>
-                        <option value="juristic">🏢 นิติ</option>
-                        <option value="technician">🛠️ ช่าง</option>
-                        <option value="owner">🏠 เจ้าของห้อง</option>
-                        <option value="user">👤 ลูกบ้าน</option>
+                <option value="juristic">🏢 นิติ</option>
+                <option value="technician">🛠️ ช่าง</option>
+                <option value="owner">🏠 เจ้าของห้อง</option>
+                <option value="user">👤 ลูกบ้าน</option>
               </Select>
             </FormControl>
             <FormControl mt={4}>
@@ -995,6 +1064,46 @@ function AdminUsers() {
             <Button
               variant="ghost"
               onClick={() => setIsConfirmDeleteOpen(false)}
+              borderRadius="xl"
+            >
+              ยกเลิก
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Confirm Reset Password Modal */}
+      <Modal
+        isOpen={isConfirmResetOpen}
+        onClose={() => setIsConfirmResetOpen(false)}
+        isCentered
+        size={{ base: "full", md: "sm" }}
+      >
+        <ModalOverlay />
+        <ModalContent borderRadius="2xl" p={2} m={{ base: 4, md: "auto" }}>
+          <ModalHeader fontWeight="bold" color="yellow.600">
+            ยืนยันการรีเซ็ตรหัสผ่าน
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Alert status="warning" borderRadius="xl" mb={4}>
+              <AlertIcon />
+              คุณแน่ใจหรือไม่ว่าต้องการส่งอีเมลรีเซ็ตรหัสผ่านไปที่ <b>{userToReset?.email}</b>?
+            </Alert>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              colorScheme="yellow"
+              mr={3}
+              onClick={confirmResetPassword}
+              borderRadius="xl"
+              fontWeight="bold"
+            >
+              ส่งอีเมล
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => setIsConfirmResetOpen(false)}
               borderRadius="xl"
             >
               ยกเลิก

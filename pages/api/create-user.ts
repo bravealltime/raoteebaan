@@ -45,7 +45,12 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         };
         await admin.firestore().collection('users').doc(userRecord.uid).set(userData);
 
-        const resetLink = await admin.auth().generatePasswordResetLink(email);
+        const actionCodeSettings = {
+          url: `${process.env.NEXT_PUBLIC_APP_URL}/login`,
+          handleCodeInApp: true,
+        };
+
+        const resetLink = await admin.auth().generatePasswordResetLink(email, actionCodeSettings);
         await transporter.sendMail({
           from: `"TeeRao" <${process.env.SMTP_USER}>`,
           to: email,
@@ -57,11 +62,25 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
             <p>If you did not request this, please ignore this email.</p>
           `,
         });
+
+        // Return the reset link in the response
+        return res.status(200).json({
+          success: true,
+          message,
+          user: {
+            uid: userRecord.uid,
+            email: userRecord.email,
+            name: userRecord.displayName,
+          },
+          isNewUser,
+          resetLink, // Add this line
+        });
       } else {
         throw error;
       }
     }
 
+    // If user already exists, just return their info without a link
     res.status(200).json({
       success: true,
       message,

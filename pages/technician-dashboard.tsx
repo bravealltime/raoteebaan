@@ -45,7 +45,7 @@ function TechnicianDashboard() {
         onSnapshot(userDocRef, (doc) => {
           if (doc.exists()) {
             const userData = doc.data();
-            if (userData.role !== 'employee') {
+            if (userData.role !== 'technician') {
               router.replace('/login');
             } else {
               setCurrentUser({ uid: user.uid, ...userData });

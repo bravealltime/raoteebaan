@@ -5,7 +5,7 @@ import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp } from "firebase/firestore";
 import TenantLayout from "../components/TenantLayout";
-import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools, FaBullhorn, FaPhone, FaLine, FaCopy, FaComments, FaQrcode, FaBolt, FaTint, FaCheckCircle, FaSpinner, FaClock, FaMoneyBillWave } from "react-icons/fa";
+import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools, FaBullhorn, FaPhone, FaLine, FaCopy, FaComments, FaQrcode, FaBolt, FaTint, FaCheckCircle, FaSpinner, FaClock, FaMoneyBillWave, FaArrowRight } from "react-icons/fa";
 import ReportIssueModal from '../components/ReportIssueModal';
 
 interface UserData {
@@ -497,6 +497,35 @@ function TenantDashboard() {
 
           {/* Right Column */}
           <VStack spacing={6} align="stretch">
+            {/* Recent Payment History */}
+            {billHistory.length > 0 && (
+            <Card borderRadius="xl" boxShadow="lg" bg="white">
+              <CardHeader>
+                <Flex justify="space-between" align="center">
+                  <Heading size="md" color="brand.700"><Icon as={FaFileInvoice} mr={2} />ประวัติชำระล่าสุด</Heading>
+                  {roomData?.id && (
+                    <Button size="sm" variant="link" colorScheme="brand" onClick={() => router.push(`/history/${roomData.id}`)}>
+                      ดูทั้งหมด
+                    </Button>
+                  )}
+                </Flex>
+              </CardHeader>
+              <CardBody>
+                <VStack align="stretch" spacing={3}>
+                  {billHistory.slice(0, 3).map((bill) => (
+                    <Flex key={bill.id} justify="space-between" align="center" p={3} bg="gray.50" borderRadius="lg">
+                      <Box>
+                        <Text fontWeight="bold" color="gray.700">{bill.month} {bill.year}</Text>
+                        <Text fontSize="sm" color="gray.500">ชำระวันที่: {bill.paidDate}</Text>
+                      </Box>
+                      <Text fontWeight="bold" color="green.600">{bill.totalAmount.toLocaleString()} บาท</Text>
+                    </Flex>
+                  ))}
+                </VStack>
+              </CardBody>
+            </Card>
+            )}
+
             {/* Parcels */}
             <Card borderRadius="xl" boxShadow="lg" bg="white">
               <CardHeader>
@@ -561,6 +590,30 @@ function TenantDashboard() {
             )}
           </VStack>
         </SimpleGrid>
+
+        {/* Section 4: Contact Channels */}
+        <Card borderRadius="xl" boxShadow="lg" bg="white" mt={6}>
+          <CardHeader>
+            <Heading size="md" color="brand.700"><Icon as={FaComments} mr={2} />ช่องทางติดต่อ</Heading>
+          </CardHeader>
+          <CardBody>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+              <Flex align="center" p={3} bg="gray.50" borderRadius="lg">
+                <Icon as={FaPhone} mr={4} color="gray.600" boxSize={5} />
+                <Text flex="1" fontWeight="medium" color="gray.800">{contactInfo.phone}</Text>
+                <Button size="sm" onClick={() => {
+                  navigator.clipboard.writeText(contactInfo.phone);
+                  toast({ title: "คัดลอกเบอร์โทรศัพท์แล้ว", status: "success", duration: 2000 });
+                }}>คัดลอก</Button>
+              </Flex>
+              <Flex align="center" p={3} bg="gray.50" borderRadius="lg">
+                <Icon as={FaLine} mr={4} color="green.500" boxSize={6} />
+                <Text flex="1" fontWeight="medium" color="gray.800">{contactInfo.line}</Text>
+                <Button as="a" href={contactInfo.lineUrl} target="_blank" colorScheme="green" size="sm">เพิ่มเพื่อน</Button>
+              </Flex>
+            </SimpleGrid>
+          </CardBody>
+        </Card>
       </Box>
 
       {/* Modals and Alerts */}
