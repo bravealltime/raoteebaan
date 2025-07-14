@@ -1,11 +1,11 @@
-import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, Table, Thead, Tbody, Tr, Th, Td, TableContainer, useDisclosure } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, Table, Thead, Tbody, Tr, Th, Td, TableContainer, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, Image, IconButton } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp } from "firebase/firestore";
 import MainLayout from "../components/MainLayout";
-import { FaTools, FaUser, FaBell } from "react-icons/fa";
+import { FaTools, FaUser, FaBell, FaImage } from "react-icons/fa";
 import UpdateIssueStatusModal from '../components/UpdateIssueStatusModal';
 
 interface UserData {
@@ -19,9 +19,11 @@ interface UserData {
 interface Issue {
   id: string;
   roomId: string;
+  tenantName: string; 
   description: string;
   status: "pending" | "in_progress" | "resolved";
   reportedAt: any;
+  imageUrls?: string[]; // Changed to array of strings
 }
 
 function TechnicianDashboard() {
@@ -30,12 +32,20 @@ function TechnicianDashboard() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isUpdateModalOpen, onOpen: onUpdateModalOpen, onClose: onUpdateModalClose } = useDisclosure();
+  const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+  const [selectedImageUrls, setSelectedImageUrls] = useState<string[]>([]);
+  const [filterStatus, setFilterStatus] = useState<string>("pending");
 
   const handleUpdateClick = (issue: Issue) => {
     setSelectedIssue(issue);
-    onOpen();
+    onUpdateModalOpen();
+  };
+
+  const handleImageClick = (imageUrls: string[]) => {
+    setSelectedImageUrls(imageUrls);
+    onImageModalOpen();
   };
 
   useEffect(() => {
@@ -67,6 +77,7 @@ function TechnicianDashboard() {
     setLoading(true);
     const issuesQuery = query(
       collection(db, "issues"),
+      where("status", "==", filterStatus),
       orderBy("reportedAt", "desc")
     );
 
@@ -87,7 +98,7 @@ function TechnicianDashboard() {
     });
 
     return () => unsubscribe();
-  }, [currentUser, toast]);
+  }, [currentUser, toast, filterStatus]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -176,6 +187,11 @@ function TechnicianDashboard() {
                 <Icon as={FaBell} mr={3} verticalAlign="middle" />
                 รายการแจ้งซ่อม
               </Heading>
+              <Flex>
+                <Button size="sm" colorScheme={filterStatus === 'pending' ? 'red' : 'gray'} onClick={() => setFilterStatus('pending')}>งานใหม่</Button>
+                <Button size="sm" colorScheme={filterStatus === 'in_progress' ? 'yellow' : 'gray'} onClick={() => setFilterStatus('in_progress')} mx={2}>กำลังดำเนินการ</Button>
+                <Button size="sm" colorScheme={filterStatus === 'resolved' ? 'green' : 'gray'} onClick={() => setFilterStatus('resolved')}>เสร็จสิ้น</Button>
+              </Flex>
             </Flex>
           </CardHeader>
           <CardBody>
@@ -184,7 +200,9 @@ function TechnicianDashboard() {
                 <Thead>
                   <Tr>
                     <Th>ห้อง</Th>
+                    <Th>ผู้แจ้ง</Th> 
                     <Th>ปัญหา</Th>
+                    <Th>รูปภาพ</Th>
                     <Th>วันที่แจ้ง</Th>
                     <Th>สถานะ</Th>
                     <Th>จัดการ</Th>
@@ -195,7 +213,23 @@ function TechnicianDashboard() {
                     issues.map((issue) => (
                       <Tr key={issue.id}>
                         <Td>{issue.roomId}</Td>
-                        <Td>{issue.description}</Td>
+                        <Td>{issue.tenantName}</Td> 
+                        <Td><Text noOfLines={2}>{issue.description}</Text></Td>
+                        <Td>
+                          {issue.imageUrls && issue.imageUrls.length > 0 ? (
+                            <Button 
+                              leftIcon={<FaImage />} 
+                              aria-label="View images" 
+                              size="sm"
+                              onClick={() => handleImageClick(issue.imageUrls!)}
+                              variant="outline"
+                            >
+                              {issue.imageUrls.length}
+                            </Button>
+                          ) : (
+                            <Text color="gray.400">-</Text>
+                          )}
+                        </Td>
                         <Td>{issue.reportedAt?.toDate().toLocaleDateString('th-TH')}</Td>
                         <Td>
                           <Badge colorScheme={getStatusColor(issue.status)} px={2} py={1} borderRadius="md">
@@ -209,7 +243,7 @@ function TechnicianDashboard() {
                     ))
                   ) : (
                     <Tr>
-                      <Td colSpan={5} textAlign="center">
+                      <Td colSpan={7} textAlign="center">
                         <Text color="gray.500" py={8}>ยังไม่มีรายการแจ้งซ่อม</Text>
                       </Td>
                     </Tr>
@@ -223,11 +257,26 @@ function TechnicianDashboard() {
 
       {selectedIssue && (
         <UpdateIssueStatusModal
-          isOpen={isOpen}
-          onClose={onClose}
+          isOpen={isUpdateModalOpen}
+          onClose={onUpdateModalClose}
           issue={selectedIssue}
         />
       )}
+
+      <Modal isOpen={isImageModalOpen} onClose={onImageModalClose} size="4xl" isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>รูปภาพปัญหา</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <HStack spacing={4} overflowX="auto" py={4}>
+              {selectedImageUrls.map((url, index) => (
+                <Image key={index} src={url} alt={`Issue Image ${index + 1}`} maxH="70vh" borderRadius="md" />
+              ))}
+            </HStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </MainLayout>
   );
 }

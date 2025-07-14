@@ -659,11 +659,13 @@ function TenantDashboard() {
         </ModalContent>
       </Modal>
 
-      {roomData && (
+      {roomData && currentUser && (
         <ReportIssueModal 
           isOpen={isReportModalOpen} 
           onClose={onReportModalClose} 
           roomId={roomData.id} 
+          tenantId={currentUser.uid}
+          tenantName={currentUser.name}
         />
       )}
     </TenantLayout>
