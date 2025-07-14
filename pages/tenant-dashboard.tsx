@@ -1,4 +1,4 @@
-import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, Spacer, Tooltip, Skeleton } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, Spacer, Tooltip, Skeleton, AspectRatio } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import { auth, db } from "../lib/firebase";
@@ -92,6 +92,7 @@ function TenantDashboard() {
   const { isOpen: isAlertOpen, onOpen: onAlertOpen, onClose: onAlertClose } = useDisclosure();
   const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
   const { isOpen: isReportModalOpen, onOpen: onReportModalOpen, onClose: onReportModalClose } = useDisclosure();
+  const { isOpen: isAssessmentModalOpen, onOpen: onAssessmentModalOpen, onClose: onAssessmentModalClose } = useDisclosure();
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [alertRoomId, setAlertRoomId] = useState<string | null>(null);
@@ -529,7 +530,7 @@ function TenantDashboard() {
                       colorScheme="purple" 
                       variant="outline"
                       leftIcon={<FaFilePdf />}
-                      onClick={() => window.open(roomData.assessmentFormUrl, '_blank')}
+                      onClick={onAssessmentModalOpen}
                     >
                       ดูใบประเมินอุปกรณ์
                     </Button>
@@ -800,6 +801,27 @@ function TenantDashboard() {
           tenantName={currentUser.name}
         />
       )}
+
+      <Modal isOpen={isAssessmentModalOpen} onClose={onAssessmentModalClose} size="2xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>ใบประเมินอุปกรณ์</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {roomData?.assessmentFormUrl ? (
+              <AspectRatio ratio={210 / 297}>
+                <iframe 
+                  src={`https://docs.google.com/gview?url=${encodeURIComponent(roomData.assessmentFormUrl)}&embedded=true`}
+                  style={{ border: 'none' }}
+                />
+              </AspectRatio>
+            ) : (
+              <Text>ไม่พบไฟล์ใบประเมิน</Text>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
     </TenantLayout>
   );
 }

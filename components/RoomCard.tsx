@@ -96,6 +96,33 @@ export default function RoomCard({ id, tenantName, tenantEmail, area, latestTota
     }
   };
 
+  const handleDeleteAssessment = async () => {
+    if (!assessmentFormUrl) return;
+
+    const roomDocRef = doc(db, "rooms", id);
+    try {
+      await updateDoc(roomDocRef, {
+        assessmentFormUrl: null,
+      });
+      toast({
+        title: "สำเร็จ",
+        description: "ลบใบประเมินเรียบร้อยแล้ว",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error("Error deleting assessment form:", error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถลบใบประเมินได้",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
 
   const isOccupied = tenantEmail && tenantEmail.trim() !== "";
   const status = isOccupied ? "occupied" : "vacant";
@@ -231,9 +258,9 @@ export default function RoomCard({ id, tenantName, tenantEmail, area, latestTota
               >
                 ดูใบประเมิน
               </Button>
-              <Button 
-                leftIcon={<FaSync />} 
-                size="sm" 
+              <Button
+                leftIcon={<FaSync />}
+                size="sm"
                 variant="outline"
                 colorScheme="gray"
                 onClick={handleUploadClick}
@@ -241,12 +268,21 @@ export default function RoomCard({ id, tenantName, tenantEmail, area, latestTota
               >
                 เปลี่ยนไฟล์
               </Button>
+              <Button
+                leftIcon={<FaTrash />}
+                size="sm"
+                variant="ghost"
+                colorScheme="red"
+                onClick={handleDeleteAssessment}
+              >
+                ลบ
+              </Button>
             </Flex>
           ) : (
-            <Button 
-              w="full" 
-              leftIcon={<FaUpload />} 
-              size="sm" 
+            <Button
+              w="full"
+              leftIcon={<FaUpload />}
+              size="sm"
               colorScheme="purple"
               variant="outline"
               onClick={handleUploadClick}
