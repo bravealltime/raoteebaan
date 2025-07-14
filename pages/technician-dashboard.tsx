@@ -3,7 +3,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp } from "firebase/firestore";
+import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp, startAfter, endBefore, limitToLast } from "firebase/firestore";
 import MainLayout from "../components/MainLayout";
 import { FaTools, FaUser, FaBell, FaImage, FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import UpdateIssueStatusModal from '../components/UpdateIssueStatusModal';
@@ -32,6 +32,11 @@ function TechnicianDashboard() {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastVisible, setLastVisible] = useState<any>(null);
+  const [firstVisible, setFirstVisible] = useState<any>(null);
+  const [page, setPage] = useState(1);
+  const ISSUES_PER_PAGE = 10;
+
   const { isOpen: isUpdateModalOpen, onOpen: onUpdateModalOpen, onClose: onUpdateModalClose } = useDisclosure();
   const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
@@ -85,30 +90,84 @@ function TechnicianDashboard() {
     if (!currentUser) return;
 
     setLoading(true);
-    const issuesQuery = query(
-      collection(db, "issues"),
-      where("status", "==", filterStatus),
-      orderBy("reportedAt", "desc")
-    );
 
-    const unsubscribe = onSnapshot(issuesQuery, (snapshot) => {
-      const issuesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Issue));
-      setIssues(issuesData);
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching issues:", error);
-      toast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถโหลดข้อมูลการแจ้งซ่อมได้",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      setLoading(false);
-    });
+    const fetchIssues = async (pageDirection: 'first' | 'next' | 'prev' = 'first') => {
+      setLoading(true);
+      try {
+        let issuesQuery;
+        const baseQuery = [
+          collection(db, "issues"),
+          where("status", "==", filterStatus),
+          orderBy("reportedAt", "desc"),
+        ];
 
-    return () => unsubscribe();
+        if (pageDirection === 'first') {
+          setPage(1);
+          issuesQuery = query(collection(db, "issues"), where("status", "==", filterStatus), orderBy("reportedAt", "desc"), limit(ISSUES_PER_PAGE));
+        } else if (pageDirection === 'next' && lastVisible) {
+          issuesQuery = query(collection(db, "issues"), where("status", "==", filterStatus), orderBy("reportedAt", "desc"), startAfter(lastVisible), limit(ISSUES_PER_PAGE));
+        } else if (pageDirection === 'prev' && firstVisible) {
+          issuesQuery = query(collection(db, "issues"), where("status", "==", filterStatus), orderBy("reportedAt", "desc"), endBefore(firstVisible), limitToLast(ISSUES_PER_PAGE));
+        } else {
+          setLoading(false);
+          return;
+        }
+
+        const documentSnapshots = await getDocs(issuesQuery);
+        const issuesData = documentSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as Issue));
+        
+        if (issuesData.length > 0) {
+          setIssues(issuesData);
+          setLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1]);
+          setFirstVisible(documentSnapshots.docs[0]);
+          if (pageDirection === 'next') setPage(p => p + 1);
+          if (pageDirection === 'prev') setPage(p => p - 1);
+        } else {
+          if (pageDirection === 'first') {
+            setIssues([]);
+          }
+          // If fetching next/prev and no data, do nothing to keep the current page data
+          toast({
+            title: "ไม่มีข้อมูล",
+            description: "ไม่มีรายการแจ้งซ่อมเพิ่มเติม",
+            status: "info",
+            duration: 2000,
+            isClosable: true,
+          });
+        }
+
+      } catch (error) {
+        console.error("Error fetching issues:", error);
+        toast({
+          title: "เกิดข้อผิดพลาด",
+          description: "ไม่สามารถโหลดข้อมูลการแจ้งซ่อมได้",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+      setLoading(false);
+    };
+
+    fetchIssues();
+
   }, [currentUser, toast, filterStatus]);
+
+  const handleFilterChange = (status: string) => {
+    setFilterStatus(status);
+    setPage(1);
+    setLastVisible(null);
+    setFirstVisible(null);
+  }
+
+  const fetchNextPage = () => {
+    fetchIssues('next');
+  };
+
+  const fetchPrevPage = () => {
+    fetchIssues('prev');
+  };
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -198,9 +257,9 @@ function TechnicianDashboard() {
                 รายการแจ้งซ่อม
               </Heading>
               <Flex>
-                <Button size="sm" colorScheme={filterStatus === 'pending' ? 'red' : 'gray'} onClick={() => setFilterStatus('pending')}>งานใหม่</Button>
-                <Button size="sm" colorScheme={filterStatus === 'in_progress' ? 'yellow' : 'gray'} onClick={() => setFilterStatus('in_progress')} mx={2}>กำลังดำเนินการ</Button>
-                <Button size="sm" colorScheme={filterStatus === 'resolved' ? 'green' : 'gray'} onClick={() => setFilterStatus('resolved')}>เสร็จสิ้น</Button>
+                <Button size="sm" colorScheme={filterStatus === 'pending' ? 'red' : 'gray'} onClick={() => handleFilterChange('pending')}>งานใหม่</Button>
+                <Button size="sm" colorScheme={filterStatus === 'in_progress' ? 'yellow' : 'gray'} onClick={() => handleFilterChange('in_progress')} mx={2}>กำลังดำเนินการ</Button>
+                <Button size="sm" colorScheme={filterStatus === 'resolved' ? 'green' : 'gray'} onClick={() => handleFilterChange('resolved')}>เสร็จสิ้น</Button>
               </Flex>
             </Flex>
           </CardHeader>
@@ -254,13 +313,18 @@ function TechnicianDashboard() {
                   ) : (
                     <Tr>
                       <Td colSpan={7} textAlign="center">
-                        <Text color="gray.500" py={8}>ยังไม่มีรายการแจ้งซ่อม</Text>
+                        <Text color="gray.500" py={8}>ยังไม่มีรายการแจ้งซ่อมสำหรับสถานะ "{getStatusText(filterStatus)}"</Text>
                       </Td>
                     </Tr>
                   )}
                 </Tbody>
               </Table>
             </TableContainer>
+            <Flex justify="space-between" align="center" mt={4}>
+              <Button onClick={fetchPrevPage} isDisabled={page <= 1} leftIcon={<FaArrowLeft />}>ก่อนหน้า</Button>
+              <Text>หน้า {page}</Text>
+              <Button onClick={fetchNextPage} isDisabled={!lastVisible || issues.length < ISSUES_PER_PAGE} rightIcon={<FaArrowRight />}>ถัดไป</Button>
+            </Flex>
           </CardBody>
         </Card>
       </Box>

@@ -3,9 +3,9 @@ import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp } from "firebase/firestore";
+import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp, startAfter, endBefore, limitToLast } from "firebase/firestore";
 import TenantLayout from "../components/TenantLayout";
-import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools, FaBullhorn, FaPhone, FaLine, FaCopy, FaComments, FaQrcode, FaBolt, FaTint, FaCheckCircle, FaSpinner, FaClock, FaMoneyBillWave, FaArrowRight } from "react-icons/fa";
+import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools, FaBullhorn, FaPhone, FaLine, FaCopy, FaComments, FaQrcode, FaBolt, FaTint, FaCheckCircle, FaSpinner, FaClock, FaMoneyBillWave, FaArrowRight, FaImage, FaArrowLeft } from "react-icons/fa";
 import ReportIssueModal from '../components/ReportIssueModal';
 
 interface UserData {
@@ -57,12 +57,22 @@ interface Parcel {
     imageUrl?: string;
 }
 
+interface Issue {
+  id: string;
+  description: string;
+  status: "pending" | "in_progress" | "resolved";
+  reportedAt: Timestamp;
+  tenantName: string;
+  imageUrls?: string[];
+}
+
 // @ts-ignore
 declare global {
   interface Window { ThaiQRCode: any }
 }
 
 function TenantDashboard() {
+  console.log("TenantDashboard component rendering...");
   const router = useRouter();
   const toast = useToast();
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -86,7 +96,14 @@ function TenantDashboard() {
   const [alertRoomId, setAlertRoomId] = useState<string | null>(null);
   const { isOpen: isProfileOpen, onOpen: onProfileOpen, onClose: onProfileClose } = useDisclosure();
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [issueHistory, setIssueHistory] = useState<Array<{ id: string; description: string; status: string; reportedAt: Date }>>([]);
+  const [issueHistory, setIssueHistory] = useState<Issue[]>([]);
+  const [issuePage, setIssuePage] = useState(1);
+  const [lastIssueVisible, setLastIssueVisible] = useState<any>(null);
+  const [firstIssueVisible, setFirstIssueVisible] = useState<any>(null);
+  const ISSUES_PER_PAGE = 2;
+  const [selectedIssueImageUrls, setSelectedIssueImageUrls] = useState<string[]>([]);
+  const { isOpen: isIssueImageModalOpen, onOpen: onIssueImageModalOpen, onClose: onIssueImageModalClose } = useDisclosure();
+  const [currentIssueImageIndex, setCurrentIssueImageIndex] = useState(0);
 
   useEffect(() => {
     const authUnsubscribe = onAuthStateChanged(auth, (user) => {
@@ -106,6 +123,7 @@ function TenantDashboard() {
             roomId: firestoreData.roomId,
           };
           setCurrentUser(combinedUser);
+          console.log("Current User Loaded:", combinedUser);
         });
 
         const roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", user.uid), limit(1));
@@ -126,12 +144,14 @@ function TenantDashboard() {
               billStatus: currentRoomData.billStatus || "pending",
               overdueDays: currentRoomData.overdueDays || 0,
             });
+            console.log("Room Data Loaded:", { id: roomId, ...currentRoomData });
             fetchBillHistory(roomId);
             fetchUndeliveredParcels(roomId);
           } else {
             setRoomData(null);
             setBillHistory([]);
             setUndeliveredParcels([]);
+            console.log("No Room Data Found for user:", user.uid);
           }
           setLoading(false);
         });
@@ -205,22 +225,57 @@ function TenantDashboard() {
   useEffect(() => {
     // Fetch issue history for this room
     if (roomData && roomData.id) {
-      const q = query(collection(db, "issues"), where("roomId", "==", roomData.id), orderBy("reportedAt", "desc"));
-      const unsub = onSnapshot(q, (snapshot) => {
-        const issues = snapshot.docs.map(doc => {
-          const d = doc.data();
-          return {
-            id: doc.id,
-            description: d.description || "-",
-            status: d.status || "pending",
-            reportedAt: d.reportedAt?.toDate ? d.reportedAt.toDate() : new Date(),
-          };
-        });
-        setIssueHistory(issues);
-      });
-      return () => unsub();
+      fetchIssueHistory('first');
     }
   }, [roomData]);
+
+  const fetchIssueHistory = async (direction: 'first' | 'next' | 'prev') => {
+    if (!roomData?.id) return;
+
+    let q;
+    const baseQuery = [
+        collection(db, "issues"), 
+        where("roomId", "==", roomData.id), 
+        orderBy("reportedAt", "desc")
+    ];
+
+    if (direction === 'first') {
+        q = query(collection(db, "issues"), where("roomId", "==", roomData.id), orderBy("reportedAt", "desc"), limit(ISSUES_PER_PAGE));
+        setIssuePage(1);
+    } else if (direction === 'next' && lastIssueVisible) {
+        q = query(collection(db, "issues"), where("roomId", "==", roomData.id), orderBy("reportedAt", "desc"), startAfter(lastIssueVisible), limit(ISSUES_PER_PAGE));
+    } else if (direction === 'prev' && firstIssueVisible) {
+        q = query(collection(db, "issues"), where("roomId", "==", roomData.id), orderBy("reportedAt", "desc"), endBefore(firstIssueVisible), limitToLast(ISSUES_PER_PAGE));
+    } else {
+        return; // No more pages or invalid direction
+    }
+
+    const snapshot = await getDocs(q);
+    const issues = snapshot.docs.map(doc => {
+      const d = doc.data();
+      return {
+        id: doc.id,
+        description: d.description || "-",
+        status: d.status || "pending",
+        reportedAt: d.reportedAt?.toDate ? Timestamp.fromDate(d.reportedAt.toDate()) : Timestamp.now(),
+        tenantName: d.tenantName || "",
+        imageUrls: d.imageUrls || [],
+      } as Issue;
+    });
+
+    if (issues.length > 0) {
+        setIssueHistory(issues);
+        setFirstIssueVisible(snapshot.docs[0]);
+        setLastIssueVisible(snapshot.docs[snapshot.docs.length - 1]);
+        if (direction === 'next') setIssuePage(p => p + 1);
+        if (direction === 'prev') setIssuePage(p => p - 1);
+    } else {
+        if (direction === 'first') {
+            setIssueHistory([]);
+        }
+        toast({ title: "ไม่มีข้อมูลเพิ่มเติม", status: "info", duration: 2000 });
+    }
+  };
 
   // เพิ่ม field สัญญาเช่า mock ถ้ายังไม่มี
   useEffect(() => {
@@ -562,22 +617,38 @@ function TenantDashboard() {
             {roomData && (
               <Card borderRadius="xl" boxShadow="lg" bg="white">
                 <CardHeader>
-                  <Heading size="md" color="brand.700"><Icon as={FaTools} mr={2} />ประวัติการแจ้งปัญหา</Heading>
+                  <Flex justify="space-between" align="center">
+                    <Heading size="md" color="brand.700"><Icon as={FaTools} mr={2} />ประวัติการแจ้งปัญหา</Heading>
+                    <Text fontSize="sm" color="gray.500">หน้า {issuePage}</Text>
+                  </Flex>
                 </CardHeader>
                 <CardBody>
                   {issueHistory.length > 0 ? (
                     <VStack align="stretch" spacing={3}>
-                      {issueHistory.slice(0, 5).map((issue) => ( // Show latest 5
+                      {issueHistory.map((issue) => ( 
                         <Flex key={issue.id} align="center" bg="gray.50" borderRadius="md" p={3} gap={4}>
-                          <Box>
+                          <Box flex="1">
                             <Text color="gray.800" noOfLines={1}>{issue.description}</Text>
-                            <Text color="gray.500" fontSize="sm">{issue.reportedAt.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
+                            <Text color="gray.500" fontSize="sm">{issue.reportedAt.toDate().toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
                           </Box>
-                          <Spacer />
-                          <Badge colorScheme={issue.status === 'done' ? 'green' : issue.status === 'in_progress' ? 'blue' : 'yellow'}>
+                          {issue.imageUrls && issue.imageUrls.length > 0 && (
+                            <Button 
+                              leftIcon={<Icon as={FaImage} />} 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => {
+                                setSelectedIssueImageUrls(issue.imageUrls!);
+                                setCurrentIssueImageIndex(0);
+                                onIssueImageModalOpen();
+                              }}
+                            >
+                              {issue.imageUrls.length}
+                            </Button>
+                          )}
+                          <Badge colorScheme={issue.status === 'resolved' ? 'green' : issue.status === 'in_progress' ? 'blue' : 'yellow'}>
                             {issue.status === 'pending' && 'รอดำเนินการ'}
                             {issue.status === 'in_progress' && 'กำลังซ่อม'}
-                            {issue.status === 'done' && 'เสร็จสิ้น'}
+                            {issue.status === 'resolved' && 'เสร็จสิ้น'}
                           </Badge>
                         </Flex>
                       ))}
@@ -586,6 +657,11 @@ function TenantDashboard() {
                     <Text color="gray.500">ยังไม่มีประวัติการแจ้งปัญหา</Text>
                   )}
                 </CardBody>
+                <Flex justify="center" align="center" p={4} borderTopWidth="1px" borderColor="gray.100">
+                    <Button onClick={() => fetchIssueHistory('prev')} isDisabled={issuePage <= 1} size="sm" leftIcon={<FaArrowLeft />}>ก่อนหน้า</Button>
+                    <Spacer />
+                    <Button onClick={() => fetchIssueHistory('next')} isDisabled={issueHistory.length < ISSUES_PER_PAGE} size="sm" rightIcon={<FaArrowRight />}>ถัดไป</Button>
+                </Flex>
               </Card>
             )}
           </VStack>
@@ -655,6 +731,51 @@ function TenantDashboard() {
             <Center>
               <Image src={selectedImageUrl || ""} alt="Parcel Image" maxH="80vh" />
             </Center>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Issue Image Gallery Modal */}
+      <Modal isOpen={isIssueImageModalOpen} onClose={onIssueImageModalClose} size="4xl" isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader textAlign="center">รูปภาพปัญหา ({currentIssueImageIndex + 1} / {selectedIssueImageUrls.length})</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Flex align="center" justify="center" position="relative">
+              {selectedIssueImageUrls.length > 1 && (
+                <IconButton
+                  icon={<Icon as={FaArrowLeft} />}
+                  aria-label="Previous image"
+                  onClick={() => setCurrentIssueImageIndex(prev => (prev === 0 ? selectedIssueImageUrls.length - 1 : prev - 1))}
+                  position="absolute"
+                  left={2}
+                  zIndex={1}
+                  size="lg"
+                  isRound
+                />
+              )}
+              <Image 
+                src={selectedIssueImageUrls[currentIssueImageIndex] || ""} 
+                alt={`Issue Image ${currentIssueImageIndex + 1}`}
+                maxH="70vh"
+                maxW="full"
+                objectFit="contain"
+                borderRadius="md"
+              />
+              {selectedIssueImageUrls.length > 1 && (
+                <IconButton
+                  icon={<Icon as={FaArrowRight} />}
+                  aria-label="Next image"
+                  onClick={() => setCurrentIssueImageIndex(prev => (prev === selectedIssueImageUrls.length - 1 ? 0 : prev + 1))}
+                  position="absolute"
+                  right={2}
+                  zIndex={1}
+                  size="lg"
+                  isRound
+                />
+              )}
+            </Flex>
           </ModalBody>
         </ModalContent>
       </Modal>
