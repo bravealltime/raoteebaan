@@ -5,7 +5,7 @@ import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp, startAfter, endBefore, limitToLast } from "firebase/firestore";
 import TenantLayout from "../components/TenantLayout";
-import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools, FaBullhorn, FaPhone, FaLine, FaCopy, FaComments, FaQrcode, FaBolt, FaTint, FaCheckCircle, FaSpinner, FaClock, FaMoneyBillWave, FaArrowRight, FaImage, FaArrowLeft } from "react-icons/fa";
+import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools, FaBullhorn, FaPhone, FaLine, FaCopy, FaComments, FaQrcode, FaBolt, FaTint, FaCheckCircle, FaSpinner, FaClock, FaMoneyBillWave, FaArrowRight, FaImage, FaArrowLeft, FaFilePdf } from "react-icons/fa";
 import ReportIssueModal from '../components/ReportIssueModal';
 
 interface UserData {
@@ -34,6 +34,7 @@ interface RoomData {
   contractStart?: string;
   contractEnd?: string;
   depositAmount?: number;
+  assessmentFormUrl?: string;
 }
 
 interface BillHistory {
@@ -143,6 +144,7 @@ function TenantDashboard() {
               latestTotal: currentRoomData.latestTotal || 0,
               billStatus: currentRoomData.billStatus || "pending",
               overdueDays: currentRoomData.overdueDays || 0,
+              assessmentFormUrl: currentRoomData.assessmentFormUrl || undefined,
             });
             console.log("Room Data Loaded:", { id: roomId, ...currentRoomData });
             fetchBillHistory(roomId);
@@ -505,30 +507,6 @@ function TenantDashboard() {
         <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} alignItems="flex-start">
           {/* Left Column */}
           <VStack spacing={6} align="stretch">
-            {/* Announcements */}
-            <Card borderRadius="xl" boxShadow="lg" bg="white">
-              <CardHeader>
-                <Heading size="md" color="brand.700"><Icon as={FaBullhorn} mr={2} />ประกาศ/ข่าวสาร</Heading>
-              </CardHeader>
-              <CardBody>
-                {loading ? <Skeleton height="40px" /> : announcements.length === 0 ? (
-                  <Text color="gray.500">ไม่มีประกาศใหม่</Text>
-                ) : (
-                  <VStack align="stretch" spacing={4}>
-                    {announcements.map((a, idx) => (
-                      <Box key={idx} p={3} bg="gray.50" borderRadius="lg">
-                        <Flex align="center" mb={1}>
-                          <Text fontWeight="bold" color="brand.800">{a.title}</Text>
-                          <Text fontSize="xs" color="gray.400" ml="auto">{a.createdAt}</Text>
-                        </Flex>
-                        <Text color="gray.600" fontSize="sm">{a.content}</Text>
-                      </Box>
-                    ))}
-                  </VStack>
-                )}
-              </CardBody>
-            </Card>
-            
             {/* Room Details */}
             {roomData && (
               <Card borderRadius="xl" boxShadow="lg" bg="white">
@@ -545,13 +523,20 @@ function TenantDashboard() {
                     <Box><Text fontWeight="bold" color="gray.500">สัญญาหมดอายุ</Text><Text fontSize="lg">{roomData.contractEnd}</Text></Box>
                     <Box><Text fontWeight="bold" color="gray.500">เงินมัดจำ</Text><Text fontSize="lg">{roomData.depositAmount?.toLocaleString()} บาท</Text></Box>
                   </SimpleGrid>
+                  {roomData.assessmentFormUrl && (
+                    <Button 
+                      mt={4} 
+                      colorScheme="purple" 
+                      variant="outline"
+                      leftIcon={<FaFilePdf />}
+                      onClick={() => window.open(roomData.assessmentFormUrl, '_blank')}
+                    >
+                      ดูใบประเมินอุปกรณ์
+                    </Button>
+                  )}
                 </CardBody>
               </Card>
             )}
-          </VStack>
-
-          {/* Right Column */}
-          <VStack spacing={6} align="stretch">
             {/* Recent Payment History */}
             {billHistory.length > 0 && (
             <Card borderRadius="xl" boxShadow="lg" bg="white">
@@ -580,7 +565,33 @@ function TenantDashboard() {
               </CardBody>
             </Card>
             )}
+          </VStack>
 
+          {/* Right Column */}
+          <VStack spacing={6} align="stretch">
+            {/* Announcements */}
+            <Card borderRadius="xl" boxShadow="lg" bg="white">
+              <CardHeader>
+                <Heading size="md" color="brand.700"><Icon as={FaBullhorn} mr={2} />ประกาศ/ข่าวสาร</Heading>
+              </CardHeader>
+              <CardBody>
+                {loading ? <Skeleton height="40px" /> : announcements.length === 0 ? (
+                  <Text color="gray.500">ไม่มีประกาศใหม่</Text>
+                ) : (
+                  <VStack align="stretch" spacing={4}>
+                    {announcements.map((a, idx) => (
+                      <Box key={idx} p={3} bg="gray.50" borderRadius="lg">
+                        <Flex align="center" mb={1}>
+                          <Text fontWeight="bold" color="brand.800">{a.title}</Text>
+                          <Text fontSize="xs" color="gray.400" ml="auto">{a.createdAt}</Text>
+                        </Flex>
+                        <Text color="gray.600" fontSize="sm">{a.content}</Text>
+                      </Box>
+                    ))}
+                  </VStack>
+                )}
+              </CardBody>
+            </Card>
             {/* Parcels */}
             <Card borderRadius="xl" boxShadow="lg" bg="white">
               <CardHeader>

@@ -1,6 +1,10 @@
-import { Box, Flex, Text, Badge, Button, Divider, Icon, Tooltip, IconButton, Spacer, Progress, Avatar } from "@chakra-ui/react";
-import { FaChevronRight, FaDoorOpen, FaPlus, FaUser, FaCalendarAlt, FaFileInvoice, FaTrash, FaCog, FaUpload, FaCheckCircle, FaEye } from "react-icons/fa";
+import { Box, Flex, Text, Badge, Button, Divider, Icon, Tooltip, IconButton, Spacer, Progress, Avatar, useToast, Input } from "@chakra-ui/react";
+import { FaChevronRight, FaDoorOpen, FaPlus, FaUser, FaCalendarAlt, FaFileInvoice, FaTrash, FaCog, FaUpload, FaCheckCircle, FaEye, FaFilePdf, FaSync } from "react-icons/fa";
 import { motion } from "framer-motion";
+import { useRef, useState } from "react";
+import { storage, db } from "../lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { doc, updateDoc } from "firebase/firestore";
 
 interface RoomCardProps {
   id: string;
@@ -26,6 +30,7 @@ interface RoomCardProps {
   onMarkAsPaid?: () => void;
   onDeleteProof?: () => void;
   slipUrl?: string;
+  assessmentFormUrl?: string;
 }
 
 const statusMap = {
@@ -37,7 +42,61 @@ const statusMap = {
 
 const MotionBox = motion(Box);
 
-export default function RoomCard({ id, tenantName, tenantEmail, area, latestTotal, currentMonthTotal, electricity, water, rent, service, overdueDays, dueDate, billStatus = "paid", role, slipUrl, onViewBill, onAddData, onDelete, onSettings, onUploadProof, onViewProof, onMarkAsPaid, onDeleteProof }: RoomCardProps) {
+export default function RoomCard({ id, tenantName, tenantEmail, area, latestTotal, currentMonthTotal, electricity, water, rent, service, overdueDays, dueDate, billStatus = "paid", role, slipUrl, assessmentFormUrl, onViewBill, onAddData, onDelete, onSettings, onUploadProof, onViewProof, onMarkAsPaid, onDeleteProof }: RoomCardProps) {
+  const toast = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      toast({
+        title: "ผิดพลาด",
+        description: "กรุณาอัปโหลดไฟล์ PDF เท่านั้น",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const storageRef = ref(storage, `assessmentForms/${id}/${file.name}`);
+      await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(storageRef);
+
+      const roomDocRef = doc(db, "rooms", id);
+      await updateDoc(roomDocRef, { assessmentFormUrl: downloadURL });
+
+      toast({
+        title: "สำเร็จ",
+        description: "อัปโหลดใบประเมินเรียบร้อยแล้ว",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error("Error uploading assessment form:", error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถอัปโหลดไฟล์ได้",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+
   const isOccupied = tenantEmail && tenantEmail.trim() !== "";
   const status = isOccupied ? "occupied" : "vacant";
   const statusInfo = statusMap[billStatus] || statusMap.paid;
@@ -158,6 +217,47 @@ export default function RoomCard({ id, tenantName, tenantEmail, area, latestTota
       <Box px={4} pb={1}>
         <Text color={note.includes('ค้างชำระ') ? 'red.500' : note.includes('รอการตรวจสอบ') ? 'orange.500' : 'gray.600'} fontSize="md" textAlign="center" fontWeight="semibold">{note}</Text>
       </Box>
+      {/* Assessment Form Upload */}
+      {(role === 'admin' || role === 'owner') && (
+        <Box px={4} py={2} borderTopWidth="1px" borderColor="gray.100">
+          {assessmentFormUrl ? (
+            <Flex justify="space-between" align="center">
+              <Button 
+                leftIcon={<FaEye />} 
+                size="sm" 
+                variant="link"
+                colorScheme="purple"
+                onClick={() => window.open(assessmentFormUrl, '_blank')}
+              >
+                ดูใบประเมิน
+              </Button>
+              <Button 
+                leftIcon={<FaSync />} 
+                size="sm" 
+                variant="outline"
+                colorScheme="gray"
+                onClick={handleUploadClick}
+                isLoading={isUploading}
+              >
+                เปลี่ยนไฟล์
+              </Button>
+            </Flex>
+          ) : (
+            <Button 
+              w="full" 
+              leftIcon={<FaUpload />} 
+              size="sm" 
+              colorScheme="purple"
+              variant="outline"
+              onClick={handleUploadClick}
+              isLoading={isUploading}
+            >
+              อัปโหลดใบประเมินอุปกรณ์
+            </Button>
+          )}
+          <Input type="file" ref={fileInputRef} onChange={handleFileChange} accept="application/pdf" hidden />
+        </Box>
+      )}
       {/* Actions Section */}
       <Flex align="center" justify="space-evenly" gap={4} w="full" px={4} pb={2}>
         {role === 'user' ? (
