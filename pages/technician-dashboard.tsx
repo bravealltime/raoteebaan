@@ -5,7 +5,7 @@ import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp } from "firebase/firestore";
 import MainLayout from "../components/MainLayout";
-import { FaTools, FaUser, FaBell, FaImage } from "react-icons/fa";
+import { FaTools, FaUser, FaBell, FaImage, FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import UpdateIssueStatusModal from '../components/UpdateIssueStatusModal';
 
 interface UserData {
@@ -36,6 +36,7 @@ function TechnicianDashboard() {
   const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [selectedImageUrls, setSelectedImageUrls] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0); // New state for image index
   const [filterStatus, setFilterStatus] = useState<string>("pending");
 
   const handleUpdateClick = (issue: Issue) => {
@@ -45,7 +46,16 @@ function TechnicianDashboard() {
 
   const handleImageClick = (imageUrls: string[]) => {
     setSelectedImageUrls(imageUrls);
+    setCurrentImageIndex(0); // Reset index when opening new gallery
     onImageModalOpen();
+  };
+
+  const handlePrevImage = () => {
+    setCurrentImageIndex(prev => (prev === 0 ? selectedImageUrls.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = () => {
+    setCurrentImageIndex(prev => (prev === selectedImageUrls.length - 1 ? 0 : prev + 1));
   };
 
   useEffect(() => {
@@ -266,14 +276,43 @@ function TechnicianDashboard() {
       <Modal isOpen={isImageModalOpen} onClose={onImageModalClose} size="4xl" isCentered>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>รูปภาพปัญหา</ModalHeader>
+          <ModalHeader textAlign="center">รูปภาพปัญหา ({currentImageIndex + 1} / {selectedImageUrls.length})</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <HStack spacing={4} overflowX="auto" py={4}>
-              {selectedImageUrls.map((url, index) => (
-                <Image key={index} src={url} alt={`Issue Image ${index + 1}`} maxH="70vh" borderRadius="md" />
-              ))}
-            </HStack>
+            <Flex align="center" justify="center" position="relative">
+              {selectedImageUrls.length > 1 && (
+                <IconButton
+                  icon={<FaArrowLeft />}
+                  aria-label="Previous image"
+                  onClick={handlePrevImage}
+                  position="absolute"
+                  left={2}
+                  zIndex={1}
+                  size="lg"
+                  isRound
+                />
+              )}
+              <Image 
+                src={selectedImageUrls[currentImageIndex] || ""} 
+                alt={`Issue Image ${currentImageIndex + 1}`}
+                maxH="70vh"
+                maxW="full"
+                objectFit="contain"
+                borderRadius="md"
+              />
+              {selectedImageUrls.length > 1 && (
+                <IconButton
+                  icon={<FaArrowRight />}
+                  aria-label="Next image"
+                  onClick={handleNextImage}
+                  position="absolute"
+                  right={2}
+                  zIndex={1}
+                  size="lg"
+                  isRound
+                />
+              )}
+            </Flex>
           </ModalBody>
         </ModalContent>
       </Modal>
