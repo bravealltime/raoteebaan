@@ -1,11 +1,11 @@
-import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, Spacer, Tooltip, Skeleton } from "@chakra-ui/react";
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp } from "firebase/firestore";
 import TenantLayout from "../components/TenantLayout";
-import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools } from "react-icons/fa";
+import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools, FaBullhorn, FaPhone, FaLine, FaCopy, FaComments, FaQrcode, FaBolt, FaTint, FaCheckCircle, FaSpinner, FaClock, FaMoneyBillWave } from "react-icons/fa";
 import ReportIssueModal from '../components/ReportIssueModal';
 
 interface UserData {
@@ -31,6 +31,9 @@ interface RoomData {
   latestTotal: number;
   billStatus: string;
   overdueDays: number;
+  contractStart?: string;
+  contractEnd?: string;
+  depositAmount?: number;
 }
 
 interface BillHistory {
@@ -41,6 +44,8 @@ interface BillHistory {
   status: string;
   dueDate: string;
   paidDate?: string;
+  electricity?: number;
+  water?: number;
 }
 
 interface Parcel {
@@ -52,6 +57,11 @@ interface Parcel {
     imageUrl?: string;
 }
 
+// @ts-ignore
+declare global {
+  interface Window { ThaiQRCode: any }
+}
+
 function TenantDashboard() {
   const router = useRouter();
   const toast = useToast();
@@ -61,6 +71,12 @@ function TenantDashboard() {
   const [billHistory, setBillHistory] = useState<BillHistory[]>([]);
   const [undeliveredParcels, setUndeliveredParcels] = useState<Parcel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [announcements, setAnnouncements] = useState<Array<{ title: string; content: string; createdAt: string }>>([]);
+  const [contactInfo] = useState({
+    phone: "081-234-5678",
+    line: "@teeraoniti",
+    lineUrl: "https://line.me/R/ti/p/@teeraoniti"
+  });
   
   const { isOpen: isAlertOpen, onOpen: onAlertOpen, onClose: onAlertClose } = useDisclosure();
   const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
@@ -69,6 +85,8 @@ function TenantDashboard() {
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [alertRoomId, setAlertRoomId] = useState<string | null>(null);
   const { isOpen: isProfileOpen, onOpen: onProfileOpen, onClose: onProfileClose } = useDisclosure();
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [issueHistory, setIssueHistory] = useState<Array<{ id: string; description: string; status: string; reportedAt: Date }>>([]);
 
   useEffect(() => {
     const authUnsubscribe = onAuthStateChanged(auth, (user) => {
@@ -159,6 +177,63 @@ function TenantDashboard() {
     return () => unsubscribe();
   }, [currentUser, onAlertOpen]);
 
+  useEffect(() => {
+    // Mock ประกาศ/ข่าวสาร
+    setAnnouncements([
+      {
+        title: "แจ้งปิดปรับปรุงระบบน้ำ",
+        content: "วันที่ 10-12 ก.ค. จะมีการปิดปรับปรุงระบบน้ำประปาในอาคาร กรุณากักตุนสำรองน้ำไว้ล่วงหน้า",
+        createdAt: "2024-07-09",
+      },
+      {
+        title: "ขอความร่วมมือไม่จอดรถขวางทางเข้าออก",
+        content: "โปรดจอดรถในพื้นที่ที่กำหนดเท่านั้น เพื่อความสะดวกของทุกท่าน",
+        createdAt: "2024-07-07",
+      },
+    ]);
+  }, []);
+
+  useEffect(() => {
+    if (roomData && roomData.latestTotal > 0 && typeof window !== 'undefined' && window.ThaiQRCode) {
+      const url = window.ThaiQRCode.generateSync(promptpayNumber, { amount: roomData.latestTotal });
+      setQrDataUrl(url);
+    } else {
+      setQrDataUrl(null);
+    }
+  }, [roomData]);
+
+  useEffect(() => {
+    // Fetch issue history for this room
+    if (roomData && roomData.id) {
+      const q = query(collection(db, "issues"), where("roomId", "==", roomData.id), orderBy("reportedAt", "desc"));
+      const unsub = onSnapshot(q, (snapshot) => {
+        const issues = snapshot.docs.map(doc => {
+          const d = doc.data();
+          return {
+            id: doc.id,
+            description: d.description || "-",
+            status: d.status || "pending",
+            reportedAt: d.reportedAt?.toDate ? d.reportedAt.toDate() : new Date(),
+          };
+        });
+        setIssueHistory(issues);
+      });
+      return () => unsub();
+    }
+  }, [roomData]);
+
+  // เพิ่ม field สัญญาเช่า mock ถ้ายังไม่มี
+  useEffect(() => {
+    if (roomData && !roomData.contractStart) {
+      setRoomData(prev => prev && {
+        ...prev,
+        contractStart: "2024-01-01",
+        contractEnd: "2024-12-31",
+        depositAmount: 5000,
+      });
+    }
+  }, [roomData]);
+
   const fetchBillHistory = async (roomId: string) => {
     try {
       const billsQuery = query(
@@ -180,6 +255,8 @@ function TenantDashboard() {
           status: "paid",
           dueDate: data.dueDate?.toDate().toLocaleDateString('th-TH') || "-",
           paidDate: data.paidAt?.toDate().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) || "-",
+          electricity: data.electricity || 0,
+          water: data.water || 0,
         };
       });
       
@@ -253,6 +330,8 @@ function TenantDashboard() {
     }
   };
 
+  const promptpayNumber = "0812345678";
+
   if (loading) {
     return (
       <TenantLayout currentUser={currentUser} isProfileOpen={isProfileOpen} onProfileOpen={onProfileOpen} onProfileClose={onProfileClose}>
@@ -265,275 +344,226 @@ function TenantDashboard() {
 
   return (
     <TenantLayout currentUser={currentUser} isProfileOpen={isProfileOpen} onProfileOpen={onProfileOpen} onProfileClose={onProfileClose}>
-      <Box p={{ base: 2, md: 4 }} bg="gray.50" minH="100vh">
-        <Heading size={{ base: "lg", md: "xl" }} mb={6} color="gray.700">
-          แดชบอร์ดผู้เช่า
-        </Heading>
+      <Box p={{ base: 4, md: 6 }} bg="gray.50" minH="100vh">
+        {/* Section 1: Header */}
+        <Flex mb={6} justify="space-between" align="center">
+          <Flex align="center">
+            <Avatar size="lg" src={currentUser?.photoURL} name={currentUser?.name} mr={4} />
+            <Box>
+              <Heading size="md" color="gray.700">สวัสดี, {currentUser?.name || 'ผู้เช่า'}</Heading>
+              <Text color="gray.500">ยินดีต้อนรับสู่แดชบอร์ดของคุณ</Text>
+            </Box>
+          </Flex>
+          <Flex gap={3}>
+            <Button leftIcon={<FaTools />} colorScheme="orange" variant="solid" onClick={onReportModalOpen} isDisabled={!roomData}>
+              แจ้งปัญหา
+            </Button>
+            <Button leftIcon={<FaUser />} colorScheme="gray" variant="outline" onClick={onProfileOpen}>
+              โปรไฟล์
+            </Button>
+          </Flex>
+        </Flex>
 
-        {/* Personal Information Card */}
-        <Card mb={6} boxShadow="md" borderRadius="lg" bg="white" p={{ base: 4, md: 6 }}>
-          <CardHeader pb={2}>
-            <Heading size="md" color="blue.600">
-              <Icon as={FaUser} mr={2} /> ข้อมูลส่วนตัว
-            </Heading>
-          </CardHeader>
-          <CardBody>
-            <Flex direction={{ base: "column", md: "row" }} align="center" gap={6}>
-              <Avatar size="xl" src={currentUser?.photoURL} name={currentUser?.name} boxShadow="md" />
-              <VStack align={{ base: "center", md: "flex-start" }} spacing={1} flex={1} w="100%">
-                <SimpleGrid columns={{ base: 1, sm: 2 }} spacingY={2} spacingX={6} w="100%">
-                  <Box>
-                    <Text fontWeight="bold" color="gray.500" fontSize="sm">ชื่อ</Text>
-                    <Text color="gray.800" fontSize="md">{currentUser?.name}</Text>
-                  </Box>
-                  <Box>
-                    <Text fontWeight="bold" color="gray.500" fontSize="sm">อีเมล</Text>
-                    <Text color="gray.800" fontSize="md">{currentUser?.email}</Text>
-                  </Box>
-                  <Box>
-                    <Text fontWeight="bold" color="gray.500" fontSize="sm">สถานะ</Text>
-                    <Badge fontSize="sm" px={2} py={0.5} borderRadius="md" colorScheme={currentUser?.status === "active" ? "green" : "red"}>
-                      {currentUser?.status === "active" ? "เปิดใช้งาน" : "ปิดใช้งาน"}
-                    </Badge>
-                  </Box>
-                </SimpleGrid>
-              </VStack>
-            </Flex>
-          </CardBody>
-        </Card>
-
-        {/* Room Information Card */}
+        {/* Section 2: Billing Hub */}
         {roomData ? (
-          <Card mb={6} boxShadow="md" borderRadius="lg" bg="white" p={{ base: 4, md: 6 }}>
-          <CardHeader pb={2}>
-            <Heading size="md" color="blue.600">
-              <Icon as={FaHome} mr={2} /> ข้อมูลห้องพัก
-            </Heading>
-          </CardHeader>
-          <CardBody>
-            <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={5}>
-                <Box>
-                  <Text fontWeight="bold" color="gray.500" fontSize="sm">หมายเลขห้อง</Text>
-                  <Text color="gray.800" fontSize="lg">{roomData.id}</Text>
-                </Box>
-                <Box>
-                  <Text fontWeight="bold" color="gray.500" fontSize="sm">ขนาดห้อง</Text>
-                  <Text color="gray.800" fontSize="lg">{roomData.area} ตร.ม.</Text>
-                </Box>
-                <Box>
-                  <Text fontWeight="bold" color="gray.500" fontSize="sm">ค่าเช่า</Text>
-                  <Text color="gray.800" fontSize="lg">{roomData.rent.toLocaleString()} บาท</Text>
-                </Box>
-                <Box>
-                  <Text fontWeight="bold" color="gray.500" fontSize="sm">ค่าบริการ</Text>
-                  <Text color="gray.800" fontSize="lg">{roomData.service.toLocaleString()} บาท</Text>
-                </Box>
-                <Box>
-                  <Text fontWeight="bold" color="gray.500" fontSize="sm">สถานะบิลล่าสุด</Text>
-                  <Badge fontSize="md" px={3} py={1} borderRadius="md" colorScheme={getStatusColor(roomData.billStatus)}>
-                    {getStatusText(roomData.billStatus)}
-                  </Badge>
-                </Box>
-                {roomData.billStatus === 'unpaid' && (
-                <Box>
-                  <Text fontWeight="bold" color="red.500" fontSize="sm">ยอดค้างชำระ</Text>
-                  <Text color="red.500" fontSize="xl" fontWeight="bold">{roomData.latestTotal.toLocaleString()} บาท</Text>
-                </Box>
-                )}
-              </SimpleGrid>
+          <Card 
+            mb={6} 
+            borderRadius="xl" 
+            boxShadow="xl" 
+            p={{ base: 4, md: 6 }}
+            bg={roomData.billStatus === 'unpaid' ? "red.50" : "white"}
+            borderWidth="1px"
+            borderColor={roomData.billStatus === 'unpaid' ? "red.200" : "gray.200"}
+          >
+            <CardHeader>
+              <Flex justify="space-between" align="center">
+                <Heading size="lg" color={roomData.billStatus === 'unpaid' ? "red.700" : "brand.700"}>
+                  <Icon as={FaFileInvoice} mr={3} />
+                  สถานะบิลล่าสุด
+                </Heading>
+                <Badge fontSize="lg" px={4} py={1.5} borderRadius="full" colorScheme={getStatusColor(roomData.billStatus)}>
+                  {getStatusText(roomData.billStatus)}
+                </Badge>
+              </Flex>
+            </CardHeader>
+            <CardBody>
+              {roomData.billStatus === 'unpaid' ? (
+                <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} align="center">
+                  <VStack align={{ base: 'center', lg: 'flex-start' }} spacing={4}>
+                    <Text fontSize="lg" color="gray.600">ยอดเงินที่ต้องชำระ:</Text>
+                    <Text fontSize="5xl" fontWeight="bold" color="red.600" lineHeight="1">
+                      {roomData.latestTotal.toLocaleString()}
+                      <Text as="span" fontSize="2xl" fontWeight="medium" ml={2}>บาท</Text>
+                    </Text>
+                    {roomData.overdueDays > 0 && (
+                      <Text color="red.500" fontWeight="bold">
+                        เกินกำหนดชำระ {roomData.overdueDays} วัน
+                      </Text>
+                    )}
+                    <Button 
+                      mt={4}
+                      size="lg" 
+                      colorScheme="red" 
+                      rightIcon={<FaArrowRight />}
+                      onClick={() => router.push(`/bill/${roomData.id}`)}
+                    >
+                      ชำระเงินทันที
+                    </Button>
+                  </VStack>
+                  <Center>
+                    {qrDataUrl ? (
+                      <VStack>
+                        <Image src={qrDataUrl} alt="PromptPay QR" boxSize="180px" borderRadius="lg" bg="white" p={2} boxShadow="md" />
+                        <Text color="gray.600" fontSize="sm">สแกนเพื่อชำระเงิน</Text>
+                        <Flex align="center" gap={2} mt={2}>
+                          <Text color="gray.700" fontSize="md">{promptpayNumber}</Text>
+                          <Tooltip label="คัดลอกพร้อมเพย์" hasArrow><IconButton aria-label="คัดลอกพร้อมเพย์" icon={<FaCopy />} colorScheme="gray" size="xs" isRound onClick={() => {navigator.clipboard.writeText(promptpayNumber)}} /></Tooltip>
+                        </Flex>
+                      </VStack>
+                    ) : <Spinner />}
+                  </Center>
+                </SimpleGrid>
+              ) : (
+                <Center flexDirection="column" p={4}>
+                   <Icon as={FaCheckCircle} boxSize={12} color="green.500" mb={3} />
+                   <Heading size="md" color="green.700">ยอดล่าสุดชำระเรียบร้อยแล้ว</Heading>
+                   <Text color="gray.500" mt={1}>ไม่มีบิลค้างชำระในขณะนี้</Text>
+                   <Button mt={6} colorScheme="brand" variant="outline" onClick={() => router.push(`/history/${roomData.id}`)}>
+                     ดูประวัติการชำระเงิน
+                   </Button>
+                </Center>
+              )}
             </CardBody>
           </Card>
         ) : (
-          <Card mb={6} boxShadow="md" borderRadius="lg" bg="white" p={6}>
+          <Card mb={6} borderRadius="xl" boxShadow="lg" p={6}>
             <Center>
               <VStack>
                 <Icon as={FaHome} boxSize={10} color="gray.300" />
-                <Text color="gray.500">คุณยังไม่มีข้อมูลห้องพัก</Text>
+                <Text color="gray.500">คุณยังไม่มีข้อมูลห้องพักในระบบ</Text>
               </VStack>
             </Center>
           </Card>
         )}
 
-        {/* Undelivered Parcels Card */}
-        {undeliveredParcels.length > 0 && (
-            <Card mb={6} boxShadow="md" borderRadius="lg" bg="white" p={{ base: 4, md: 6 }}>
-                <CardHeader pb={4}>
-                    <Heading size="md" color="blue.600">
-                        <Icon as={FaBoxOpen} mr={2} /> พัสดุที่ยังไม่ได้รับ ({undeliveredParcels.length})
-                    </Heading>
+        {/* Section 3: Main Grid */}
+        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} alignItems="flex-start">
+          {/* Left Column */}
+          <VStack spacing={6} align="stretch">
+            {/* Announcements */}
+            <Card borderRadius="xl" boxShadow="lg" bg="white">
+              <CardHeader>
+                <Heading size="md" color="brand.700"><Icon as={FaBullhorn} mr={2} />ประกาศ/ข่าวสาร</Heading>
+              </CardHeader>
+              <CardBody>
+                {loading ? <Skeleton height="40px" /> : announcements.length === 0 ? (
+                  <Text color="gray.500">ไม่มีประกาศใหม่</Text>
+                ) : (
+                  <VStack align="stretch" spacing={4}>
+                    {announcements.map((a, idx) => (
+                      <Box key={idx} p={3} bg="gray.50" borderRadius="lg">
+                        <Flex align="center" mb={1}>
+                          <Text fontWeight="bold" color="brand.800">{a.title}</Text>
+                          <Text fontSize="xs" color="gray.400" ml="auto">{a.createdAt}</Text>
+                        </Flex>
+                        <Text color="gray.600" fontSize="sm">{a.content}</Text>
+                      </Box>
+                    ))}
+                  </VStack>
+                )}
+              </CardBody>
+            </Card>
+            
+            {/* Room Details */}
+            {roomData && (
+              <Card borderRadius="xl" boxShadow="lg" bg="white">
+                <CardHeader>
+                  <Heading size="md" color="brand.700"><Icon as={FaHome} mr={2} />ข้อมูลห้องพักและสัญญา</Heading>
                 </CardHeader>
                 <CardBody>
-                    <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-                        {undeliveredParcels.map((parcel) => (
-                            <Box key={parcel.id} p={4} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50">
-                                <Flex gap={4}>
-                                    {parcel.imageUrl && (
-                                        <Image
-                                            src={parcel.imageUrl}
-                                            alt="Parcel image"
-                                            boxSize="100px"
-                                            objectFit="cover"
-                                            borderRadius="md"
-                                            mr={4}
-                                            cursor="pointer"
-                                            onClick={() => handleImageClick(parcel.imageUrl!)}
-                                        />
-                                    )}
-                                    <VStack align="flex-start" spacing={1} flex="1">
-                                        <Text fontWeight="bold">จาก: {parcel.sender}</Text>
-                                        <Text fontSize="sm" color="gray.600">
-                                            วันที่มาถึง: {parcel.receivedDate.toDate().toLocaleDateString('th-TH')}
-                                        </Text>
-                                        <Badge colorScheme={parcel.status === 'received' ? 'blue' : 'orange'}>
-                                            {parcel.status === 'received' ? 'พัสดุมาถึงแล้ว (รอรับที่นิติ)' : 'รอพัสดุจัดส่งมาที่อาคาร'}
-                                        </Badge>
-                                    </VStack>
-                                </Flex>
-                            </Box>
-                        ))}
-                    </SimpleGrid>
+                  <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
+                    <Box><Text fontWeight="bold" color="gray.500">หมายเลขห้อง</Text><Text fontSize="lg">{roomData.id}</Text></Box>
+                    <Box><Text fontWeight="bold" color="gray.500">ขนาด</Text><Text fontSize="lg">{roomData.area} ตร.ม.</Text></Box>
+                    <Box><Text fontWeight="bold" color="gray.500">ค่าเช่า</Text><Text fontSize="lg">{roomData.rent.toLocaleString()} บาท/เดือน</Text></Box>
+                    <Box><Text fontWeight="bold" color="gray.500">ค่าบริการ</Text><Text fontSize="lg">{roomData.service.toLocaleString()} บาท/เดือน</Text></Box>
+                    <Box><Text fontWeight="bold" color="gray.500">สัญญาเริ่มต้น</Text><Text fontSize="lg">{roomData.contractStart}</Text></Box>
+                    <Box><Text fontWeight="bold" color="gray.500">สัญญาหมดอายุ</Text><Text fontSize="lg">{roomData.contractEnd}</Text></Box>
+                    <Box><Text fontWeight="bold" color="gray.500">เงินมัดจำ</Text><Text fontSize="lg">{roomData.depositAmount?.toLocaleString()} บาท</Text></Box>
+                  </SimpleGrid>
                 </CardBody>
+              </Card>
+            )}
+          </VStack>
+
+          {/* Right Column */}
+          <VStack spacing={6} align="stretch">
+            {/* Parcels */}
+            <Card borderRadius="xl" boxShadow="lg" bg="white">
+              <CardHeader>
+                <Flex>
+                  <Heading size="md" color="brand.700"><Icon as={FaBoxOpen} mr={2} />พัสดุ</Heading>
+                  {undeliveredParcels.length > 0 && <Badge colorScheme="blue" ml={3}>{undeliveredParcels.length} รายการ</Badge>}
+                </Flex>
+              </CardHeader>
+              <CardBody>
+                {undeliveredParcels.length > 0 ? (
+                  <VStack align="stretch" spacing={4}>
+                    {undeliveredParcels.map((parcel) => (
+                      <Flex key={parcel.id} p={3} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50" align="center">
+                        {parcel.imageUrl && (
+                          <Image src={parcel.imageUrl} alt="Parcel" boxSize="60px" objectFit="cover" borderRadius="md" mr={4} cursor="pointer" onClick={() => handleImageClick(parcel.imageUrl!)} />
+                        )}
+                        <VStack align="flex-start" spacing={0} flex={1}>
+                          <Text fontWeight="bold">จาก: {parcel.sender}</Text>
+                          <Text fontSize="sm" color="gray.600">มาถึงวันที่: {parcel.receivedDate.toDate().toLocaleDateString('th-TH')}</Text>
+                        </VStack>
+                        <Badge colorScheme={parcel.status === 'received' ? 'green' : 'orange'}>
+                          {parcel.status === 'received' ? 'รอรับ' : 'รอจัดส่ง'}
+                        </Badge>
+                      </Flex>
+                    ))}
+                  </VStack>
+                ) : (
+                  <Text color="gray.500">ไม่มีพัสดุที่ยังไม่ได้รับ</Text>
+                )}
+              </CardBody>
             </Card>
-        )}
 
-        {/* Bill History Card */}
-        <Card boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 2, md: 4 }} py={{ base: 4, md: 6 }}>
-          <CardHeader>
-            <Flex justify="space-between" align="center">
-              <Heading size="md" color="brand.600" letterSpacing="wide">
-                <Icon as={FaFileInvoice} mr={3} verticalAlign="middle" />
-                ประวัติการชำระเงิน
-              </Heading>
-              {roomData?.id && (
-                <Button
-                  size="sm"
-                  colorScheme="brand"
-                  variant="outline"
-                  onClick={() => router.push(`/history/${roomData.id}`)}
-                >
-                  ดูประวัติทั้งหมด
-                </Button>
-              )}
-            </Flex>
-          </CardHeader>
-          <CardBody>
-            <TableContainer>
-              <Table variant="simple" size="sm">
-                <Thead>
-                  <Tr>
-                    <Th>รอบบิล</Th>
-                    <Th>วันที่ชำระ</Th>
-                    <Th isNumeric>ยอดชำระ (บาท)</Th>
-                    <Th>สถานะ</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {billHistory.length > 0 ? (
-                    billHistory.map((bill) => (
-                      <Tr key={bill.id}>
-                        <Td>{bill.month} {bill.year}</Td>
-                        <Td>{bill.paidDate}</Td>
-                        <Td isNumeric>{bill.totalAmount.toLocaleString()}</Td>
-                        <Td>
-                          <Badge colorScheme="green" px={2} py={1} borderRadius="md">
-                            ชำระแล้ว
+            {/* Issue History */}
+            {roomData && (
+              <Card borderRadius="xl" boxShadow="lg" bg="white">
+                <CardHeader>
+                  <Heading size="md" color="brand.700"><Icon as={FaTools} mr={2} />ประวัติการแจ้งปัญหา</Heading>
+                </CardHeader>
+                <CardBody>
+                  {issueHistory.length > 0 ? (
+                    <VStack align="stretch" spacing={3}>
+                      {issueHistory.slice(0, 5).map((issue) => ( // Show latest 5
+                        <Flex key={issue.id} align="center" bg="gray.50" borderRadius="md" p={3} gap={4}>
+                          <Box>
+                            <Text color="gray.800" noOfLines={1}>{issue.description}</Text>
+                            <Text color="gray.500" fontSize="sm">{issue.reportedAt.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
+                          </Box>
+                          <Spacer />
+                          <Badge colorScheme={issue.status === 'done' ? 'green' : issue.status === 'in_progress' ? 'blue' : 'yellow'}>
+                            {issue.status === 'pending' && 'รอดำเนินการ'}
+                            {issue.status === 'in_progress' && 'กำลังซ่อม'}
+                            {issue.status === 'done' && 'เสร็จสิ้น'}
                           </Badge>
-                        </Td>
-                      </Tr>
-                    ))
+                        </Flex>
+                      ))}
+                    </VStack>
                   ) : (
-                    <Tr>
-                      <Td colSpan={4} textAlign="center">
-                        <Text color="gray.500" py={8}>ยังไม่มีประวัติการชำระเงินที่ยืนยันแล้ว</Text>
-                      </Td>
-                    </Tr>
+                    <Text color="gray.500">ยังไม่มีประวัติการแจ้งปัญหา</Text>
                   )}
-                </Tbody>
-              </Table>
-            </TableContainer>
-          </CardBody>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card mt={10} boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 4, md: 8 }} py={{ base: 4, md: 6 }}>
-          <CardHeader pb={2}>
-            <Heading size="md" color="brand.600" letterSpacing="wide">
-              เมนูด่วน
-            </Heading>
-          </CardHeader>
-          <CardBody>
-            <Flex wrap="wrap" justify="center" gap={6}>
-              <Flex direction="column" align="center" minW="100px">
-                <IconButton
-                  aria-label="ชำระบิลล่าสุด"
-                  colorScheme="green"
-                  isRound
-                  size="lg"
-                  boxSize={16}
-                  mb={2}
-                  boxShadow="md"
-                  fontSize="2xl"
-                  icon={<FaCreditCard />}
-                  isDisabled={!roomData || roomData.billStatus !== 'unpaid'}
-                  _hover={{ boxShadow: "lg", transform: "scale(1.08)" }}
-                  onClick={() => roomData?.id && router.push(`/bill/${roomData.id}`)}
-                />
-                <Text fontSize="sm" color="gray.700" fontWeight="medium">ชำระบิลล่าสุด</Text>
-              </Flex>
-              <Flex direction="column" align="center" minW="100px">
-                <IconButton
-                  aria-label="ประวัติบิลทั้งหมด"
-                  colorScheme="purple"
-                  isRound
-                  size="lg"
-                  boxSize={16}
-                  mb={2}
-                  boxShadow="md"
-                  fontSize="2xl"
-                  icon={<FaCalendarAlt />}
-                  isDisabled={!roomData}
-                  _hover={{ boxShadow: "lg", transform: "scale(1.08)" }}
-                  onClick={() => roomData?.id && router.push(`/history/${roomData.id}`)}
-                />
-                <Text fontSize="sm" color="gray.700" fontWeight="medium">ประวัติบิลทั้งหมด</Text>
-              </Flex>
-              <Flex direction="column" align="center" minW="100px">
-                <IconButton
-                  aria-label="โปรไฟล์"
-                  colorScheme="gray"
-                  isRound
-                  size="lg"
-                  boxSize={16}
-                  mb={2}
-                  boxShadow="md"
-                  fontSize="2xl"
-                  icon={<FaUser />}
-                  _hover={{ boxShadow: "lg", transform: "scale(1.08)", bg: "gray.100" }}
-                  onClick={onProfileOpen}
-                />
-                <Text fontSize="sm" color="gray.700" fontWeight="medium">โปรไฟล์</Text>
-              </Flex>
-              <Flex direction="column" align="center" minW="100px">
-                <IconButton
-                  aria-label="แจ้งปัญหา"
-                  colorScheme="orange"
-                  isRound
-                  size="lg"
-                  boxSize={16}
-                  mb={2}
-                  boxShadow="md"
-                  fontSize="2xl"
-                  icon={<FaTools />}
-                  isDisabled={!roomData}
-                  _hover={{ boxShadow: "lg", transform: "scale(1.08)" }}
-                  onClick={onReportModalOpen}
-                />
-                <Text fontSize="sm" color="gray.700" fontWeight="medium">แจ้งปัญหา</Text>
-              </Flex>
-            </Flex>
-          </CardBody>
-        </Card>
+                </CardBody>
+              </Card>
+            )}
+          </VStack>
+        </SimpleGrid>
       </Box>
+
+      {/* Modals and Alerts */}
       <AlertDialog
         isOpen={isAlertOpen}
         leastDestructiveRef={cancelRef}
@@ -545,11 +575,9 @@ function TenantDashboard() {
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
               แจ้งเตือนยอดค้างชำระ
             </AlertDialogHeader>
-
             <AlertDialogBody>
               ห้อง {alertRoomId} ของคุณมียอดค้างชำระ กรุณาตรวจสอบและชำระเงินโดยเร็วที่สุด
             </AlertDialogBody>
-
             <AlertDialogFooter>
               <Button ref={cancelRef} onClick={onAlertClose}>
                 ปิด
@@ -565,26 +593,26 @@ function TenantDashboard() {
         </AlertDialogOverlay>
       </AlertDialog>
 
-        <Modal isOpen={isImageModalOpen} onClose={onImageModalClose} size="xl" isCentered>
-            <ModalOverlay />
-            <ModalContent>
-                <ModalHeader>รูปภาพพัสดุ</ModalHeader>
-                <ModalCloseButton />
-                <ModalBody>
-                    <Center>
-                        <Image src={selectedImageUrl || ""} alt="Parcel Image" maxH="80vh" />
-                    </Center>
-                </ModalBody>
-            </ModalContent>
-        </Modal>
+      <Modal isOpen={isImageModalOpen} onClose={onImageModalClose} size="xl" isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>รูปภาพพัสดุ</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Center>
+              <Image src={selectedImageUrl || ""} alt="Parcel Image" maxH="80vh" />
+            </Center>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
 
-        {roomData && (
-          <ReportIssueModal 
-            isOpen={isReportModalOpen} 
-            onClose={onReportModalClose} 
-            roomId={roomData.id} 
-          />
-        )}
+      {roomData && (
+        <ReportIssueModal 
+          isOpen={isReportModalOpen} 
+          onClose={onReportModalClose} 
+          roomId={roomData.id} 
+        />
+      )}
     </TenantLayout>
   );
 }
