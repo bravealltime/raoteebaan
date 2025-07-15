@@ -72,7 +72,7 @@ function RoomsPage() {
   const [usersMap, setUsersMap] = useState<Record<string, any>>({});
   
   const [searchRoom, setSearchRoom] = useState("");
-  const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant' | 'occupied'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(12);
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
@@ -327,7 +327,7 @@ function RoomsPage() {
 
       let finalTenantId = editedRoom.tenantId;
       let finalTenantName = editedRoom.tenantName;
-      let finalTenantEmail = editedRoom.tenantEmail;
+      let finalTenantEmail = editedRoom.tenantEmail === '' ? null : editedRoom.tenantEmail;
       let finalStatus = editedRoom.status;
       let finalBillStatus = editedRoom.billStatus;
 
@@ -1077,6 +1077,79 @@ function RoomsPage() {
     setIsEquipmentModalOpen(true);
   };
 
+  const handleNotifyAllUnpaidRooms = async () => {
+    const unpaidRooms = rooms.filter(room => room.billStatus === 'unpaid' && room.tenantId);
+
+    if (unpaidRooms.length === 0) {
+      toast({
+        title: "ไม่มีห้องค้างชำระ",
+        description: "ไม่พบห้องที่มียอดค้างชำระที่สามารถส่งการแจ้งเตือนได้",
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    const toastId = toast({
+      title: "กำลังส่งการแจ้งเตือน...",
+      description: `กำลังส่งการแจ้งเตือนไปยัง ${unpaidRooms.length} ห้อง...`,
+      status: "info",
+      duration: null,
+      isClosable: true,
+    });
+
+    let successCount = 0;
+    let failCount = 0;
+    const failedRooms: string[] = [];
+
+    for (const room of unpaidRooms) {
+      try {
+        const response = await fetch('/api/send-notification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tenantId: room.tenantId,
+            roomId: room.id,
+            message: `ห้อง ${room.id} ของคุณมียอดค้างชำระ กรุณาตรวจสอบบิลและชำระเงินโดยเร็วที่สุด`,
+          }),
+        });
+
+        if (response.ok) {
+          successCount++;
+        } else {
+          const errorData = await response.json();
+          failedRooms.push(`${room.id} (${errorData.message || 'Unknown error'})`);
+          failCount++;
+        }
+      } catch (error) {
+        console.error(`Error sending notification to room ${room.id}:`, error);
+        failedRooms.push(`${room.id} (Connection error)`);
+        failCount++;
+      }
+    }
+
+    toast.update(toastId, {
+      title: "ส่งการแจ้งเตือนเสร็จสิ้น",
+      description: `ส่งสำเร็จ ${successCount} ห้อง, ล้มเหลว ${failCount} ห้อง`,
+      status: failCount > 0 ? "warning" : "success",
+      duration: 5000,
+      isClosable: true,
+    });
+
+    if (failedRooms.length > 0) {
+      toast({
+        title: "ห้องที่ส่งแจ้งเตือนไม่สำเร็จ",
+        description: failedRooms.join(', '),
+        status: "error",
+        duration: 9000,
+        isClosable: true,
+      });
+    }
+  };
+
   const handleConfirmEquipmentDownload = () => {
     if (!selectedRoomForEquipment) {
       toast({ title: "กรุณาเลือกห้อง", status: "warning" });
@@ -1158,7 +1231,9 @@ function RoomsPage() {
     if (filterType === 'unpaid') {
       matchFilter = room.billStatus === 'unpaid';
     } else if (filterType === 'vacant') {
-      matchFilter = room.status === 'vacant';
+      matchFilter = room.status === 'vacant' && !room.tenantEmail;
+    } else if (filterType === 'occupied') {
+      matchFilter = room.status === 'occupied' && !!room.tenantEmail;
     }
     return matchSearch && matchFilter;
   });
@@ -1267,6 +1342,19 @@ function RoomsPage() {
                     เพิ่มข้อมูลทุกห้อง
                   </Button>
                 </WrapItem>
+                <WrapItem>
+                  <Button
+                    leftIcon={<FaBolt />}
+                    colorScheme="orange"
+                    borderRadius="lg"
+                    fontWeight="bold"
+                    size="sm"
+                    variant="solid"
+                    onClick={handleNotifyAllUnpaidRooms}
+                  >
+                    แจ้งเตือนห้องค้างชำระ
+                  </Button>
+                </WrapItem>
               </Wrap>
             </Box>
           )}
@@ -1292,6 +1380,7 @@ function RoomsPage() {
                   <MenuItem onClick={() => setFilterType('all')}>แสดงทั้งหมด</MenuItem>
                   <MenuItem onClick={() => setFilterType('unpaid')}>ห้องที่ยังไม่จ่าย</MenuItem>
                   <MenuItem onClick={() => setFilterType('vacant')}>ห้องว่าง</MenuItem>
+                  <MenuItem onClick={() => setFilterType('occupied')}>ห้องมีคนอยู่</MenuItem>
                 </MenuList>
               </Menu>
             </HStack>

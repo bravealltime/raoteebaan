@@ -111,22 +111,22 @@ function Dashboard() {
         ownerId: firestoreData.ownerId || undefined,
       });
       // Redirect by userRole immediately
-      if (userRole === "owner") {
-        router.replace("/owner-dashboard");
-        return;
-      }
-      if (userRole === "employee") {
-        router.replace("/employee-dashboard");
-        return;
-      }
-      if (userRole === "tenant" || userRole === "user") {
-        router.replace("/tenant-dashboard");
-        return;
-      }
-      if (userRole !== "admin") {
-        router.replace("/login");
-        return;
-      }
+      // if (userRole === "owner") {
+      //   router.replace("/owner-dashboard");
+      //   return;
+      // }
+      // if (userRole === "employee") {
+      //   router.replace("/employee-dashboard");
+      //   return;
+      // }
+      // if (userRole === "tenant" || userRole === "user") {
+      //   router.replace("/tenant-dashboard");
+      //   return;
+      // }
+      // if (userRole !== "admin") {
+      //   router.replace("/login");
+      //   return;
+      // }
     });
     return () => unsub();
   }, [router]);
@@ -351,6 +351,79 @@ function Dashboard() {
       toast({ title: "เพิ่มห้องใหม่ไม่สำเร็จ", status: "error" });
     }
     onClose();
+  };
+
+  const handleNotifyAllUnpaidRooms = async () => {
+    const unpaidRoomsWithEmail = rooms.filter(room => room.billStatus === 'unpaid' && room.tenantId);
+
+    if (unpaidRoomsWithEmail.length === 0) {
+      toast({
+        title: "ไม่มีห้องค้างชำระที่ผูกกับอีเมล",
+        description: "ไม่พบห้องที่มียอดค้างชำระและผูกกับอีเมลที่สามารถส่งการแจ้งเตือนได้",
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    const toastId = toast({
+      title: "กำลังส่งการแจ้งเตือน...",
+      description: `กำลังส่งการแจ้งเตือนไปยัง ${unpaidRoomsWithEmail.length} ห้อง...`,
+      status: "info",
+      duration: null,
+      isClosable: true,
+    });
+
+    let successCount = 0;
+    let failCount = 0;
+    const failedRooms: string[] = [];
+
+    for (const room of unpaidRoomsWithEmail) {
+      try {
+        const response = await fetch('/api/send-notification', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tenantId: room.tenantId,
+            roomId: room.id,
+            message: `ห้อง ${room.id} ของคุณมียอดค้างชำระ กรุณาตรวจสอบบิลและชำระเงินโดยเร็วที่สุด`,
+          }),
+        });
+
+        if (response.ok) {
+          successCount++;
+        } else {
+          const errorData = await response.json();
+          failedRooms.push(`${room.id} (${errorData.message || 'Unknown error'})`);
+          failCount++;
+        }
+      } catch (error) {
+        console.error(`Error sending notification to room ${room.id}:`, error);
+        failedRooms.push(`${room.id} (Connection error)`);
+        failCount++;
+      }
+    }
+
+    toast.update(toastId, {
+      title: "ส่งการแจ้งเตือนเสร็จสิ้น",
+      description: `ส่งสำเร็จ ${successCount} ห้อง, ล้มเหลว ${failCount} ห้อง`,
+      status: failCount > 0 ? "warning" : "success",
+      duration: 5000,
+      isClosable: true,
+    });
+
+    if (failedRooms.length > 0) {
+      toast({
+        title: "ห้องที่ส่งแจ้งเตือนไม่สำเร็จ",
+        description: failedRooms.join(', '),
+        status: "error",
+        duration: 9000,
+        isClosable: true,
+      });
+    }
   };
 
   const handleViewBill = (id: string) => {
@@ -843,6 +916,19 @@ function Dashboard() {
                    filterType === 'unpaid' ? 'รายการห้องที่ยังไม่ได้ชำระเงิน' :
                    filterType === 'vacant' ? 'รายการห้องว่าง' : 'รายการห้องทั้งหมด'}
                 </Text>
+                {filterType === 'unpaid' && (
+                  <Button
+                    leftIcon={<FaBolt />}
+                    colorScheme="orange"
+                    borderRadius="lg"
+                    fontWeight="bold"
+                    size="sm"
+                    onClick={handleNotifyAllUnpaidRooms}
+                    mt={2}
+                  >
+                    แจ้งเตือนห้องค้างชำระทั้งหมด
+                  </Button>
+                )}
               </VStack>
               <Flex gap={2} w={{ base: "full", md: "auto" }}>
                 <Menu>
