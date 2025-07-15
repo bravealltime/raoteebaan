@@ -1,9 +1,10 @@
 
 import { useState, useEffect } from 'react';
-import { Box, Card, CardHeader, Heading, CardBody, VStack, Text, Flex, IconButton, useToast, Spinner, Center, Icon, Button, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure } from '@chakra-ui/react';
+import { Box, Card, CardHeader, Heading, CardBody, VStack, Text, Flex, IconButton, useToast, Spinner, Center, Icon, Button, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, HStack } from '@chakra-ui/react';
 import { collection, query, orderBy, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { FaBullhorn, FaTrash, FaUserShield, FaUserTie, FaUserCog } from 'react-icons/fa';
+import { motion } from 'framer-motion';
+import { FaBullhorn, FaTrash, FaUserShield, FaUserCog, FaUserTie } from 'react-icons/fa';
 
 interface Announcement {
   id: string;
@@ -43,7 +44,7 @@ export default function AnnouncementsList({ currentUser }: AnnouncementsListProp
   const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
+        const q = query(collection(db, 'announcements'), orderBy('createdAt', 'asc'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const announcementsData: Announcement[] = [];
@@ -98,47 +99,65 @@ export default function AnnouncementsList({ currentUser }: AnnouncementsListProp
   }
 
   return (
-    <Card borderRadius="xl" boxShadow="lg" bg="white">
+    <Card borderRadius="xl" boxShadow="lg" bg="white" overflow="hidden">
       <CardHeader>
         <Heading size="md" color="brand.700">
           <Icon as={FaBullhorn} mr={2} />
           ประกาศ/ข่าวสาร
         </Heading>
       </CardHeader>
-      <CardBody>
+      <CardBody p={0}>
         {announcements.length === 0 ? (
-          <Text color="gray.500">ยังไม่มีประกาศในขณะนี้</Text>
+          <Center p={4}>
+            <Text color="gray.500">ยังไม่มีประกาศในขณะนี้</Text>
+          </Center>
         ) : (
-          <VStack align="stretch" spacing={4}>
-            {announcements.map((item) => (
-              <Box key={item.id} p={4} bg="gray.50" borderRadius="lg" position="relative">
-                <Flex align="center" mb={1}>
-                    <RoleIcon role={item.authorRole} />
-                    <Text fontWeight="bold" color="brand.800" ml={2}>{item.title}</Text>
-                    <Text fontSize="xs" color="gray.400" ml="auto">
-                        {item.createdAt?.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
-                    </Text>
-                </Flex>
-                <Text color="gray.600" fontSize="sm" whiteSpace="pre-wrap">{item.content}</Text>
-                <Flex justify="flex-end" align="center" mt={2}>
-                    <Text fontSize="xs" color="gray.500">โดย: {item.authorName}</Text>
-                </Flex>
-                {(currentUser?.role === 'admin' || currentUser?.uid === item.authorId) && (
-                    <IconButton 
-                        aria-label="Delete announcement"
-                        icon={<FaTrash />}
-                        size="xs"
-                        colorScheme="red"
-                        variant="ghost"
-                        position="absolute"
-                        bottom={1}
-                        right={1}
-                        onClick={() => handleDeleteClick(item.id)}
-                    />
-                )}
-              </Box>
-            ))}
-          </VStack>
+          <Box w="full" overflow="hidden" position="relative" h="130px">
+            <motion.div
+              style={{ width: 'max-content' }}
+              animate={{
+                x: ['0%', '-50%'],
+              }}
+              transition={{
+                ease: 'linear',
+                duration: announcements.length * 7, // Adjust speed here
+                repeat: Infinity,
+              }}
+            >
+              <HStack spacing={4} >
+                {[...announcements, ...announcements].map((item, index) => (
+                  <Box key={`${item.id}-${index}`} flexShrink={0} w="320px" p={2}>
+                    <Box p={4} bg="gray.50" borderRadius="lg" position="relative" h="full">
+                      <Flex align="center" mb={1}>
+                        <RoleIcon role={item.authorRole} />
+                        <Text fontWeight="bold" color="brand.800" ml={2} noOfLines={1}>{item.title}</Text>
+                      </Flex>
+                      <Text color="gray.600" fontSize="sm" noOfLines={2}>{item.content}</Text>
+                      <Flex justify="space-between" align="center" mt={2}>
+                        <Text fontSize="xs" color="gray.500">โดย: {item.authorName}</Text>
+                        <Text fontSize="xs" color="gray.400" ml="auto">
+                          {item.createdAt?.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        </Text>
+                      </Flex>
+                      {(currentUser?.role === 'admin' || currentUser?.uid === item.authorId) && (
+                        <IconButton
+                          aria-label="Delete announcement"
+                          icon={<FaTrash />}
+                          size="xs"
+                          colorScheme="red"
+                          variant="ghost"
+                          position="absolute"
+                          top={1}
+                          right={1}
+                          onClick={() => handleDeleteClick(item.id)}
+                        />
+                      )}
+                    </Box>
+                  </Box>
+                ))}
+              </HStack>
+            </motion.div>
+          </Box>
         )}
       </CardBody>
 
