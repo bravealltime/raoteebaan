@@ -1,4 +1,5 @@
 import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, Spacer, Tooltip, Skeleton, AspectRatio } from "@chakra-ui/react";
+import Script from 'next/script';
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import { auth, db } from "../lib/firebase";
@@ -77,6 +78,7 @@ function TenantDashboard() {
   const router = useRouter();
   const toast = useToast();
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [scriptsReady, setScriptsReady] = useState(false);
   
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [billHistory, setBillHistory] = useState<BillHistory[]>([]);
@@ -217,13 +219,18 @@ function TenantDashboard() {
   }, []);
 
   useEffect(() => {
-    if (roomData && roomData.latestTotal > 0 && typeof window !== 'undefined' && window.ThaiQRCode) {
-      const url = window.ThaiQRCode.generateSync(promptpayNumber, { amount: roomData.latestTotal });
-      setQrDataUrl(url);
+    if (roomData && roomData.latestTotal > 0 && scriptsReady) {
+      try {
+        const url = window.ThaiQRCode.generate(promptpayNumber, { amount: roomData.latestTotal });
+        setQrDataUrl(url);
+      } catch (error) {
+        console.error("QR Code generation failed:", error);
+        setQrDataUrl(null);
+      }
     } else {
       setQrDataUrl(null);
     }
-  }, [roomData]);
+  }, [roomData, scriptsReady]);
 
   useEffect(() => {
     // Fetch issue history for this room
@@ -402,6 +409,12 @@ function TenantDashboard() {
 
   return (
     <TenantLayout currentUser={currentUser} isProfileOpen={isProfileOpen} onProfileOpen={onProfileOpen} onProfileClose={onProfileClose}>
+      <Script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.5.0/qrcode.min.js" strategy="lazyOnload" />
+      <Script 
+        src="/scripts/promptpay.js" 
+        strategy="lazyOnload" 
+        onLoad={() => setScriptsReady(true)} 
+      />
       <Box p={{ base: 4, md: 6 }} bg="gray.50" minH="100vh">
         {/* Section 1: Header */}
         <Flex mb={6} justify="space-between" align="center">
