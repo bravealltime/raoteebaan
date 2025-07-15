@@ -111,22 +111,24 @@ function Dashboard() {
         ownerId: firestoreData.ownerId || undefined,
       });
       // Redirect by userRole immediately
-      // if (userRole === "owner") {
-      //   router.replace("/owner-dashboard");
-      //   return;
-      // }
-      // if (userRole === "employee") {
-      //   router.replace("/employee-dashboard");
-      //   return;
-      // }
-      // if (userRole === "tenant" || userRole === "user") {
-      //   router.replace("/tenant-dashboard");
-      //   return;
-      // }
-      // if (userRole !== "admin") {
-      //   router.replace("/login");
-      //   return;
-      // }
+      if (typeof window !== 'undefined') {
+        if (userRole === "owner") {
+          router.replace("/owner-dashboard");
+          return;
+        }
+        if (userRole === "employee") {
+          router.replace("/employee-dashboard");
+          return;
+        }
+        if (userRole === "tenant" || userRole === "user") {
+          router.replace("/tenant-dashboard");
+          return;
+        }
+        if (userRole !== "admin") {
+          router.replace("/login");
+          return;
+        }
+      }
     });
     return () => unsub();
   }, [router]);
@@ -725,7 +727,7 @@ function Dashboard() {
     
     switch (filterType) {
       case 'unpaid':
-        baseRooms = rooms.filter(room => room.billStatus === 'unpaid');
+        baseRooms = rooms.filter(room => room.billStatus === 'unpaid' && room.tenantId).sort((a, b) => b.overdueDays - a.overdueDays);
         break;
       case 'vacant':
         baseRooms = rooms.filter(room => room.status === 'vacant');
