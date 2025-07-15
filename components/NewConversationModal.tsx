@@ -117,20 +117,20 @@ const NewConversationModal = ({
 
           const filteredUserList = userList.filter((user) => {
               const isCurrentUser = !currentUser || user.uid === currentUser.uid;
-              
+              if (isCurrentUser) return false;
 
-              let shouldInclude = false;
               if (currentUser.role === "tenant") {
-                shouldInclude = user.role === "admin" || user.role === "juristic";
-                
+                // Tenants can only chat with admin, owner, and technician
+                return ["admin", "owner", "technician"].includes(user.role);
               } else if (currentUser.role === "owner") {
-                shouldInclude = user.role === "admin" || user.role === "juristic" || ownedTenantIds.has(user.uid);
-                
-              } else {
-                shouldInclude = true; // Admins and Juristic can see everyone
-                
+                // Owners can chat with admin and their own tenants
+                return user.role === "admin" || ownedTenantIds.has(user.uid);
+              } else if (currentUser.role === "admin") {
+                // Admins can chat with everyone
+                return true;
               }
-              return shouldInclude;
+
+              return false;
             });
           
           setUsers(filteredUserList);
