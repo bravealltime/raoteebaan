@@ -1,6 +1,6 @@
 import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, Table, Thead, Tbody, Tr, Th, Td, TableContainer, useDisclosure, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, Image, IconButton, HStack } from "@chakra-ui/react";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp, startAfter, endBefore, limitToLast } from "firebase/firestore";
@@ -23,7 +23,8 @@ interface Issue {
   description: string;
   status: "pending" | "in_progress" | "resolved";
   reportedAt: any;
-  imageUrls?: string[]; // Changed to array of strings
+  imageUrls?: string[];
+  updates?: Array<{ notes: string; status: string; updatedAt: any; updatedBy: string }>;
 }
 
 function TechnicianDashboard() {
@@ -41,12 +42,18 @@ function TechnicianDashboard() {
   const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [selectedImageUrls, setSelectedImageUrls] = useState<string[]>([]);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0); // New state for image index
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [filterStatus, setFilterStatus] = useState<string>("pending");
 
   const handleUpdateClick = (issue: Issue) => {
     setSelectedIssue(issue);
     onUpdateModalOpen();
+  };
+
+  const handleModalClose = () => {
+    onUpdateModalClose();
+    // Re-fetch issues to update the list after modal closes
+    fetchIssues('first'); 
   };
 
   const handleImageClick = (imageUrls: string[]) => {
@@ -67,7 +74,7 @@ function TechnicianDashboard() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         const userDocRef = doc(db, "users", user.uid);
-        onSnapshot(userDocRef, (doc) => {
+        const unsubscribeSnapshot = onSnapshot(userDocRef, (doc) => {
           if (doc.exists()) {
             const userData = doc.data();
             if (userData.role !== 'technician') {
@@ -79,6 +86,7 @@ function TechnicianDashboard() {
             router.replace('/login');
           }
         });
+        return () => unsubscribeSnapshot();
       } else {
         router.replace("/login");
       }
@@ -86,78 +94,79 @@ function TechnicianDashboard() {
     return () => unsubscribe();
   }, [router]);
 
-  useEffect(() => {
+  const fetchIssues = useCallback(async (pageDirection: 'first' | 'next' | 'prev' = 'first') => {
     if (!currentUser) return;
-
     setLoading(true);
+    try {
+      let issuesQuery;
+      const baseConditions = [
+        where("status", "==", filterStatus),
+        orderBy("reportedAt", "desc"),
+      ];
 
-    const fetchIssues = async (pageDirection: 'first' | 'next' | 'prev' = 'first') => {
-      setLoading(true);
-      try {
-        let issuesQuery;
-        const baseQuery = [
-          collection(db, "issues"),
-          where("status", "==", filterStatus),
-          orderBy("reportedAt", "desc"),
-        ];
+      if (pageDirection === 'first') {
+        setPage(1);
+        issuesQuery = query(collection(db, "issues"), ...baseConditions, limit(ISSUES_PER_PAGE));
+      } else if (pageDirection === 'next' && lastVisible) {
+        issuesQuery = query(collection(db, "issues"), ...baseConditions, startAfter(lastVisible), limit(ISSUES_PER_PAGE));
+      } else if (pageDirection === 'prev' && firstVisible) {
+        issuesQuery = query(collection(db, "issues"), ...baseConditions, endBefore(firstVisible), limitToLast(ISSUES_PER_PAGE));
+      } else {
+        setLoading(false);
+        return;
+      }
 
+      const documentSnapshots = await getDocs(issuesQuery);
+      const issuesData = documentSnapshots.docs.map(doc => ({ 
+        id: doc.id, 
+        ...doc.data(), 
+        reportedAt: doc.data().reportedAt 
+      }) as Issue);
+      
+      if (documentSnapshots.empty) {
         if (pageDirection === 'first') {
-          setPage(1);
-          issuesQuery = query(collection(db, "issues"), where("status", "==", filterStatus), orderBy("reportedAt", "desc"), limit(ISSUES_PER_PAGE));
-        } else if (pageDirection === 'next' && lastVisible) {
-          issuesQuery = query(collection(db, "issues"), where("status", "==", filterStatus), orderBy("reportedAt", "desc"), startAfter(lastVisible), limit(ISSUES_PER_PAGE));
-        } else if (pageDirection === 'prev' && firstVisible) {
-          issuesQuery = query(collection(db, "issues"), where("status", "==", filterStatus), orderBy("reportedAt", "desc"), endBefore(firstVisible), limitToLast(ISSUES_PER_PAGE));
-        } else {
-          setLoading(false);
-          return;
+          setIssues([]);
         }
-
-        const documentSnapshots = await getDocs(issuesQuery);
-        const issuesData = documentSnapshots.docs.map(doc => ({ id: doc.id, ...doc.data() } as Issue));
-        
-        if (issuesData.length > 0) {
-          setIssues(issuesData);
-          setLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1]);
-          setFirstVisible(documentSnapshots.docs[0]);
-          if (pageDirection === 'next') setPage(p => p + 1);
-          if (pageDirection === 'prev') setPage(p => p - 1);
-        } else {
-          if (pageDirection === 'first') {
-            setIssues([]);
-          }
-          // If fetching next/prev and no data, do nothing to keep the current page data
-          toast({
-            title: "ไม่มีข้อมูล",
-            description: "ไม่มีรายการแจ้งซ่อมเพิ่มเติม",
-            status: "info",
-            duration: 2000,
-            isClosable: true,
-          });
-        }
-
-      } catch (error) {
-        console.error("Error fetching issues:", error);
         toast({
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถโหลดข้อมูลการแจ้งซ่อมได้",
-          status: "error",
-          duration: 3000,
+          title: "ไม่มีข้อมูล",
+          description: "ไม่มีรายการแจ้งซ่อมเพิ่มเติม",
+          status: "info",
+          duration: 2000,
           isClosable: true,
         });
+      } else {
+        setIssues(issuesData);
+        setFirstVisible(documentSnapshots.docs[0]);
+        setLastVisible(documentSnapshots.docs[documentSnapshots.docs.length - 1]);
+        if (pageDirection === 'next') setPage(p => p + 1);
+        if (pageDirection === 'prev' && page > 1) setPage(p => p - 1);
       }
-      setLoading(false);
-    };
 
-    fetchIssues();
+    } catch (error) {
+      console.error("Error fetching issues:", error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถโหลดข้อมูลการแจ้งซ่อมได้",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+    setLoading(false);
+  }, [currentUser, filterStatus, lastVisible, firstVisible, page]);
 
-  }, [currentUser, toast, filterStatus]);
+  useEffect(() => {
+    if (currentUser) {
+      fetchIssues('first');
+    }
+  }, [currentUser, filterStatus]);
 
   const handleFilterChange = (status: string) => {
     setFilterStatus(status);
-    setPage(1);
     setLastVisible(null);
     setFirstVisible(null);
+    setPage(1);
+    // The useEffect listening to filterStatus will trigger the fetch.
   }
 
   const fetchNextPage = () => {
@@ -274,6 +283,7 @@ function TechnicianDashboard() {
                     <Th>รูปภาพ</Th>
                     <Th>วันที่แจ้ง</Th>
                     <Th>สถานะ</Th>
+                    <Th>อัปเดตล่าสุด</Th>
                     <Th>จัดการ</Th>
                   </Tr>
                 </Thead>
@@ -299,11 +309,20 @@ function TechnicianDashboard() {
                             <Text color="gray.400">-</Text>
                           )}
                         </Td>
-                        <Td>{issue.reportedAt?.toDate().toLocaleDateString('th-TH')}</Td>
+                        <Td>{issue.reportedAt && new Date(issue.reportedAt.seconds * 1000).toLocaleDateString('th-TH')}</Td>
                         <Td>
                           <Badge colorScheme={getStatusColor(issue.status)} px={2} py={1} borderRadius="md">
                             {getStatusText(issue.status)}
                           </Badge>
+                        </Td>
+                        <Td>
+                          {issue.updates && issue.updates.length > 0 ? (
+                            <Text fontSize="sm" noOfLines={2}>
+                              {issue.updates[issue.updates.length - 1].notes}
+                            </Text>
+                          ) : (
+                            <Text fontSize="sm" color="gray.500">ไม่มีการอัปเดต</Text>
+                          )}
                         </Td>
                         <Td>
                           <Button size="xs" colorScheme="blue" onClick={() => handleUpdateClick(issue)}>อัปเดตสถานะ</Button>
@@ -329,13 +348,26 @@ function TechnicianDashboard() {
         </Card>
       </Box>
 
-      {selectedIssue && (
-        <UpdateIssueStatusModal
-          isOpen={isUpdateModalOpen}
-          onClose={onUpdateModalClose}
-          issue={selectedIssue}
-        />
-      )}
+      <Modal isOpen={isUpdateModalOpen} onClose={onUpdateModalClose} isCentered>
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>อัปเดตสถานะการแจ้งซ่อม</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              {selectedIssue && (
+                <UpdateIssueStatusModal
+                  isOpen={isUpdateModalOpen}
+                  onClose={() => {
+                    onUpdateModalClose();
+                    fetchIssues('first'); // Refetch issues after closing the modal
+                  }}
+                  issue={selectedIssue}
+                  technicianName={currentUser?.name || 'ช่าง'}
+                />
+              )}
+            </ModalBody>
+          </ModalContent>
+        </Modal>
 
       <Modal isOpen={isImageModalOpen} onClose={onImageModalClose} size="4xl" isCentered>
         <ModalOverlay />

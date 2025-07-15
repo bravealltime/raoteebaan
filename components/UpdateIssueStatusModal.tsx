@@ -1,57 +1,57 @@
-
-import {
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalFooter,
-  ModalBody,
-  ModalCloseButton,
-  Button,
-  FormControl,
-  FormLabel,
-  Select,
-  useToast,
-} from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormControl, FormLabel, Select, Textarea, useToast, VStack } from "@chakra-ui/react";
 import { useState } from "react";
+import { doc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { doc, updateDoc } from "firebase/firestore";
 
 interface UpdateIssueStatusModalProps {
   isOpen: boolean;
   onClose: () => void;
-  issue: any; // Consider defining a proper type for issue
+  issue: {
+    id: string;
+    status: string;
+  };
+  technicianName: string;
 }
 
-const UpdateIssueStatusModal = ({ isOpen, onClose, issue }: UpdateIssueStatusModalProps) => {
-  const [status, setStatus] = useState(issue?.status || "pending");
+export default function UpdateIssueStatusModal({ isOpen, onClose, issue, technicianName }: UpdateIssueStatusModalProps) {
+  const [status, setStatus] = useState(issue.status);
+  const [notes, setNotes] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const toast = useToast();
 
-  const handleSubmit = async () => {
-    if (!issue) return;
+  const handleSave = async () => {
+    if (!notes) {
+      toast({
+        title: "กรุณาใส่รายละเอียด",
+        description: "โปรดอธิบายการดำเนินการของคุณ",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
 
     setIsLoading(true);
     try {
       const issueRef = doc(db, "issues", issue.id);
-      await updateDoc(issueRef, { status: status });
+      
+      const newUpdate = {
+        notes: notes,
+        status: status,
+        updatedAt: serverTimestamp(),
+        updatedBy: technicianName,
+      };
 
-      toast({
-        title: "อัปเดตสถานะสำเร็จ",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
+      await updateDoc(issueRef, {
+        status: status,
+        updates: arrayUnion(newUpdate),
       });
+
+      toast({ title: "อัปเดตสถานะสำเร็จ", status: "success" });
       onClose();
     } catch (error) {
-      console.error("Error updating status: ", error);
-      toast({
-        title: "เกิดข้อผิดพลาด",
-        description: "ไม่สามารถอัปเดตสถานะได้",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
+      console.error("Error updating issue: ", error);
+      toast({ title: "เกิดข้อผิดพลาด", status: "error" });
     } finally {
       setIsLoading(false);
     }
@@ -64,34 +64,33 @@ const UpdateIssueStatusModal = ({ isOpen, onClose, issue }: UpdateIssueStatusMod
         <ModalHeader>อัปเดตสถานะการแจ้งซ่อม</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <FormControl>
-            <FormLabel htmlFor="status">สถานะ</FormLabel>
-            <Select
-              id="status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
-              <option value="pending">รอรับเรื่อง</option>
-              <option value="in_progress">กำลังดำเนินการ</option>
-              <option value="resolved">แก้ไขแล้ว</option>
-            </Select>
-          </FormControl>
+          <VStack spacing={4}>
+            <FormControl>
+              <FormLabel>สถานะใหม่</FormLabel>
+              <Select value={status} onChange={(e) => setStatus(e.target.value)}>
+                <option value="pending">รอดำเนินการ</option>
+                <option value="in_progress">กำลังดำเนินการ</option>
+                <option value="resolved">แก้ไขแล้ว</option>
+              </Select>
+            </FormControl>
+            <FormControl isRequired>
+              <FormLabel>รายละเอียดการดำเนินการ</FormLabel>
+              <Textarea 
+                placeholder={status === 'in_progress' ? "กำลังตรวจสอบสายไฟ..." : "เปลี่ยนหลอดไฟใหม่เรียบร้อย"}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={4}
+              />
+            </FormControl>
+          </VStack>
         </ModalBody>
         <ModalFooter>
-          <Button variant="ghost" mr={3} onClick={onClose}>
-            ยกเลิก
-          </Button>
-          <Button
-            colorScheme="blue"
-            onClick={handleSubmit}
-            isLoading={isLoading}
-          >
+          <Button variant="ghost" onClick={onClose}>ยกเลิก</Button>
+          <Button colorScheme="blue" ml={3} onClick={handleSave} isLoading={isLoading}>
             บันทึก
           </Button>
         </ModalFooter>
       </ModalContent>
     </Modal>
   );
-};
-
-export default UpdateIssueStatusModal;
+}
