@@ -3,6 +3,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "../lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useRouter } from "next/router";
+import Cookies from 'js-cookie';
 import {
   Box,
   Button,
@@ -38,6 +39,9 @@ export default function Login() {
       const user = userCredential.user;
 
       if (user) {
+        const token = await user.getIdToken();
+        Cookies.set('token', token, { expires: 1 }); // Expires in 1 day
+
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnap = await getDoc(userDocRef);
 
@@ -49,6 +53,10 @@ export default function Login() {
 
           if (userRole === "admin") {
             router.push("/dashboard");
+          } else if (userRole === "owner") {
+            router.push("/owner-dashboard");
+          } else if (userRole === "employee") {
+            router.push("/employee");
           } else if (userRole === "technician") {
             router.push("/technician-dashboard");
           } else if (userRole === "user") {
