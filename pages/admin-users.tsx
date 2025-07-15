@@ -693,6 +693,7 @@ function AdminUsers() {
                             size="sm"
                             mr={2}
                             onClick={() => handleEditClick(u)}
+                            isDisabled={u.id === currentUser?.uid}
                           />
                           <IconButton
                             aria-label="ban"
@@ -703,6 +704,7 @@ function AdminUsers() {
                             size="sm"
                             mr={2}
                             onClick={() => handleBanClick(u)}
+                            isDisabled={u.id === currentUser?.uid}
                           />
                           <IconButton
                             aria-label="delete"
@@ -712,6 +714,7 @@ function AdminUsers() {
                             borderRadius="full"
                             size="sm"
                             onClick={() => handleDeleteClick(u)}
+                            isDisabled={u.id === currentUser?.uid}
                           />
                         </Td>
                       </Tr>
@@ -1276,6 +1279,7 @@ function AdminUsers() {
                         _focus={{ borderColor: "blue.400" }}
                         _hover={{ borderColor: "blue.300" }}
                         minW="140px"
+                        isDisabled={u.id === currentUser?.uid}
                       >
                         <option value="admin">🛡️ ผู้ดูแลระบบ</option>
                         <option value="juristic">🏢 นิติ</option>
