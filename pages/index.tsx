@@ -1456,7 +1456,7 @@ function RoomsPage() {
         isOpen={isMeterReadingModalOpen}
         onClose={() => setIsMeterReadingModalOpen(false)}
         onSave={handleSaveMeterReadings}
-        rooms={filteredRooms}
+        rooms={filteredRooms.filter(r => r.tenantId) as { id: string; tenantName: string; status: string; tenantId: string; }[]}
         previousReadings={previousReadings}
         isCentered
         size={{ base: "full", md: "4xl" }}

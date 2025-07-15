@@ -13,7 +13,7 @@ interface MeterReadingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (data: any) => void;
-  rooms: { id: string; tenantName: string; status: string }[];
+  rooms: { id: string; tenantName: string; status: string; tenantId: string }[];
   previousReadings: Record<string, { electricity: number; water: number }>;
   isCentered?: boolean;
   size?: string | object;

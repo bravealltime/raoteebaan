@@ -165,7 +165,6 @@ export default function RoomCard({ id, tenantName, tenantEmail, area, latestTota
       h="500px"
       borderWidth="2px"
       borderStyle="solid"
-      borderColor="white"
       display="flex"
       flexDirection="column"
       overflow="hidden"

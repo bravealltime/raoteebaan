@@ -263,12 +263,12 @@ function TenantDashboard() {
       const d = doc.data();
       return {
         id: doc.id,
-        description: d.description || "-",
-        status: d.status || "pending",
-        reportedAt: d.reportedAt?.toDate ? Timestamp.fromDate(d.reportedAt.toDate()) : Timestamp.now(),
-        tenantName: d.tenantName || "",
-        imageUrls: d.imageUrls || [],
-        updates: d.updates || [],
+        description: (d as Issue).description || "-",
+        status: (d as Issue).status || "pending",
+        reportedAt: (d as Issue).reportedAt?.toDate ? Timestamp.fromDate((d as Issue).reportedAt.toDate()) : Timestamp.now(),
+        tenantName: (d as Issue).tenantName || "",
+        imageUrls: (d as Issue).imageUrls || [],
+        updates: (d as Issue).updates || [],
       } as Issue;
     });
 
@@ -458,7 +458,7 @@ function TenantDashboard() {
             </CardHeader>
             <CardBody>
               {roomData.billStatus === 'unpaid' ? (
-                <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} align="center">
+                <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
                   <VStack align={{ base: 'center', lg: 'flex-start' }} spacing={4}>
                     <Text fontSize="lg" color="gray.600">ยอดเงินที่ต้องชำระ:</Text>
                     <Text fontSize="5xl" fontWeight="bold" color="red.600" lineHeight="1">
@@ -672,7 +672,7 @@ function TenantDashboard() {
                             )}
                           </Collapse>
                         </Box>
-                      ))}}}
+                      ))}
                     </VStack>
                   ) : (
                     <Text color="gray.500">ยังไม่มีประวัติการแจ้งปัญหา</Text>

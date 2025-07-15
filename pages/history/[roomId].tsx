@@ -167,6 +167,25 @@ export default function HistoryRoom() {
       const extraServicesTotal = (latestRoomData?.extraServices || []).reduce((sum: number, s: { value: number }) => sum + s.value, 0);
       const total = electricityTotal + waterTotal + rent + service + extraServicesTotal;
 
+      const newBill = {
+        date: date,
+        dueDate: dueDate,
+        electricityMeterCurrent: newElecMeter,
+        electricityMeterPrev: prevElec,
+        electricityRate: Number(elecRate),
+        electricityUnit: electricityUnit,
+        electricityTotal: electricityTotal,
+        waterMeterCurrent: newWaterMeter,
+        waterMeterPrev: prevWater,
+        waterRate: Number(waterRate),
+        waterUnit: waterUnit,
+        waterTotal: waterTotal,
+        rent: rent,
+        service: service,
+        extraServices: latestRoomData?.extraServices || [],
+        total: total,
+      };
+
       const billData = {
         ...newBill,
         createdAt: Timestamp.fromDate(new Date()),
@@ -174,7 +193,7 @@ export default function HistoryRoom() {
         dueDate: Timestamp.fromDate(new Date(newBill.dueDate)),
         status: "unpaid",
         roomId: roomId,
-        tenantId: room.tenantId || null,
+        tenantId: latestRoomData?.tenantId || null,
       };
 
       await addDoc(collection(db, "bills"), billData);

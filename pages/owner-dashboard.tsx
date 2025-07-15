@@ -74,6 +74,7 @@ export default function OwnerDashboard() {
   const [paymentStatusData, setPaymentStatusData] = useState<any[]>([]);
   const [monthlyIncome, setMonthlyIncome] = useState(0);
   const [monthlyPaid, setMonthlyPaid] = useState(0);
+  const [users, setUsers] = useState<any[]>([]);
 
   const filterLabels: Record<string, string> = {
     all: 'ทั้งหมด',
@@ -186,6 +187,10 @@ export default function OwnerDashboard() {
         setPaymentStatusData([
           { name: 'สถานะ', paid: paid, unpaid: unpaid },
         ]);
+
+        const usersSnapshot = await getDocs(query(collection(db, "users"), where("role", "==", "user")));
+        const usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setUsers(usersData);
 
       } catch (e) {
         toast({ title: "โหลดข้อมูลห้องพักล้มเหลว", status: "error" });
@@ -893,7 +898,7 @@ export default function OwnerDashboard() {
 
       <AddRoomModal isOpen={isOpen} onClose={onClose} onAdd={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} isCentered size={{ base: "full", md: "2xl" }} />
       {editRoom && (
-        <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} isCentered size={{ base: "full", md: "2xl" }} />
+        <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} users={users} isCentered size={{ base: "full", md: "2xl" }} />
       )}
 
       <AlertDialog

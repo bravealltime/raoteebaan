@@ -37,6 +37,7 @@ interface User {
 interface AppHeaderProps {
   currentUser?: User | null;
   onOpenMobileSidebar?: () => void; // New prop
+  onProfileOpen?: () => void;
 }
 
 const getPageTitle = (pathname: string) => {

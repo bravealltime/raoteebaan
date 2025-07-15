@@ -53,6 +53,7 @@ import {
   Tooltip,
   Icon,
   Spacer,
+  VStack,
 } from "@chakra-ui/react";
 import {
   FaUserShield,
@@ -68,6 +69,9 @@ import {
   FaEnvelope,
   FaUserTag,
   FaKey,
+  FaSave,
+  FaChevronLeft,
+  FaChevronRight,
 } from "react-icons/fa";
 import MainLayout from "../components/MainLayout";
 
@@ -103,6 +107,10 @@ function AdminUsers() {
   const [isManagePermissionsOpen, setIsManagePermissionsOpen] = useState(false);
   const [isConfirmResetOpen, setIsConfirmResetOpen] = useState(false);
   const [userToReset, setUserToReset] = useState<any | null>(null);
+  const [modifiedRoles, setModifiedRoles] = useState<{ [key: string]: string }>({});
+  const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
+  const [permissionsCurrentPage, setPermissionsCurrentPage] = useState(1);
+  const PERMISSIONS_PER_PAGE = 5;
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -304,28 +312,51 @@ function AdminUsers() {
     if (!editForm) return;
     setEditLoading(true);
     try {
-      await setDoc(
-        doc(db, "users", editForm.id),
-        {
-          name: editForm.name,
-          email: editForm.email,
-          role: editForm.role,
-          status: editForm.status,
+      const idToken = await auth.currentUser?.getIdToken();
+      if (!idToken) {
+        toast({
+          title: "Error",
+          description: "Authentication token not found.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+        setEditLoading(false);
+        return;
+      }
+
+      const response = await fetch("/api/update-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
         },
-        { merge: true }
-      );
-      toast({
-        title: "อัปเดตผู้ใช้สำเร็จ",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
+        body: JSON.stringify(editForm),
       });
-      setIsEditOpen(false);
-      fetchData();
+
+      if (response.ok) {
+        toast({
+          title: "อัปเดตผู้ใช้สำเร็จ",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+        setIsEditOpen(false);
+        fetchData();
+      } else {
+        const data = await response.json();
+        toast({
+          title: "อัปเดตผู้ใช้ไม่สำเร็จ",
+          description: data.error || "เกิดข้อผิดพลาดในการอัปเดตข้อมูลผู้ใช้",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
     } catch (error) {
       toast({
         title: "อัปเดตผู้ใช้ไม่สำเร็จ",
-        description: "เกิดข้อผิดพลาดในการอัปเดตข้อมูลผู้ใช้",
+        description: "เกิดข้อผิดพลาดในการเชื่อมต่อ",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -935,7 +966,6 @@ function AdminUsers() {
                     }
                     placeholder="อีเมล"
                     type="email"
-                    isDisabled
                     borderRadius="lg"
                   />
                 </FormControl>
@@ -1118,190 +1148,190 @@ function AdminUsers() {
       {/* Manage Permissions Modal */}
       <Modal
         isOpen={isManagePermissionsOpen}
-        onClose={() => setIsManagePermissionsOpen(false)}
+        onClose={() => {
+          setIsManagePermissionsOpen(false);
+          setModifiedRoles({});
+        }}
         isCentered
-        size={{ base: "full", md: "xl" }}
+        size={{ base: "full", md: "4xl" }}
+        scrollBehavior="inside"
       >
-        <ModalOverlay />
-        <ModalContent borderRadius="2xl" p={2} m={{ base: 4, md: "auto" }}>
+        <ModalOverlay bg="blackAlpha.600" />
+        <ModalContent
+          borderRadius="2xl"
+          m={{ base: 2, md: 6 }}
+          bg="gray.50"
+        >
           <ModalHeader
             fontWeight="bold"
-            color="blue.600"
+            color="gray.800"
             display="flex"
             alignItems="center"
-            gap={2}
+            gap={3}
+            bg="white"
+            borderTopRadius="2xl"
+            p={6}
+            borderBottom="1px solid"
+            borderColor="gray.200"
           >
-            <FaUserTag /> จัดการสิทธิ์ผู้ใช้
-          </ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            <Box mb={4}>
-              <Text color="gray.600" fontSize="sm">
-                คุณสามารถเปลี่ยนสิทธิ์ของผู้ใช้แต่ละคนได้ที่นี่ <br />
-                <b>โปรดระวัง:</b> การเปลี่ยนสิทธิ์จะมีผลทันที
+            <Icon as={FaUserTag} fontSize="2xl" color="blue.500" />
+            <Box>
+              <Heading size="md">จัดการสิทธิ์ผู้ใช้</Heading>
+              <Text fontSize="sm" color="gray.500">
+                เปลี่ยนสิทธิ์และบทบาทของผู้ใช้แต่ละคน
               </Text>
             </Box>
-            <Table
-              variant="simple"
-              colorScheme="gray"
-              bg="white"
-              borderRadius="xl"
-              size="md"
-            >
-              <Thead>
-                <Tr>
-                  <Th color="blue.700" fontSize="sm" minW="180px">
-                    ชื่อ
-                  </Th>
-                  <Th color="blue.700" fontSize="sm">
-                    อีเมล
-                  </Th>
-                  <Th color="blue.700" fontSize="sm">
-                    สิทธิ์ปัจจุบัน
-                  </Th>
-                  <Th color="blue.700" fontSize="sm">
-                    เปลี่ยนสิทธิ์เป็น
-                  </Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {users.map((u) => (
-                  <Tr key={u.id} _hover={{ bg: "blue.50" }}>
-                    <Td
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody p={{ base: 4, md: 6 }}>
+            <Alert status="info" borderRadius="xl" mb={6} variant="subtle">
+              <AlertIcon />
+              <Box>
+                <AlertTitle>คำแนะนำ:</AlertTitle>
+                <AlertDescription>
+                  เลือกสิทธิ์ใหม่จากเมนูและกด <b>บันทึก</b>
+                  เพื่ออัปเดตเฉพาะผู้ใช้นั้นๆ การเปลี่ยนแปลงจะมีผลทันที
+                </AlertDescription>
+              </Box>
+            </Alert>
+            <VStack spacing={4} align="stretch">
+              {users
+                .filter((u) => u.id !== currentUser?.uid) // Filter out current user
+                .slice(
+                  (permissionsCurrentPage - 1) * PERMISSIONS_PER_PAGE,
+                  permissionsCurrentPage * PERMISSIONS_PER_PAGE
+                )
+                .map((u) => (
+                <Flex
+                  key={u.id}
+                  p={4}
+                  bg="white"
+                  borderRadius="xl"
+                  boxShadow="sm"
+                  align="center"
+                  justify="space-between"
+                  flexWrap="wrap"
+                  gap={4}
+                >
+                  <Flex align="center" gap={4} flex={1} minW="250px">
+                    <Avatar name={u.name} src={u.avatar} size="md" />
+                    <Box>
+                      <Text fontWeight="bold" color="gray.800">
+                        {u.name}
+                      </Text>
+                      <Text fontSize="sm" color="gray.500">
+                        {u.email}
+                      </Text>
+                    </Box>
+                  </Flex>
+                  <Flex align="center" gap={3} flexWrap="wrap">
+                    <Select
+                      value={modifiedRoles[u.id] || u.role}
+                      onChange={(e) =>
+                        setModifiedRoles((prev) => ({
+                          ...prev,
+                          [u.id]: e.target.value,
+                        }))
+                      }
+                      borderRadius="lg"
+                      size="sm"
+                      bg="gray.100"
                       fontWeight="bold"
-                      fontSize="sm"
-                      minW="180px"
-                      whiteSpace="nowrap"
-                      display="flex"
-                      alignItems="center"
-                      gap={2}
+                      minW="160px"
                     >
-                      <Avatar name={u.name} src={u.avatar} size="sm" mr={2} />
-                      {u.name}
-                    </Td>
-                    <Td fontSize="sm">{u.email}</Td>
-                    <Td>
-                      <Tooltip
-                        label={
-                          u.role === "admin"
-                            ? "🛡️ ผู้ดูแลระบบ"
-                            : u.role === "juristic"
-                            ? "🏢 นิติ"
-                            : u.role === "technician"
-                            ? "🛠️ ช่าง"
-                            : u.role === "owner"
-                            ? "🏠 เจ้าของห้อง"
-                            : "👤 ลูกบ้าน"
+                      <option value="admin">🛡️ ผู้ดูแลระบบ</option>
+                      <option value="juristic">🏢 นิติ</option>
+                      <option value="technician">🛠️ ช่าง</option>
+                      <option value="owner">🏠 เจ้าของห้อง</option>
+                      <option value="user">👤 ลูกบ้าน</option>
+                    </Select>
+                    <Button
+                      size="sm"
+                      colorScheme="blue"
+                      leftIcon={<FaSave />}
+                      borderRadius="lg"
+                      isLoading={updatingRoleId === u.id}
+                      isDisabled={!modifiedRoles[u.id] || modifiedRoles[u.id] === u.role}
+                      onClick={async () => {
+                        setUpdatingRoleId(u.id);
+                        try {
+                          await setDoc(
+                            doc(db, "users", u.id),
+                            { role: modifiedRoles[u.id] },
+                            { merge: true }
+                          );
+                          toast({
+                            title: "อัปเดตสิทธิ์สำเร็จ",
+                            status: "success",
+                            duration: 2000,
+                            isClosable: true,
+                          });
+                          fetchData(); // Refresh data
+                          setModifiedRoles(prev => {
+                            const newRoles = {...prev};
+                            delete newRoles[u.id];
+                            return newRoles;
+                          });
+                        } catch (error) {
+                          toast({
+                            title: "อัปเดตสิทธิ์ไม่สำเร็จ",
+                            status: "error",
+                            duration: 3000,
+                            isClosable: true,
+                          });
+                        } finally {
+                          setUpdatingRoleId(null);
                         }
-                        hasArrow
-                      >
-                        {u.role === "admin" ? (
-                          <Badge
-                            colorScheme="yellow"
-                            borderRadius="full"
-                            fontSize="xs"
-                            px={2}
-                          >
-                            ผู้ดูแลระบบ
-                          </Badge>
-                        ) : u.role === "juristic" ? (
-                          <Badge
-                            colorScheme="purple"
-                            borderRadius="full"
-                            fontSize="xs"
-                            px={2}
-                          >
-                            นิติ
-                          </Badge>
-                        ) : u.role === "technician" ? (
-                          <Badge
-                            colorScheme="orange"
-                            borderRadius="full"
-                            fontSize="xs"
-                            px={2}
-                          >
-                            ช่าง
-                          </Badge>
-                        ) : u.role === "owner" ? (
-                          <Badge
-                            colorScheme="green"
-                            borderRadius="full"
-                            fontSize="xs"
-                            px={2}
-                          >
-                            เจ้าของห้อง
-                          </Badge>
-                        ) : (
-                          <Badge
-                            colorScheme="blue"
-                            borderRadius="full"
-                            fontSize="xs"
-                            px={2}
-                          >
-                            ลูกบ้าน
-                          </Badge>
-                        )}
-                      </Tooltip>
-                    </Td>
-                    <Td>
-                      <Select
-                        value={u.role}
-                        onChange={async (e) => {
-                          try {
-                            await setDoc(
-                              doc(db, "users", u.id),
-                              { role: e.target.value },
-                              { merge: true }
-                            );
-                            toast({
-                              title: "อัปเดตสิทธิ์สำเร็จ",
-                              status: "success",
-                              duration: 3000,
-                              isClosable: true,
-                            });
-                            fetchData();
-                          } catch (error) {
-                            toast({
-                              title: "อัปเดตสิทธิ์ไม่สำเร็จ",
-                              description:
-                                "เกิดข้อผิดพลาดในการอัปเดตสิทธิ์ผู้ใช้",
-                              status: "error",
-                              duration: 5000,
-                              isClosable: true,
-                            });
-                          }
-                        }}
-                        borderRadius="lg"
-                        size="sm"
-                        bg="gray.50"
-                        fontWeight="bold"
-                        icon={<FaUserTag />}
-                        _focus={{ borderColor: "blue.400" }}
-                        _hover={{ borderColor: "blue.300" }}
-                        minW="140px"
-                        isDisabled={u.id === currentUser?.uid}
-                      >
-                        <option value="admin">🛡️ ผู้ดูแลระบบ</option>
-                        <option value="juristic">🏢 นิติ</option>
-                        <option value="technician">🛠️ ช่าง</option>
-                        <option value="owner">🏠 เจ้าของห้อง</option>
-                        <option value="user">👤 ลูกบ้าน</option>
-                      </Select>
-                    </Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
+                      }}
+                    >
+                      บันทึก
+                    </Button>
+                  </Flex>
+                </Flex>
+              ))}
+            </VStack>
           </ModalBody>
-          <ModalFooter>
+          <ModalFooter
+            bg="white"
+            borderBottomRadius="2xl"
+            borderTop="1px solid"
+            borderColor="gray.200"
+            p={4}
+            justifyContent="space-between"
+          >
             <Button
-              onClick={() => setIsManagePermissionsOpen(false)}
+              onClick={() => {
+                setIsManagePermissionsOpen(false);
+                setModifiedRoles({});
+                setPermissionsCurrentPage(1);
+              }}
               borderRadius="xl"
-              colorScheme="blue"
-              leftIcon={<FaUserTag />}
+              colorScheme="gray"
+              variant="outline"
             >
-              ปิดหน้าจัดการสิทธิ์
+              ปิด
             </Button>
+            <Flex align="center" gap={2}>
+              <IconButton
+                aria-label="Previous Page"
+                icon={<FaChevronLeft />}
+                size="sm"
+                borderRadius="lg"
+                isDisabled={permissionsCurrentPage === 1}
+                onClick={() => setPermissionsCurrentPage((p) => p - 1)}
+              />
+              <Text fontSize="sm" fontWeight="bold">
+                หน้า {permissionsCurrentPage} จาก {Math.ceil(users.filter(u => u.id !== currentUser?.uid).length / PERMISSIONS_PER_PAGE)}
+              </Text>
+              <IconButton
+                aria-label="Next Page"
+                icon={<FaChevronRight />}
+                size="sm"
+                borderRadius="lg"
+                isDisabled={permissionsCurrentPage >= Math.ceil(users.filter(u => u.id !== currentUser?.uid).length / PERMISSIONS_PER_PAGE)}
+                onClick={() => setPermissionsCurrentPage((p) => p + 1)}
+              />
+            </Flex>
           </ModalFooter>
         </ModalContent>
       </Modal>

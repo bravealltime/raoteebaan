@@ -1,6 +1,8 @@
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, Input, Image, FormControl, FormLabel, useToast, Box, Center, Text, VStack } from "@chakra-ui/react";
 import { useState, useRef, DragEvent } from "react";
 import { FaUpload } from "react-icons/fa";
+import { db } from "../lib/firebase";
+import { addDoc, collection, Timestamp } from "firebase/firestore";
 
 interface UploadSlipModalProps {
   isOpen: boolean;
