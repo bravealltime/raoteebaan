@@ -22,6 +22,7 @@ import thStrings from 'react-timeago/lib/language-strings/th';
 import buildFormatter from 'react-timeago/lib/formatters/buildFormatter';
 import { FaArrowLeft, FaBell, FaCheckCircle } from "react-icons/fa";
 import MainLayout from "../components/MainLayout";
+import TenantLayout from "../components/TenantLayout";
 
 const formatter = buildFormatter(thStrings);
 
@@ -34,27 +35,36 @@ interface Notification {
   type: 'bill' | 'payment' | 'message' | 'system';
 }
 
-// Custom hook to get user and role
+// Custom hook to get user and full user data
 function useAuth() {
   const [user, loading, error] = useAuthState(auth);
-  const [role, setRole] = useState<string | null>(null);
+  const [userData, setUserData] = useState<any | null>(null);
+
   useEffect(() => {
     if (user) {
-      getDoc(doc(db, "users", user.uid)).then((docSnap) => {
-        setRole(docSnap.exists() ? docSnap.data().role : null);
+      const userDocRef = doc(db, "users", user.uid);
+      const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+          setUserData({ uid: user.uid, ...docSnap.data() });
+        } else {
+          setUserData(null);
+        }
       });
+      return () => unsubscribe();
     } else {
-      setRole(null);
+      setUserData(null);
     }
   }, [user]);
-  return { user, role, loading };
+
+  return { user, userData, loading, error };
 }
 
 export default function NotificationsPage() {
-  const { user, role, loading: loadingAuth } = useAuth();
+  const { user, userData, loading: loadingAuth } = useAuth();
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const role = userData?.role;
 
   useEffect(() => {
     if (loadingAuth) return;
@@ -102,11 +112,14 @@ export default function NotificationsPage() {
   };
 
   if (loading || loadingAuth) {
-    return <MainLayout role={role}><Flex justify="center" align="center" h="100vh"><Spinner /></Flex></MainLayout>;
+    const Layout = (role === 'admin' || role === 'owner') ? MainLayout : TenantLayout;
+    return <Layout role={role} currentUser={userData}><Flex justify="center" align="center" h="100vh"><Spinner /></Flex></Layout>;
   }
 
+  const Layout = (role === 'admin' || role === 'owner') ? MainLayout : TenantLayout;
+
   return (
-    <MainLayout role={role} currentUser={user}>
+    <Layout role={role} currentUser={userData}>
       <Box maxWidth="800px" mx="auto">
         <Flex justify="space-between" align="center" mb={6}>
             <HStack spacing={4}>
@@ -153,6 +166,6 @@ export default function NotificationsPage() {
           </VStack>
         )}
       </Box>
-    </MainLayout>
+    </Layout>
   );
 }

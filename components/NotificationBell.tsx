@@ -48,9 +48,10 @@ interface NotificationBellProps {
   currentUser?: {
     uid: string;
   } | null;
+  showViewAllLink?: boolean;
 }
 
-export default function NotificationBell({ currentUser }: NotificationBellProps) {
+export default function NotificationBell({ currentUser, showViewAllLink = true }: NotificationBellProps) {
   // Defensive check: If currentUser is null or undefined, don't render anything.
   if (!currentUser) {
     return null;
@@ -174,10 +175,14 @@ export default function NotificationBell({ currentUser }: NotificationBellProps)
               ))}
             </VStack>
           )}
-          <MenuDivider />
-          <MenuItem onClick={() => router.push('/notifications')}>
-            ดูการแจ้งเตือนทั้งหมด
-          </MenuItem>
+          {showViewAllLink && (
+            <>
+              <MenuDivider />
+              <MenuItem onClick={() => router.push('/notifications')}>
+                ดูการแจ้งเตือนทั้งหมด
+              </MenuItem>
+            </>
+          )}
         </MenuList>
       </Menu>
     </Box>
