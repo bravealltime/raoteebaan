@@ -1,5 +1,5 @@
 
-import { Box, Heading, VStack, Spinner, Text, Flex, Button, Icon } from "@chakra-ui/react";
+import { Box, Heading, VStack, Spinner, Text, Flex, Button, Icon, HStack, IconButton, Tooltip } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { db } from "../lib/firebase";
@@ -20,7 +20,7 @@ import { getDoc } from "firebase/firestore";
 import TimeAgo from 'react-timeago';
 import thStrings from 'react-timeago/lib/language-strings/th';
 import buildFormatter from 'react-timeago/lib/formatters/buildFormatter';
-import { FaBell, FaCheckCircle } from "react-icons/fa";
+import { FaArrowLeft, FaBell, FaCheckCircle } from "react-icons/fa";
 import MainLayout from "../components/MainLayout";
 
 const formatter = buildFormatter(thStrings);
@@ -109,7 +109,18 @@ export default function NotificationsPage() {
     <MainLayout role={role} currentUser={user}>
       <Box maxWidth="800px" mx="auto">
         <Flex justify="space-between" align="center" mb={6}>
-            <Heading>การแจ้งเตือนทั้งหมด</Heading>
+            <HStack spacing={4}>
+                <Tooltip label="ย้อนกลับ" placement="bottom">
+                    <IconButton 
+                        aria-label="Go back" 
+                        icon={<FaArrowLeft />} 
+                        onClick={() => router.back()} 
+                        isRound
+                        variant="ghost"
+                    />
+                </Tooltip>
+                <Heading>การแจ้งเตือนทั้งหมด</Heading>
+            </HStack>
             <Button onClick={handleMarkAllAsRead} leftIcon={<FaCheckCircle/>}>ทำเครื่องหมายว่าอ่านแล้วทั้งหมด</Button>
         </Flex>
         

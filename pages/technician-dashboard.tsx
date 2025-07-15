@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp, startAfter, endBefore, limitToLast } from "firebase/firestore";
-import MainLayout from "../components/MainLayout";
+import TenantLayout from "../components/TenantLayout";
 import { FaTools, FaUser, FaBell, FaImage, FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import UpdateIssueStatusModal from '../components/UpdateIssueStatusModal';
 
@@ -119,8 +119,7 @@ function TechnicianDashboard() {
       const documentSnapshots = await getDocs(issuesQuery);
       const issuesData = documentSnapshots.docs.map(doc => ({ 
         id: doc.id, 
-        ...doc.data(), 
-        reportedAt: doc.data().reportedAt 
+        ...(doc.data() as Omit<Issue, 'id'>)
       }) as Issue);
       
       if (documentSnapshots.empty) {
@@ -206,16 +205,16 @@ function TechnicianDashboard() {
 
   if (loading) {
     return (
-      <MainLayout currentUser={currentUser}>
+      <TenantLayout currentUser={currentUser}>
         <Center h="50vh">
           <Spinner size="xl" color="brand.500" />
         </Center>
-      </MainLayout>
+      </TenantLayout>
     );
   }
 
   return (
-    <MainLayout currentUser={currentUser}>
+    <TenantLayout currentUser={currentUser}>
       <Box p={{ base: 2, md: 4 }} bg="gray.50" minH="100vh">
         <Heading size={{ base: "lg", md: "xl" }} mb={6} color="gray.700">
           แดชบอร์ดช่าง
@@ -412,7 +411,7 @@ function TechnicianDashboard() {
           </ModalBody>
         </ModalContent>
       </Modal>
-    </MainLayout>
+    </TenantLayout>
   );
 }
 

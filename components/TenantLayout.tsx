@@ -10,6 +10,7 @@ import { FaSignOutAlt, FaUserCircle, FaInbox } from "react-icons/fa";
 import { AnimatePresence, motion } from "framer-motion";
 import ProfileModal from './ProfileModal';
 import ChatWidget from "./ChatWidget";
+import NotificationBell from './NotificationBell';
 
 interface TenantLayoutProps {
   children: React.ReactNode;
@@ -108,6 +109,8 @@ export default function TenantLayout({ children, currentUser, isProofModalOpen, 
             TeeRao
           </Text>
           {currentUser && (
+            <Flex align="center" gap={4}>
+            <NotificationBell currentUser={currentUser} />
             <Menu>
               <MenuButton as={Avatar} size="sm" name={currentUser.name} src={currentUser.photoURL} cursor="pointer" />
               <MenuList>
@@ -123,6 +126,7 @@ export default function TenantLayout({ children, currentUser, isProofModalOpen, 
                 </MenuItem>
               </MenuList>
             </Menu>
+            </Flex>
           )}
         </Flex>
       </Box>

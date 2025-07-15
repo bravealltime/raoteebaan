@@ -7,11 +7,12 @@ interface UploadSlipModalProps {
   onClose: () => void;
   onConfirm: (file: File, amount: number) => void;
   roomName: string;
+  ownerId: string;
   isCentered?: boolean;
   size?: string | object;
 }
 
-export default function UploadSlipModal({ isOpen, onClose, onConfirm, roomName, isCentered, size }: UploadSlipModalProps) {
+export default function UploadSlipModal({ isOpen, onClose, onConfirm, roomName, ownerId, isCentered, size }: UploadSlipModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [amount, setAmount] = useState("");

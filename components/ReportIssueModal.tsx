@@ -24,7 +24,7 @@ import {
 } from "@chakra-ui/react";
 import { useState, useRef } from "react";
 import { db, storage } from "../lib/firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { FaPaperclip, FaTimesCircle, FaCamera } from "react-icons/fa";
 
@@ -105,7 +105,7 @@ const ReportIssueModal = ({ isOpen, onClose, roomId, tenantId, tenantName }: Rep
       }
 
       // 2. Add issue document to Firestore
-      await addDoc(collection(db, "issues"), {
+      const issueRef = await addDoc(collection(db, "issues"), {
         roomId: roomId,
         tenantId: tenantId,
         tenantName: tenantName,
@@ -114,6 +114,23 @@ const ReportIssueModal = ({ isOpen, onClose, roomId, tenantId, tenantName }: Rep
         reportedAt: serverTimestamp(),
         imageUrls: imageUrls, // Add array of image URLs
       });
+
+      // 3. Create notifications for all technicians
+      const techniciansQuery = query(collection(db, "users"), where("role", "==", "technician"));
+      const techniciansSnapshot = await getDocs(techniciansQuery);
+      
+      const notificationPromises = techniciansSnapshot.docs.map(technicianDoc => {
+        return addDoc(collection(db, "notifications"), {
+          userId: technicianDoc.id,
+          message: `มีงานแจ้งซ่อมใหม่ที่ห้อง ${roomId}: ${description}`,
+          type: "issue",
+          link: `/technician-dashboard?issueId=${issueRef.id}`,
+          isRead: false,
+          createdAt: serverTimestamp(),
+        });
+      });
+
+      await Promise.all(notificationPromises);
 
       toast({
         title: "แจ้งปัญหาสำเร็จ",
