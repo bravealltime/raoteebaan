@@ -8,6 +8,7 @@ import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, upd
 import TenantLayout from "../components/TenantLayout";
 import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools, FaBullhorn, FaPhone, FaLine, FaCopy, FaComments, FaQrcode, FaBolt, FaTint, FaCheckCircle, FaSpinner, FaClock, FaMoneyBillWave, FaArrowRight, FaImage, FaArrowLeft, FaFilePdf } from "react-icons/fa";
 import ReportIssueModal from '../components/ReportIssueModal';
+import AnnouncementsList from '../components/AnnouncementsList';
 
 interface UserData {
   name: string;
@@ -84,7 +85,6 @@ function TenantDashboard() {
   const [billHistory, setBillHistory] = useState<BillHistory[]>([]);
   const [undeliveredParcels, setUndeliveredParcels] = useState<Parcel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [announcements, setAnnouncements] = useState<Array<{ title: string; content: string; createdAt: string }>>([]);
   const [contactInfo] = useState({
     phone: "081-234-5678",
     line: "@teeraoniti",
@@ -201,22 +201,6 @@ function TenantDashboard() {
 
     return () => unsubscribe();
   }, [currentUser, onAlertOpen]);
-
-  useEffect(() => {
-    // Mock ประกาศ/ข่าวสาร
-    setAnnouncements([
-      {
-        title: "แจ้งปิดปรับปรุงระบบน้ำ",
-        content: "วันที่ 10-12 ก.ค. จะมีการปิดปรับปรุงระบบน้ำประปาในอาคาร กรุณากักตุนสำรองน้ำไว้ล่วงหน้า",
-        createdAt: "2024-07-09",
-      },
-      {
-        title: "ขอความร่วมมือไม่จอดรถขวางทางเข้าออก",
-        content: "โปรดจอดรถในพื้นที่ที่กำหนดเท่านั้น เพื่อความสะดวกของทุกท่าน",
-        createdAt: "2024-07-07",
-      },
-    ]);
-  }, []);
 
   useEffect(() => {
     if (roomData && roomData.latestTotal > 0 && scriptsReady) {
@@ -584,28 +568,8 @@ function TenantDashboard() {
           {/* Right Column */}
           <VStack spacing={6} align="stretch">
             {/* Announcements */}
-            <Card borderRadius="xl" boxShadow="lg" bg="white">
-              <CardHeader>
-                <Heading size="md" color="brand.700"><Icon as={FaBullhorn} mr={2} />ประกาศ/ข่าวสาร</Heading>
-              </CardHeader>
-              <CardBody>
-                {loading ? <Skeleton height="40px" /> : announcements.length === 0 ? (
-                  <Text color="gray.500">ไม่มีประกาศใหม่</Text>
-                ) : (
-                  <VStack align="stretch" spacing={4}>
-                    {announcements.map((a, idx) => (
-                      <Box key={idx} p={3} bg="gray.50" borderRadius="lg">
-                        <Flex align="center" mb={1}>
-                          <Text fontWeight="bold" color="brand.800">{a.title}</Text>
-                          <Text fontSize="xs" color="gray.400" ml="auto">{a.createdAt}</Text>
-                        </Flex>
-                        <Text color="gray.600" fontSize="sm">{a.content}</Text>
-                      </Box>
-                    ))}
-                  </VStack>
-                )}
-              </CardBody>
-            </Card>
+            <AnnouncementsList currentUser={currentUser} />
+
             {/* Parcels */}
             <Card borderRadius="xl" boxShadow="lg" bg="white">
               <CardHeader>
