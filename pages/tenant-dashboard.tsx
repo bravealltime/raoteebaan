@@ -1,4 +1,4 @@
-import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, Spacer, Tooltip, Skeleton, AspectRatio } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, Spacer, Tooltip, Skeleton, AspectRatio, Collapse } from "@chakra-ui/react";
 import Script from 'next/script';
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
@@ -67,6 +67,7 @@ interface Issue {
   reportedAt: Timestamp;
   tenantName: string;
   imageUrls?: string[];
+  updates?: Array<{ notes: string; status: string; updatedAt: any; updatedBy: string }>;
 }
 
 // @ts-ignore
@@ -108,6 +109,19 @@ function TenantDashboard() {
   const [selectedIssueImageUrls, setSelectedIssueImageUrls] = useState<string[]>([]);
   const { isOpen: isIssueImageModalOpen, onOpen: onIssueImageModalOpen, onClose: onIssueImageModalClose } = useDisclosure();
   const [currentIssueImageIndex, setCurrentIssueImageIndex] = useState(0);
+  const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
+
+  const toggleIssueExpansion = (issueId: string) => {
+    setExpandedIssues(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(issueId)) {
+        newSet.delete(issueId);
+      } else {
+        newSet.add(issueId);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     const authUnsubscribe = onAuthStateChanged(auth, (user) => {
@@ -254,6 +268,7 @@ function TenantDashboard() {
         reportedAt: d.reportedAt?.toDate ? Timestamp.fromDate(d.reportedAt.toDate()) : Timestamp.now(),
         tenantName: d.tenantName || "",
         imageUrls: d.imageUrls || [],
+        updates: d.updates || [],
       } as Issue;
     });
 
@@ -615,32 +630,49 @@ function TenantDashboard() {
                   {issueHistory.length > 0 ? (
                     <VStack align="stretch" spacing={3}>
                       {issueHistory.map((issue) => ( 
-                        <Flex key={issue.id} align="center" bg="gray.50" borderRadius="md" p={3} gap={4}>
-                          <Box flex="1">
-                            <Text color="gray.800" noOfLines={1}>{issue.description}</Text>
-                            <Text color="gray.500" fontSize="sm">{issue.reportedAt.toDate().toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
-                          </Box>
-                          {issue.imageUrls && issue.imageUrls.length > 0 && (
-                            <Button 
-                              leftIcon={<Icon as={FaImage} />} 
-                              size="sm" 
-                              variant="outline" 
-                              onClick={() => {
-                                setSelectedIssueImageUrls(issue.imageUrls!);
-                                setCurrentIssueImageIndex(0);
-                                onIssueImageModalOpen();
-                              }}
-                            >
-                              {issue.imageUrls.length}
-                            </Button>
-                          )}
-                          <Badge colorScheme={issue.status === 'resolved' ? 'green' : issue.status === 'in_progress' ? 'blue' : 'yellow'}>
-                            {issue.status === 'pending' && 'รอดำเนินการ'}
-                            {issue.status === 'in_progress' && 'กำลังซ่อม'}
-                            {issue.status === 'resolved' && 'เสร็จสิ้น'}
-                          </Badge>
-                        </Flex>
-                      ))}
+                        <Box key={issue.id} bg="gray.50" borderRadius="md" p={4}>
+                          <Flex align="center" gap={4}>
+                            <Box flex="1" onClick={() => toggleIssueExpansion(issue.id)} cursor="pointer">
+                              <Text color="gray.800" fontWeight="bold">{issue.description}</Text>
+                              <Text color="gray.500" fontSize="sm">แจ้งเมื่อ: {issue.reportedAt.toDate().toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
+                            </Box>
+                            {issue.imageUrls && issue.imageUrls.length > 0 && (
+                              <Button 
+                                leftIcon={<Icon as={FaImage} />} 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Prevent card from toggling
+                                  setSelectedIssueImageUrls(issue.imageUrls!);
+                                  setCurrentIssueImageIndex(0);
+                                  onIssueImageModalOpen();
+                                }}
+                              >
+                                {issue.imageUrls.length}
+                              </Button>
+                            )}
+                            <Badge colorScheme={issue.status === 'resolved' ? 'green' : issue.status === 'in_progress' ? 'blue' : 'yellow'}>
+                              {issue.status === 'pending' && 'รอดำเนินการ'}
+                              {issue.status === 'in_progress' && 'กำลังซ่อม'}
+                              {issue.status === 'resolved' && 'เสร็จสิ้น'}
+                            </Badge>
+                          </Flex>
+                          <Collapse in={expandedIssues.has(issue.id)} animateOpacity>
+                            {issue.updates && issue.updates.length > 0 && (
+                              <VStack align="stretch" spacing={2} pl={4} mt={3} borderLeftWidth="2px" borderColor="gray.200">
+                                {issue.updates.sort((a, b) => b.updatedAt.toMillis() - a.updatedAt.toMillis()).map((update, index) => (
+                                  <Box key={index}>
+                                    <Text fontSize="sm" fontWeight="medium">{update.notes}</Text>
+                                    <Text fontSize="xs" color="gray.500">
+                                      โดย {update.updatedBy} - {new Date(update.updatedAt.seconds * 1000).toLocaleString('th-TH')}
+                                    </Text>
+                                  </Box>
+                                ))}
+                              </VStack>
+                            )}
+                          </Collapse>
+                        </Box>
+                      ))}}}
                     </VStack>
                   ) : (
                     <Text color="gray.500">ยังไม่มีประวัติการแจ้งปัญหา</Text>

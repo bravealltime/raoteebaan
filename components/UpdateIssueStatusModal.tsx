@@ -1,6 +1,6 @@
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton, Button, FormControl, FormLabel, Select, Textarea, useToast, VStack } from "@chakra-ui/react";
 import { useState } from "react";
-import { doc, updateDoc, arrayUnion, serverTimestamp } from "firebase/firestore";
+import { doc, updateDoc, arrayUnion, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 interface UpdateIssueStatusModalProps {
@@ -38,7 +38,7 @@ export default function UpdateIssueStatusModal({ isOpen, onClose, issue, technic
       const newUpdate = {
         notes: notes,
         status: status,
-        updatedAt: serverTimestamp(),
+        updatedAt: Timestamp.now(), // Use client-side timestamp
         updatedBy: technicianName,
       };
 

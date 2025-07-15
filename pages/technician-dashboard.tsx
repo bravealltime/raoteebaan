@@ -157,16 +157,16 @@ function TechnicianDashboard() {
 
   useEffect(() => {
     if (currentUser) {
+      setLastVisible(null);
+      setFirstVisible(null);
+      setPage(1);
       fetchIssues('first');
     }
   }, [currentUser, filterStatus]);
 
   const handleFilterChange = (status: string) => {
     setFilterStatus(status);
-    setLastVisible(null);
-    setFirstVisible(null);
-    setPage(1);
-    // The useEffect listening to filterStatus will trigger the fetch.
+    // fetchIssues will be called by the useEffect that depends on filterStatus
   }
 
   const fetchNextPage = () => {
