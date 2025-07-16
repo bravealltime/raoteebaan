@@ -248,22 +248,34 @@ export default function OwnerDashboard() {
 
   useEffect(() => {
     async function fetchParcels() {
-      const querySnapshot = await getDocs(collection(db, "parcels"));
+      if (!currentUser?.uid) return;
+      const roomIds = rooms.map(room => room.id);
+      if (roomIds.length === 0) {
+        setParcelCount(0);
+        return;
+      }
+
+      const parcelsQuery = query(collection(db, "parcels"), where("roomId", "in", roomIds));
+      const querySnapshot = await getDocs(parcelsQuery);
       const parcels = querySnapshot.docs.map(doc => doc.data());
       const notReceived = parcels.filter((p: any) => p.status === 'received');
       setParcelCount(notReceived.length);
     }
     fetchParcels();
-  }, []);
+  }, [rooms, currentUser]);
 
   useEffect(() => {
     async function fetchInbox() {
-      const querySnapshot = await getDocs(collection(db, "conversations"));
+      if (!currentUser?.uid) return;
+      const q = query(
+        collection(db, "conversations"),
+        where("participants", "array-contains", currentUser.uid)
+      );
+      const querySnapshot = await getDocs(q);
       const conversations = querySnapshot.docs.map(doc => doc.data());
-      const currentUid = currentUser?.uid;
       const unread = conversations.filter((c: any) =>
         c.lastMessage &&
-        c.lastMessage.receiverId === currentUid &&
+        c.lastMessage.receiverId === currentUser.uid &&
         !c.lastMessage.isRead
       );
       setInboxCount(unread.length);

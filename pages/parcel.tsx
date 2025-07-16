@@ -152,7 +152,7 @@ export default function Parcel() {
       });
       setRole(userRole);
       
-      if (!["admin", "owner", "user"].includes(userRole)) {
+      if (!["admin", "owner"].includes(userRole)) {
         router.replace("/login");
       }
     });

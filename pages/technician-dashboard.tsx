@@ -101,6 +101,7 @@ function TechnicianDashboard() {
       let issuesQuery;
       const baseConditions = [
         where("status", "==", filterStatus),
+        where("technicianId", "==", currentUser.uid), // Filter by technicianId
         orderBy("reportedAt", "desc"),
       ];
 

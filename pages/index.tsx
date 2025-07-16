@@ -215,6 +215,21 @@ function RoomsPage() {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    if (loading) return; // Don't run this check while data is still loading
+
+    if (role === 'user' && rooms.length === 0) {
+      toast({
+        title: "ไม่พบข้อมูลห้องพัก",
+        description: "คุณยังไม่ได้ถูกกำหนดให้เข้าพักในห้องใดๆ",
+        status: "info",
+        duration: 5000,
+        isClosable: true,
+      });
+      router.replace('/tenant-dashboard');
+    }
+  }, [loading, role, rooms, router, toast]);
+
   const handleDelete = (id: string) => {
     setDeleteId(id);
     setIsDialogOpen(true);
