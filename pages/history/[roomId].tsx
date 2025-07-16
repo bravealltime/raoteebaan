@@ -24,6 +24,7 @@ export default function HistoryRoom() {
   const cancelRef = useRef<any>(null);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [fullUserData, setFullUserData] = useState<any | null>(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -31,7 +32,9 @@ export default function HistoryRoom() {
         setCurrentUser(user);
         const snap = await getDoc(doc(db, "users", user.uid));
         if (snap.exists()) {
-          setUserRole(snap.data().role);
+          const userData = snap.data();
+          setUserRole(userData.role);
+          setFullUserData(userData);
         }
       } else {
         router.replace("/login");
@@ -56,6 +59,34 @@ export default function HistoryRoom() {
     };
     fetchRoomData();
   }, [roomId]);
+
+  useEffect(() => {
+    if (!fullUserData || !roomData) return; // Wait for all data to be loaded
+
+    const { role, uid } = fullUserData;
+
+    if (role === 'admin') {
+      // Admin can access everything
+      return;
+    } else if (role === 'owner') {
+      // Owner can access only their own rooms
+      if (roomData.ownerId !== uid) {
+        toast({ title: "ไม่มีสิทธิ์เข้าถึง", description: "คุณไม่ใช่เจ้าของห้องนี้", status: "error" });
+        router.replace('/');
+      }
+    } else if (role === 'user') {
+      // Tenant can only access their own room
+      if (roomData.tenantId !== uid) {
+        toast({ title: "ไม่มีสิทธิ์เข้าถึง", description: "นี่ไม่ใช่ห้องของคุณ", status: "error" });
+        router.replace('/tenant-dashboard');
+      }
+    } else {
+      // Other roles are not allowed
+      toast({ title: "ไม่มีสิทธิ์เข้าถึง", status: "error" });
+      router.replace('/login');
+    }
+
+  }, [fullUserData, roomData, router, toast]);
 
   // โหลดประวัติจาก Firestore ทุกครั้งที่ roomId เปลี่ยน
   useEffect(() => {
