@@ -1,8 +1,9 @@
-import { Box, Button, Text, VStack, Flex, Avatar, Heading, Spacer, Divider } from "@chakra-ui/react";
+import { Box, Button, Text, VStack, Flex, Avatar, Heading, Spacer, Divider, useDisclosure, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay } from "@chakra-ui/react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { FaHome, FaInbox, FaBox, FaUserFriends, FaTachometerAlt, FaSignOutAlt } from "react-icons/fa";
 import { motion } from "framer-motion";
+import { useRef } from "react";
 
 interface SidebarProps {
   role: string | null;
@@ -48,6 +49,8 @@ const NavItem = ({ href, icon, children, onCloseMobileSidebar }) => {
 
 export default function Sidebar({ role, currentUser, onCloseMobileSidebar, onProfileOpen }: SidebarProps) {
   const router = useRouter();
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const cancelRef = useRef();
 
   const handleLogout = async () => {
     // Implement logout logic here
@@ -131,7 +134,7 @@ export default function Sidebar({ role, currentUser, onCloseMobileSidebar, onPro
         </Flex>
         <Button 
           leftIcon={<FaSignOutAlt />} 
-          onClick={handleLogout} 
+          onClick={onOpen} 
           variant="ghost" 
           colorScheme="red"
           justifyContent="flex-start"
@@ -139,6 +142,33 @@ export default function Sidebar({ role, currentUser, onCloseMobileSidebar, onPro
           ออกจากระบบ
         </Button>
       </VStack>
+
+      <AlertDialog
+        isOpen={isOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              ยืนยันการออกจากระบบ
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onClose}>
+                ยกเลิก
+              </Button>
+              <Button colorScheme="red" onClick={handleLogout} ml={3}>
+                ออกจากระบบ
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Flex>
   );
 }
