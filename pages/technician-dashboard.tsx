@@ -117,14 +117,17 @@ function TechnicianDashboard() {
       }
 
       const documentSnapshots = await getDocs(issuesQuery);
-      const issuesData = documentSnapshots.docs.map(doc => ({ 
-        id: doc.id, 
+      const issuesData = documentSnapshots.docs.map(doc => ({
+        id: doc.id,
         ...(doc.data() as Omit<Issue, 'id'>)
       }) as Issue);
-      
+
       if (documentSnapshots.empty) {
         if (pageDirection === 'first') {
           setIssues([]);
+        }
+        if (pageDirection === 'next') {
+          setLastVisible(null); // Disable next button if no more items
         }
         toast({
           title: "ไม่มีข้อมูล",
@@ -152,7 +155,7 @@ function TechnicianDashboard() {
       });
     }
     setLoading(false);
-  }, [currentUser, filterStatus, lastVisible, firstVisible, page]);
+  }, [currentUser, filterStatus, lastVisible, firstVisible]);
 
   useEffect(() => {
     if (currentUser) {
