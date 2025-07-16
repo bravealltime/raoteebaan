@@ -6,7 +6,7 @@ import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp, startAfter, endBefore, limitToLast } from "firebase/firestore";
 import TenantLayout from "../components/TenantLayout";
-import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools, FaBullhorn, FaPhone, FaLine, FaCopy, FaComments, FaQrcode, FaBolt, FaTint, FaCheckCircle, FaSpinner, FaClock, FaMoneyBillWave, FaArrowRight, FaImage, FaArrowLeft, FaFilePdf } from "react-icons/fa";
+import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools, FaBullhorn, FaPhone, FaLine, FaCopy, FaComments, FaQrcode, FaBolt, FaTint, FaCheckCircle, FaSpinner, FaClock, FaMoneyBillWave, FaArrowRight, FaImage, FaArrowLeft, FaFilePdf, FaPaperPlane } from "react-icons/fa";
 import ReportIssueModal from '../components/ReportIssueModal';
 import AnnouncementsList from '../components/AnnouncementsList';
 
@@ -68,6 +68,7 @@ interface Issue {
   tenantName: string;
   imageUrls?: string[];
   updates?: Array<{ notes: string; status: string; updatedAt: any; updatedBy: string }>;
+  lastFollowUpAt?: Timestamp;
 }
 
 // @ts-ignore
@@ -110,6 +111,7 @@ function TenantDashboard() {
   const { isOpen: isIssueImageModalOpen, onOpen: onIssueImageModalOpen, onClose: onIssueImageModalClose } = useDisclosure();
   const [currentIssueImageIndex, setCurrentIssueImageIndex] = useState(0);
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
+  const [followUpLoading, setFollowUpLoading] = useState<Record<string, boolean>>({});
 
   const toggleIssueExpansion = (issueId: string) => {
     setExpandedIssues(prev => {
@@ -269,6 +271,7 @@ function TenantDashboard() {
         tenantName: (d as Issue).tenantName || "",
         imageUrls: (d as Issue).imageUrls || [],
         updates: (d as Issue).updates || [],
+        lastFollowUpAt: (d as Issue).lastFollowUpAt,
       } as Issue;
     });
 
@@ -354,13 +357,50 @@ function TenantDashboard() {
         toast({
             title: "เกิดข้อผิดพลาด",
             description: "ไม่สามารถโหลดข้อมูลพัสดุได้",
-            status: "error",
-            duration: 3000,
-            isClosable: true,
-        });
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     });
 
     return unsubscribe;
+  };
+
+  const handleFollowUp = async (issueId: string) => {
+    setFollowUpLoading(prev => ({ ...prev, [issueId]: true }));
+    try {
+      const response = await fetch('/api/issues/follow-up', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ issueId, tenantName: currentUser?.name || 'ผู้เช่า' }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'เกิดข้อผิดพลาดในการติดตามเรื่อง');
+      }
+
+      toast({
+        title: "ส่งการติดตามสำเร็จ",
+        description: "เราได้แจ้งเตือนเจ้าหน้าที่ให้แล้ว",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      // Optionally, refresh the specific issue data
+      fetchIssueHistory('first'); 
+
+    } catch (error: any) {
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+    setFollowUpLoading(prev => ({ ...prev, [issueId]: false }));
   };
 
   const handleImageClick = (imageUrl: string) => {
@@ -658,19 +698,42 @@ function TenantDashboard() {
                             </Badge>
                           </Flex>
                           <Collapse in={expandedIssues.has(issue.id)} animateOpacity>
-                            {issue.updates && issue.updates.length > 0 && (
-                              <VStack align="stretch" spacing={2} pl={4} mt={3} borderLeftWidth="2px" borderColor="gray.200">
-                                {issue.updates.sort((a, b) => b.updatedAt.toMillis() - a.updatedAt.toMillis()).map((update, index) => (
-                                  <Box key={index}>
-                                    <Text fontSize="sm" fontWeight="medium">{update.notes}</Text>
-                                    <Text fontSize="xs" color="gray.500">
-                                      โดย {update.updatedBy} - {new Date(update.updatedAt.seconds * 1000).toLocaleString('th-TH')}
-                                    </Text>
-                                  </Box>
-                                ))}
+                              <VStack align="stretch" spacing={3} pt={3} mt={3} borderTopWidth="1px" borderColor="gray.200">
+                                {issue.updates && issue.updates.length > 0 ? (
+                                  <VStack align="stretch" spacing={2} pl={4} borderLeftWidth="2px" borderColor="gray.200">
+                                    {issue.updates.sort((a, b) => b.updatedAt.toMillis() - a.updatedAt.toMillis()).map((update, index) => (
+                                      <Box key={index}>
+                                        <Text fontSize="sm" fontWeight="medium">{update.notes}</Text>
+                                        <Text fontSize="xs" color="gray.500">
+                                          โดย {update.updatedBy} - {new Date(update.updatedAt.seconds * 1000).toLocaleString('th-TH')}
+                                        </Text>
+                                      </Box>
+                                    ))}
+                                  </VStack>
+                                ) : (
+                                  <Text fontSize="sm" color="gray.500">ยังไม่มีการอัปเดต</Text>
+                                )}
+
+                                {issue.status === 'pending' && (new Date().getTime() - issue.reportedAt.toDate().getTime()) > 3 * 24 * 60 * 60 * 1000 && (
+                                  <Tooltip 
+                                    label={issue.lastFollowUpAt ? `ติดตามล่าสุดเมื่อ ${new Date(issue.lastFollowUpAt.seconds * 1000).toLocaleString('th-TH')}` : 'แจ้งเตือนเจ้าหน้าที่'}
+                                    hasArrow
+                                  >
+                                    <Button 
+                                      size="sm" 
+                                      colorScheme="blue" 
+                                      variant="outline"
+                                      leftIcon={<FaPaperPlane />}
+                                      onClick={() => handleFollowUp(issue.id)}
+                                      isLoading={followUpLoading[issue.id]}
+                                      isDisabled={followUpLoading[issue.id] || (issue.lastFollowUpAt && (new Date().getTime() - issue.lastFollowUpAt.toDate().getTime()) < 24 * 60 * 60 * 1000)}
+                                    >
+                                      ติดตามเรื่อง
+                                    </Button>
+                                  </Tooltip>
+                                )}
                               </VStack>
-                            )}
-                          </Collapse>
+                            </Collapse>
                         </Box>
                       ))}
                     </VStack>
