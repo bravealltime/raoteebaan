@@ -28,6 +28,7 @@ export default function BillDetail() {
   const cancelRef = useRef<HTMLButtonElement>(null);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [fullUserData, setFullUserData] = useState<any | null>(null);
 
   // Hardcode promptpay for now (replace with real data if available)
   const promptpay = "1209701702030";
@@ -38,7 +39,9 @@ export default function BillDetail() {
         setCurrentUser(user);
         const snap = await getDoc(doc(db, "users", user.uid));
         if (snap.exists()) {
-          setUserRole(snap.data().role);
+          const userData = snap.data();
+          setUserRole(userData.role);
+          setFullUserData(userData);
         }
       }
     });
@@ -137,6 +140,8 @@ export default function BillDetail() {
             electricityImageUrl: d.electricityImageUrl || null,
             waterImageUrl: d.waterImageUrl || null,
             broughtForward: d.broughtForward || 0, // Add this line
+            ownerId: roomData?.ownerId, // Add ownerId
+            tenantId: roomData?.tenantId, // Add tenantId
           };
 
           setBill(finalBill);
@@ -152,6 +157,29 @@ export default function BillDetail() {
     };
     fetchBill();
   }, [roomId]);
+
+  useEffect(() => {
+    if (!fullUserData || !bill) return; // Wait for all data to be loaded
+
+    const { role, uid } = fullUserData;
+    const roomOwnerId = bill.ownerId; // Assuming bill object has ownerId
+    const tenantId = bill.tenantId; // Assuming bill object has tenantId
+
+    if (role === 'admin') {
+      return; // Admin can access everything
+    }
+
+    if (role === 'owner' && roomOwnerId !== uid) {
+      toast({ title: "ไม่มีสิทธิ์เข้าถึง", description: "คุณไม่ใช่เจ้าของห้องนี้", status: "error" });
+      router.replace('/');
+    }
+
+    if (role === 'user' && tenantId !== uid) {
+      toast({ title: "ไม่มีสิทธิ์เข้าถึง", description: "นี่ไม่ใช่บิลของคุณ", status: "error" });
+      router.replace('/tenant-dashboard');
+    }
+
+  }, [fullUserData, bill, router, toast]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).ThaiQRCode && bill?.promptpay && bill?.total) {
