@@ -5,7 +5,7 @@ import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp, startAfter, endBefore, limitToLast } from "firebase/firestore";
 import TenantLayout from "../components/TenantLayout";
-import { FaTools, FaUser, FaBell, FaImage, FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import { FaTools, FaUser, FaBell, FaImage, FaArrowLeft, FaArrowRight, FaExclamationTriangle } from "react-icons/fa";
 import UpdateIssueStatusModal from '../components/UpdateIssueStatusModal';
 
 interface UserData {
@@ -316,6 +316,12 @@ function TechnicianDashboard() {
                           <Badge colorScheme={getStatusColor(issue.status)} px={2} py={1} borderRadius="md">
                             {getStatusText(issue.status)}
                           </Badge>
+                          {issue.status === 'pending' && (new Date().getTime() - new Date(issue.reportedAt.seconds * 1000).getTime()) > 3 * 24 * 60 * 60 * 1000 && (
+                            <Flex align="center" mt={1}>
+                              <Icon as={FaExclamationTriangle} color="red.500" mr={1} />
+                              <Text fontSize="xs" color="red.500">ค้างเกิน 3 วัน</Text>
+                            </Flex>
+                          )}
                         </Td>
                         <Td>
                           {issue.updates && issue.updates.length > 0 ? (

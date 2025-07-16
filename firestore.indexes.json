@@ -29,6 +29,14 @@
       "collectionGroup": "issues",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "reportedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "issues",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "roomId", "order": "ASCENDING" },
         { "fieldPath": "reportedAt", "order": "DESCENDING" }
       ]
