@@ -24,7 +24,6 @@ export async function middleware(request: NextRequest) {
 
     // If the route is public, let the request through
     if (publicRoutes.includes(pathname)) {
-        // But if a logged-in user tries to access login/reset, redirect them to their dashboard
         if (token) {
             try {
                 const verifyUrl = new URL('/api/auth/verify-token', request.url);
@@ -37,8 +36,15 @@ export async function middleware(request: NextRequest) {
                     const { role } = await response.json();
                     return NextResponse.redirect(new URL(getDashboardPath(role), request.url));
                 }
+                // If token is invalid, clear it and let user proceed to public route
+                const res = NextResponse.next();
+                res.cookies.delete('token');
+                return res;
             } catch (e) {
-                // Invalid token, let them proceed to the public route
+                // On error, also clear token and proceed
+                const res = NextResponse.next();
+                res.cookies.delete('token');
+                return res;
             }
         }
         return NextResponse.next();
@@ -97,7 +103,7 @@ export async function middleware(request: NextRequest) {
     } catch (error) {
         // If token is invalid or any other error, clear it and redirect to login
         const res = NextResponse.redirect(new URL('/login', request.url));
-        res.cookies.delete('token');
+        res.cookies.set('token', '', { expires: new Date(0), path: '/' });
         return res;
     }
 }

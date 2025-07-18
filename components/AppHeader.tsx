@@ -17,7 +17,7 @@ import {
   Heading,
   HStack,
 } from "@chakra-ui/react";
-import { FaEnvelope, FaBars } from "react-icons/fa";
+import { FaEnvelope, FaBars, FaHome } from "react-icons/fa";
 import NotificationBell from './NotificationBell';
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
@@ -120,11 +120,32 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
 
   const handleLogout = async () => {
     try {
+      // Call the new logout API route
+      await fetch('/api/auth/logout', { method: 'POST' });
+
+      // Sign out from Firebase on the client-side
       await auth.signOut();
-      router.push('/login');
+
+      // Close modals
       onLogoutClose();
+      onProfileClose();
+
+      // Redirect to login page
+      router.replace('/login');
     } catch (error) {
       console.error("Error signing out: ", error);
+    }
+  };
+
+  const handleHomeClick = () => {
+    if (role === 'admin') {
+      router.push('/dashboard');
+    } else if (role === 'owner') {
+      router.push('/');
+    } else if (role === 'user') {
+      router.push('/tenant-dashboard');
+    } else {
+      router.push('/'); // Fallback
     }
   };
 
@@ -152,6 +173,18 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
         <Heading size="lg" color="gray.700">{pageTitle}</Heading>
         <Spacer />
         <HStack spacing={4}>
+          {router.pathname === '/inbox' && (
+            <IconButton
+              aria-label="Go to Home"
+              icon={<FaHome />}
+              variant="ghost"
+              fontSize="xl"
+              color="gray.600"
+              _hover={{ bg: "gray.200" }}
+              borderRadius="full"
+              onClick={handleHomeClick}
+            />
+          )}
           <NotificationBell currentUser={currentUser} />
           <Box position="relative">
             <IconButton
@@ -215,7 +248,7 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
       </AlertDialog>
       
       {/* Render the ProfileModal */}
-      <ProfileModal isOpen={isProfileOpen} onClose={onProfileClose} />
+      <ProfileModal isOpen={isProfileOpen} onClose={onProfileClose} onLogout={onLogoutOpen} />
     </>
   );
 } 

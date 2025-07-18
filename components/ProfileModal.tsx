@@ -33,9 +33,10 @@ import { db } from "../lib/firebase";
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onLogout: () => void;
 }
 
-export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
+export default function ProfileModal({ isOpen, onClose, onLogout }: ProfileModalProps) {
   const router = useRouter();
   const toast = useToast();
   const [user, setUser] = useState<any>(null);
@@ -255,7 +256,7 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
             ) : (
               <>
                 <Button colorScheme="blue" flex={1} onClick={handleEdit} borderRadius="lg" size="md">แก้ไขโปรไฟล์</Button>
-                <Button colorScheme="red" flex={1} variant="outline" onClick={handleLogout} borderRadius="lg" size="md">ออกจากระบบ</Button>
+                <Button colorScheme="red" flex={1} variant="outline" onClick={onLogout} borderRadius="lg" size="md">ออกจากระบบ</Button>
               </>
             )}
           </Flex>

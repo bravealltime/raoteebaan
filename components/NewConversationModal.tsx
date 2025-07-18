@@ -125,8 +125,8 @@ const NewConversationModal = ({
               } else if (currentUser.role === "owner") {
                 // Owners can chat with admin and their own tenants
                 return user.role === "admin" || ownedTenantIds.has(user.uid);
-              } else if (currentUser.role === "admin") {
-                // Admins can chat with everyone
+              } else if (["admin", "juristic"].includes(currentUser.role)) {
+                // Admins and Juristics can chat with everyone
                 return true;
               }
 
