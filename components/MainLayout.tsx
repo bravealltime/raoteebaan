@@ -92,7 +92,7 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
   return (
     <Flex minH="100vh" bg="gray.100">
       {/* Always show sidebar on non-mobile, regardless of showSidebar prop */}
-      {!isMobile && <Sidebar role={role} currentUser={currentUser} onProfileOpen={onProfileOpen} />}
+      {showSidebar && !isMobile && <Sidebar role={role} currentUser={currentUser} onProfileOpen={onProfileOpen} />}
       <Box flex={1} p={{ base: 4, md: 6 }}>
         {currentUser && <AppHeader currentUser={currentUser} onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)} onProfileOpen={onProfileOpen} />}
         <AnimatePresence mode="wait">
