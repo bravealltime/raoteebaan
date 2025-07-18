@@ -1,7 +1,7 @@
 import { Box, Button, Text, VStack, Flex, Avatar, Heading, Spacer, Divider, useDisclosure, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay } from "@chakra-ui/react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { FaHome, FaInbox, FaBox, FaUserFriends, FaTachometerAlt, FaSignOutAlt } from "react-icons/fa";
+import { FaHome, FaInbox, FaBox, FaUserFriends, FaTachometerAlt, FaSignOutAlt, FaBell } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { useRef } from "react";
 
@@ -33,11 +33,12 @@ const NavItem = ({ href, icon, children, onCloseMobileSidebar }) => {
           w="full"
           justifyContent="flex-start"
           px={4}
-          py={6}
+          py={3}
           bg={isActive ? "blue.500" : "transparent"}
           color={isActive ? "white" : "gray.700"}
           _hover={{
             bg: isActive ? "blue.600" : "gray.100",
+            color: isActive ? "white" : "gray.800",
           }}
         >
           <Text ml={2}>{children}</Text>
@@ -98,6 +99,10 @@ export default function Sidebar({ role, currentUser, onCloseMobileSidebar, onPro
     navItems = userNavItems;
   }
 
+  console.log("Sidebar received role:", role);
+  console.log("Sidebar received currentUser:", currentUser);
+  console.log("Sidebar navItems:", navItems);
+
   return (
     <Flex
       as="nav"
@@ -110,7 +115,7 @@ export default function Sidebar({ role, currentUser, onCloseMobileSidebar, onPro
       top={0}
       h="100vh"
     >
-      <Heading size="md" color="blue.600" mb={8} mt={2} alignSelf="center">TeeRao</Heading>
+      <Heading size="md" color="blue.600" mb={8} mt={2} alignSelf="center">{role === "admin" ? "TeeRao Admin" : "TeeRao"}</Heading>
       
       <VStack spacing={2} align="stretch" flex={1}>
         {navItems.map((item) => (

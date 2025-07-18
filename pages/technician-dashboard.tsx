@@ -219,143 +219,145 @@ function TechnicianDashboard() {
 
   return (
     <TenantLayout currentUser={currentUser}>
-      <Box p={{ base: 2, md: 4 }} bg="gray.50" minH="100vh">
-        <Heading size={{ base: "lg", md: "xl" }} mb={6} color="gray.700">
-          แดชบอร์ดช่าง
-        </Heading>
+      <Container maxW="container.xl" py={{ base: 4, md: 6 }}>
+        <VStack spacing={6} align="stretch">
+          <Heading size={{ base: "lg", md: "xl" }} color="gray.700">
+            แดชบอร์ดช่าง
+          </Heading>
 
-        {/* Personal Information Card */}
-        <Card mb={6} boxShadow="md" borderRadius="lg" bg="white" p={{ base: 4, md: 6 }}>
-          <CardHeader pb={2}>
-            <Heading size="md" color="blue.600">
-              <Icon as={FaUser} mr={2} /> ข้อมูลส่วนตัว
-            </Heading>
-          </CardHeader>
-          <CardBody>
-            <Flex direction={{ base: "column", md: "row" }} align="center" gap={6}>
-              <Avatar size="xl" src={currentUser?.avatar} name={currentUser?.name} boxShadow="md" />
-              <VStack align={{ base: "center", md: "flex-start" }} spacing={1} flex={1} w="100%">
-                <SimpleGrid columns={{ base: 1, sm: 2 }} spacingY={2} spacingX={6} w="100%">
-                  <Box>
-                    <Text fontWeight="bold" color="gray.500" fontSize="sm">ชื่อ</Text>
-                    <Text color="gray.800" fontSize="md">{currentUser?.name}</Text>
-                  </Box>
-                  <Box>
-                    <Text fontWeight="bold" color="gray.500" fontSize="sm">อีเมล</Text>
-                    <Text color="gray.800" fontSize="md">{currentUser?.email}</Text>
-                  </Box>
-                  <Box>
-                    <Text fontWeight="bold" color="gray.500" fontSize="sm">บทบาท</Text>
-                    <Text color="gray.800" fontSize="md">{currentUser?.role}</Text>
-                  </Box>
-                  <Box>
-                    <Text fontWeight="bold" color="gray.500" fontSize="sm">สถานะ</Text>
-                    <Badge fontSize="sm" px={2} py={0.5} borderRadius="md" colorScheme={currentUser?.status === "active" ? "green" : "red"}>
-                      {currentUser?.status === "active" ? "เปิดใช้งาน" : "ปิดใช้งาน"}
-                    </Badge>
-                  </Box>
-                </SimpleGrid>
-              </VStack>
-            </Flex>
-          </CardBody>
-        </Card>
-
-        {/* Issues List Card */}
-        <Card boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 2, md: 4 }} py={{ base: 4, md: 6 }}>
-          <CardHeader>
-            <Flex justify="space-between" align="center">
-              <Heading size="md" color="brand.600" letterSpacing="wide">
-                <Icon as={FaBell} mr={3} verticalAlign="middle" />
-                รายการแจ้งซ่อม
+          {/* Personal Information Card */}
+          <Card boxShadow="md" borderRadius="lg" bg="white" p={{ base: 4, md: 6 }}>
+            <CardHeader pb={2}>
+              <Heading size="md" color="blue.600">
+                <Icon as={FaUser} mr={2} /> ข้อมูลส่วนตัว
               </Heading>
-              <Flex>
-                <Button size="sm" colorScheme={filterStatus === 'pending' ? 'red' : 'gray'} onClick={() => handleFilterChange('pending')}>งานใหม่</Button>
-                <Button size="sm" colorScheme={filterStatus === 'in_progress' ? 'yellow' : 'gray'} onClick={() => handleFilterChange('in_progress')} mx={2}>กำลังดำเนินการ</Button>
-                <Button size="sm" colorScheme={filterStatus === 'resolved' ? 'green' : 'gray'} onClick={() => handleFilterChange('resolved')}>เสร็จสิ้น</Button>
+            </CardHeader>
+            <CardBody>
+              <Flex direction={{ base: "column", md: "row" }} align="center" gap={6}>
+                <Avatar size="xl" src={currentUser?.avatar} name={currentUser?.name} boxShadow="md" />
+                <VStack align={{ base: "center", md: "flex-start" }} spacing={1} flex={1} w="100%">
+                  <SimpleGrid columns={{ base: 1, sm: 2 }} spacingY={2} spacingX={6} w="100%">
+                    <Box>
+                      <Text fontWeight="bold" color="gray.500" fontSize="sm">ชื่อ</Text>
+                      <Text color="gray.800" fontSize="md">{currentUser?.name}</Text>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" color="gray.500" fontSize="sm">อีเมล</Text>
+                      <Text color="gray.800" fontSize="md">{currentUser?.email}</Text>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" color="gray.500" fontSize="sm">บทบาท</Text>
+                      <Text color="gray.800" fontSize="md">{currentUser?.role}</Text>
+                    </Box>
+                    <Box>
+                      <Text fontWeight="bold" color="gray.500" fontSize="sm">สถานะ</Text>
+                      <Badge fontSize="sm" px={2} py={0.5} borderRadius="md" colorScheme={currentUser?.status === "active" ? "green" : "red"}>
+                        {currentUser?.status === "active" ? "เปิดใช้งาน" : "ปิดใช้งาน"}
+                      </Badge>
+                    </Box>
+                  </SimpleGrid>
+                </VStack>
               </Flex>
-            </Flex>
-          </CardHeader>
-          <CardBody>
-            <TableContainer>
-              <Table variant="simple" size="sm">
-                <Thead>
-                  <Tr>
-                    <Th>ห้อง</Th>
-                    <Th>ผู้แจ้ง</Th> 
-                    <Th>ปัญหา</Th>
-                    <Th>รูปภาพ</Th>
-                    <Th>วันที่แจ้ง</Th>
-                    <Th>สถานะ</Th>
-                    <Th>อัปเดตล่าสุด</Th>
-                    <Th>จัดการ</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {issues.length > 0 ? (
-                    issues.map((issue) => (
-                      <Tr key={issue.id}>
-                        <Td>{issue.roomId}</Td>
-                        <Td>{issue.tenantName}</Td> 
-                        <Td><Text noOfLines={2}>{issue.description}</Text></Td>
-                        <Td>
-                          {issue.imageUrls && issue.imageUrls.length > 0 ? (
-                            <Button 
-                              leftIcon={<FaImage />} 
-                              aria-label="View images" 
-                              size="sm"
-                              onClick={() => handleImageClick(issue.imageUrls!)}
-                              variant="outline"
-                            >
-                              {issue.imageUrls.length}
-                            </Button>
-                          ) : (
-                            <Text color="gray.400">-</Text>
-                          )}
-                        </Td>
-                        <Td>{issue.reportedAt && new Date(issue.reportedAt.seconds * 1000).toLocaleDateString('th-TH')}</Td>
-                        <Td>
-                          <Badge colorScheme={getStatusColor(issue.status)} px={2} py={1} borderRadius="md">
-                            {getStatusText(issue.status)}
-                          </Badge>
-                          {issue.status === 'pending' && (new Date().getTime() - new Date(issue.reportedAt.seconds * 1000).getTime()) > 3 * 24 * 60 * 60 * 1000 && (
-                            <Flex align="center" mt={1}>
-                              <Icon as={FaExclamationTriangle} color="red.500" mr={1} />
-                              <Text fontSize="xs" color="red.500">ค้างเกิน 3 วัน</Text>
-                            </Flex>
-                          )}
-                        </Td>
-                        <Td>
-                          {issue.updates && issue.updates.length > 0 ? (
-                            <Text fontSize="sm" noOfLines={2}>
-                              {issue.updates[issue.updates.length - 1].notes}
-                            </Text>
-                          ) : (
-                            <Text fontSize="sm" color="gray.500">ไม่มีการอัปเดต</Text>
-                          )}
-                        </Td>
-                        <Td>
-                          <Button size="xs" colorScheme="blue" onClick={() => handleUpdateClick(issue)}>อัปเดตสถานะ</Button>
+            </CardBody>
+          </Card>
+
+          {/* Issues List Card */}
+          <Card boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 2, md: 4 }} py={{ base: 4, md: 6 }}>
+            <CardHeader>
+              <Flex justify="space-between" align="center">
+                <Heading size="md" color="brand.600" letterSpacing="wide">
+                  <Icon as={FaBell} mr={3} verticalAlign="middle" />
+                  รายการแจ้งซ่อม
+                </Heading>
+                <Flex>
+                  <Button size="sm" colorScheme={filterStatus === 'pending' ? 'red' : 'gray'} onClick={() => handleFilterChange('pending')}>งานใหม่</Button>
+                  <Button size="sm" colorScheme={filterStatus === 'in_progress' ? 'yellow' : 'gray'} onClick={() => handleFilterChange('in_progress')} mx={2}>กำลังดำเนินการ</Button>
+                  <Button size="sm" colorScheme={filterStatus === 'resolved' ? 'green' : 'gray'} onClick={() => handleFilterChange('resolved')}>เสร็จสิ้น</Button>
+                </Flex>
+              </Flex>
+            </CardHeader>
+            <CardBody>
+              <TableContainer>
+                <Table variant="simple" size="sm">
+                  <Thead>
+                    <Tr>
+                      <Th>ห้อง</Th>
+                      <Th>ผู้แจ้ง</Th> 
+                      <Th>ปัญหา</Th>
+                      <Th>รูปภาพ</Th>
+                      <Th>วันที่แจ้ง</Th>
+                      <Th>สถานะ</Th>
+                      <Th>อัปเดตล่าสุด</Th>
+                      <Th>จัดการ</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {issues.length > 0 ? (
+                      issues.map((issue) => (
+                        <Tr key={issue.id}>
+                          <Td>{issue.roomId}</Td>
+                          <Td>{issue.tenantName}</Td> 
+                          <Td><Text noOfLines={2}>{issue.description}</Text></Td>
+                          <Td>
+                            {issue.imageUrls && issue.imageUrls.length > 0 ? (
+                              <Button 
+                                leftIcon={<FaImage />} 
+                                aria-label="View images" 
+                                size="sm"
+                                onClick={() => handleImageClick(issue.imageUrls!)}
+                                variant="outline"
+                              >
+                                {issue.imageUrls.length}
+                              </Button>
+                            ) : (
+                              <Text color="gray.400">-</Text>
+                            )}
+                          </Td>
+                          <Td>{issue.reportedAt && new Date(issue.reportedAt.seconds * 1000).toLocaleDateString('th-TH')}</Td>
+                          <Td>
+                            <Badge colorScheme={getStatusColor(issue.status)} px={2} py={1} borderRadius="md">
+                              {getStatusText(issue.status)}
+                            </Badge>
+                            {issue.status === 'pending' && (new Date().getTime() - new Date(issue.reportedAt.seconds * 1000).getTime()) > 3 * 24 * 60 * 60 * 1000 && (
+                              <Flex align="center" mt={1}>
+                                <Icon as={FaExclamationTriangle} color="red.500" mr={1} />
+                                <Text fontSize="xs" color="red.500">ค้างเกิน 3 วัน</Text>
+                              </Flex>
+                            )}
+                          </Td>
+                          <Td>
+                            {issue.updates && issue.updates.length > 0 ? (
+                              <Text fontSize="sm" noOfLines={2}>
+                                {issue.updates[issue.updates.length - 1].notes}
+                              </Text>
+                            ) : (
+                              <Text fontSize="sm" color="gray.500">ไม่มีการอัปเดต</Text>
+                            )}
+                          </Td>
+                          <Td>
+                            <Button size="xs" colorScheme="blue" onClick={() => handleUpdateClick(issue)}>อัปเดตสถานะ</Button>
+                          </Td>
+                        </Tr>
+                      ))
+                    ) : (
+                      <Tr>
+                        <Td colSpan={7} textAlign="center">
+                          <Text color="gray.500" py={8}>ยังไม่มีรายการแจ้งซ่อมสำหรับสถานะ "{getStatusText(filterStatus)}"</Text>
                         </Td>
                       </Tr>
-                    ))
-                  ) : (
-                    <Tr>
-                      <Td colSpan={7} textAlign="center">
-                        <Text color="gray.500" py={8}>ยังไม่มีรายการแจ้งซ่อมสำหรับสถานะ "{getStatusText(filterStatus)}"</Text>
-                      </Td>
-                    </Tr>
-                  )}
-                </Tbody>
-              </Table>
-            </TableContainer>
-            <Flex justify="space-between" align="center" mt={4}>
-              <Button onClick={fetchPrevPage} isDisabled={page <= 1} leftIcon={<FaArrowLeft />}>ก่อนหน้า</Button>
-              <Text>หน้า {page}</Text>
-              <Button onClick={fetchNextPage} isDisabled={!lastVisible || issues.length < ISSUES_PER_PAGE} rightIcon={<FaArrowRight />}>ถัดไป</Button>
-            </Flex>
-          </CardBody>
-        </Card>
-      </Box>
+                    )}
+                  </Tbody>
+                </Table>
+              </TableContainer>
+              <Flex justify="space-between" align="center" mt={4}>
+                <Button onClick={fetchPrevPage} isDisabled={page <= 1} leftIcon={<FaArrowLeft />}>ก่อนหน้า</Button>
+                <Text>หน้า {page}</Text>
+                <Button onClick={fetchNextPage} isDisabled={!lastVisible || issues.length < ISSUES_PER_PAGE} rightIcon={<FaArrowRight />}>ถัดไป</Button>
+              </Flex>
+            </CardBody>
+          </Card>
+        </VStack>
+      </Container>
 
       <Modal isOpen={isUpdateModalOpen} onClose={onUpdateModalClose} isCentered>
           <ModalOverlay />

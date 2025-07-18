@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
-import { Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogCloseButton, SimpleGrid, Badge, Divider, Center, IconButton } from "@chakra-ui/react";
+import { Container, Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogCloseButton, SimpleGrid, Badge, Divider, Center, IconButton } from "@chakra-ui/react";
 import { db, auth } from "../../lib/firebase";
 import { collection, query, where, orderBy, limit, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
@@ -465,13 +465,13 @@ export default function BillDetail() {
   if (!bill) return <Box p={8}><Text>ไม่พบข้อมูลบิล</Text></Box>;
 
   const renderContent = () => (
-    <Box ref={pdfRef} maxW="1200px" mx="auto" p={{ base: 2, md: 4 }} position="relative">
+    <Container maxW="container.xl" py={{ base: 4, md: 8 }}>
       <IconButton
         icon={<FaArrowLeft />}
         aria-label="ย้อนกลับ"
         position="absolute"
-        top={4}
-        left={4}
+        top={{ base: 2, md: 4 }}
+        left={{ base: 2, md: 4 }}
         colorScheme="blue"
         variant="ghost"
         borderRadius="full"
@@ -649,7 +649,7 @@ export default function BillDetail() {
           ดาวน์โหลด PDF
         </Button>
       </VStack>
-    </Box>
+    </Container>
   );
 
   return (

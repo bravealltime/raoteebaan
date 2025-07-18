@@ -19,6 +19,7 @@ import {
   useToast,
   VStack,
   Image,
+  HStack,
 } from "@chakra-ui/react";
 import { FaUser, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 
@@ -32,48 +33,92 @@ export default function Login() {
   const router = useRouter();
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      toast({
+        title: "Missing fields",
+        description: "Please enter both email and password.",
+        status: "warning",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
     setLoading(true);
     setError("");
+
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+      const idToken = await user.getIdToken();
+      
+      // Set token in cookie
+      Cookies.set('token', idToken, { expires: 1, path: '/' });
 
-      if (user) {
-        const token = await user.getIdToken();
-        Cookies.set('token', token, { expires: 1 }); // Expires in 1 day
+      const docRef = doc(db, "users", user.uid);
+      const docSnap = await getDoc(docRef);
 
-        const userDocRef = doc(db, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        toast({
+          title: "Login Successful",
+          description: `Welcome back, ${userData.name || 'User'}!`,
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
 
-        if (userDocSnap.exists()) {
-          const userData = userDocSnap.data();
-          const userRole = userData.role;
-
-          toast({ title: "เข้าสู่ระบบสำเร็จ", status: "success", duration: 1500, isClosable: true });
-
-          if (userRole === "admin") {
-            router.push("/dashboard");
-          } else if (userRole === "owner") {
-            router.push("/owner-dashboard");
-          } else if (userRole === "employee") {
-            router.push("/employee");
-          } else if (userRole === "technician") {
-            router.push("/technician-dashboard");
-          } else if (userRole === "user") {
-            router.push("/tenant-dashboard");
-          } else {
+        // Redirect based on role
+        switch (userData.role) {
+          case "admin":
             router.push("/");
-          }
-        } else {
-          // User document not found in Firestore, redirect to rooms as a fallback
-          toast({ title: "เข้าสู่ระบบสำเร็จ", status: "success", duration: 1500, isClosable: true });
-          router.push("/");
+            break;
+          case "owner":
+            router.push("/");
+            break;
+          case "user":
+            router.push("/tenant-dashboard");
+            break;
+          case "employee":
+            router.push("/employee");
+            break;
+          default:
+            router.push("/");
         }
       } else {
-        throw new Error("User not found after login.");
+        setError("User data not found.");
+        toast({
+          title: "Login Error",
+          description: "Could not find user data.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
       }
-    } catch (err: any) {
-      setError("อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+    } catch (error: any) {
+      let errorMessage = "An unknown error occurred.";
+      switch (error.code) {
+        case "auth/user-not-found":
+          errorMessage = "No user found with this email.";
+          break;
+        case "auth/wrong-password":
+          errorMessage = "Incorrect password. Please try again.";
+          break;
+        case "auth/invalid-email":
+          errorMessage = "The email address is not valid.";
+          break;
+        default:
+          errorMessage = error.message;
+          break;
+      }
+      setError(errorMessage);
+      toast({
+        title: "Authentication Failed",
+        description: errorMessage,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
     } finally {
       setLoading(false);
     }
@@ -83,35 +128,36 @@ export default function Login() {
     <Flex minH="100vh" align="center" justify="center" bg="gray.50">
       <Flex w={{ base: "100%", md: "90%", lg: "80%" }} maxW="1200px" minH={{ base: "100vh", md: "auto" }} boxShadow={{ md: "2xl" }} borderRadius={{ md: "2xl" }} overflow="hidden" bg="white" direction={{ base: "column", md: "row" }}>
         {/* Left: Branding/Welcome */}
-        <Box flex={1} bgGradient="linear(to-br, orange.400, orange.500)" color="white" display={{ base: "none", md: "flex" }} flexDirection="column" justifyContent="center" alignItems="center" p={8}>
-          <Box maxW="340px" w="full">
+        <VStack flex={1} bgGradient="linear(to-br, orange.400, orange.500)" color="white" display={{ base: "none", md: "flex" }} justifyContent="center" alignItems="center" p={8} spacing={8}>
+          <div style={{ maxWidth: "340px", width: "100%" }}>
             <Heading fontSize={["2xl", "3xl"]} fontWeight="extrabold" mb={4} lineHeight={1.2}>
               Simplify management with <br /> our dashboard.
             </Heading>
-            <Text fontSize="md" mb={8}>
+            <Text fontSize="md">
               Simplify your property management with our user-friendly admin dashboard.
             </Text>
-            {/* You can use an illustration or mascot here if you want */}
-            <Flex justify="center" align="end" gap={4}>
-              <Image src="/avatar.png" alt="Mascot" boxSize="80px" borderRadius="full" bg="whiteAlpha.800" />
-              <Image src="/avatar.png" alt="Mascot2" boxSize="80px" borderRadius="full" bg="whiteAlpha.800" />
-            </Flex>
-          </Box>
-        </Box>
+          </div>
+          <HStack justify="center" align="end" gap={4}>
+            <Image src="/avatar.png" alt="Mascot" boxSize="80px" borderRadius="full" bg="whiteAlpha.800" />
+            <Image src="/avatar.png" alt="Mascot2" boxSize="80px" borderRadius="full" bg="whiteAlpha.800" />
+          </HStack>
+        </VStack>
         {/* Right: Login Form */}
-        <Box flex={1} display="flex" flexDirection="column" justifyContent="center" alignItems="center" p={{ base: 6, md: 8 }}>
-          <Box w="full" maxW="340px">
-            <Flex align="center" gap={2} mb={6} justify="center">
+        <Flex flex={1} direction="column" justifyContent="center" alignItems="center" p={{ base: 6, md: 8 }}>
+          <VStack w="full" maxW="340px" spacing={4}>
+            <HStack gap={2} mb={2} justify="center">
               <Box bg="orange.400" borderRadius="full" p={2} boxShadow="md">
                 <Icon as={FaUser} w={7} h={7} color="white" />
               </Box>
               <Heading color="orange.500" fontWeight="extrabold" fontSize="2xl" letterSpacing={1}>
                 TeeRao
               </Heading>
-            </Flex>
-            <Heading color="gray.800" fontSize="2xl" mb={2} fontWeight="bold" textAlign="left">Welcome Back</Heading>
-            <Text color="gray.500" mb={6} fontSize="md">Please login to your account</Text>
-            <InputGroup mb={4} size="lg">
+            </HStack>
+            <VStack align="flex-start" w="full" spacing={1}>
+              <Heading color="gray.800" fontSize="2xl" fontWeight="bold">Welcome Back</Heading>
+              <Text color="gray.500" fontSize="md">Please login to your account</Text>
+            </VStack>
+            <InputGroup size="lg">
               <InputLeftElement pointerEvents="none">
                 <FaUser color="#aaa" />
               </InputLeftElement>
@@ -126,7 +172,7 @@ export default function Login() {
                 _focus={{ bg: "white" }}
               />
             </InputGroup>
-            <InputGroup mb={2} size="lg">
+            <InputGroup size="lg">
               <InputLeftElement pointerEvents="none">
                 <FaLock color="#aaa" />
               </InputLeftElement>
@@ -152,7 +198,7 @@ export default function Login() {
                 />
               </InputRightElement>
             </InputGroup>
-            {error && <Text color="red.400" fontSize="sm" mb={2}>{error}</Text>}
+            {error && <Text color="red.400" fontSize="sm">{error}</Text>}
             <Button
               colorScheme="orange"
               bgGradient="linear(to-r, orange.400, orange.500)"
@@ -164,12 +210,11 @@ export default function Login() {
               _hover={{ bgGradient: "linear(to-r, orange.500, orange.400)", color: "white" }}
               onClick={handleLogin}
               isLoading={loading}
-              mb={4}
             >
               Login
             </Button>
-          </Box>
-        </Box>
+          </VStack>
+        </Flex>
       </Flex>
     </Flex>
   );

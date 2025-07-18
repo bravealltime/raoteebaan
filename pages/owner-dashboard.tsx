@@ -39,7 +39,12 @@ interface Room {
   latestBillId?: string;
 }
 
-export default function OwnerDashboard() {
+interface OwnerDashboardProps {
+  currentUser: any;
+  role: string | null;
+}
+
+export default function OwnerDashboard({ currentUser, role }: OwnerDashboardProps) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -61,8 +66,6 @@ export default function OwnerDashboard() {
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant' | 'review'>('unpaid');
   const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
-  const [role, setRole] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [proofImageUrl, setProofImageUrl] = useState<string | null>(null);
   const { isOpen: isProofModalOpen, onOpen: onProofModalOpen, onClose: onProofModalClose } = useDisclosure();
   const [selectedBill, setSelectedBill] = useState<any | null>(null);
@@ -83,37 +86,9 @@ export default function OwnerDashboard() {
     review: 'รอตรวจสอบ'
   };
 
-  const user = {
-    name: "xxx",
-    avatar: "/avatar.png",
-    greeting: "อาทิตย์ 21 มิ.ย. 2568"
-  };
+  
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (!u) {
-        router.replace("/login");
-        return;
-      }
-      const snap = await getDoc(doc(db, "users", u.uid));
-      const userRole = snap.exists() ? snap.data().role : "user";
-      const firestoreData = snap.exists() ? snap.data() : {};
-      setRole(userRole);
-      setCurrentUser({
-        uid: u.uid,
-        name: firestoreData.name || u.displayName || '',
-        email: firestoreData.email || u.email || '',
-        role: userRole,
-        photoURL: firestoreData.avatar || u.photoURL || undefined,
-        ownerId: firestoreData.ownerId || undefined,
-      });
-        if (userRole !== "owner") {
-          router.replace("/"); // Redirect non-owners to home or login
-          return;
-        }
-    });
-    return () => unsub();
-  }, [router]);
+  
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -816,9 +791,6 @@ export default function OwnerDashboard() {
             <SummaryCard icon={FaBox} label="พัสดุ" value={parcelCount} />
             <SummaryCard icon={FaFileInvoiceDollar} label="รายรับที่ต้องได้เดือนนี้" value={`${monthlyIncome.toLocaleString()} บาท`} color="blue.500" />
             <SummaryCard icon={FaCheckCircle} label="รายรับที่ได้เดือนนี้" value={`${monthlyPaid.toLocaleString()} บาท`} color="green.500" />
-          </SimpleGrid>
-
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={{ base: 4, md: 6 }} mb={6}>
             <Box bg="white" borderRadius="xl" p={{ base: 3, md: 5 }} boxShadow="sm">
               <RoomStatusChart data={roomStatusData} />
             </Box>

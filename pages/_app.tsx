@@ -1,10 +1,14 @@
-import { ChakraProvider, extendTheme } from "@chakra-ui/react";
+import { ChakraProvider, extendTheme, Spinner, Center } from "@chakra-ui/react";
 import type { AppProps } from "next/app";
 import Head from "next/head";
 import ErrorBoundary from "../components/ErrorBoundary";
 import "../styles/fonts.css";
 import "../styles/globals.css";
 import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../lib/firebase";
 
 const theme = extendTheme({
   fonts: {
@@ -42,6 +46,48 @@ const theme = extendTheme({
 });
 
 function MyApp({ Component, pageProps }: AppProps) {
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setCurrentUser({ ...user, ...userData });
+          setRole(userData.role);
+        } else {
+          // Handle case where user exists in auth but not in firestore
+          setCurrentUser(user);
+          setRole(null);
+        }
+      } else {
+        setCurrentUser(null);
+        setRole(null);
+        if (router.pathname !== '/login' && router.pathname !== '/reset-password') {
+          router.push('/login');
+        }
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  if (loading) {
+    return (
+      <ChakraProvider theme={theme}>
+        <Center h="100vh">
+          <Spinner size="xl" />
+        </Center>
+      </ChakraProvider>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <Head>
@@ -53,7 +99,7 @@ function MyApp({ Component, pageProps }: AppProps) {
         />
       </Head>
       <ChakraProvider theme={theme}>
-        <Component {...pageProps} />
+        <Component {...pageProps} currentUser={currentUser} role={role} />
       </ChakraProvider>
     </ErrorBoundary>
   );

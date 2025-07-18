@@ -76,11 +76,15 @@ declare global {
   interface Window { ThaiQRCode: any }
 }
 
-function TenantDashboard() {
+interface TenantDashboardProps {
+  currentUser: any;
+  role: string | null;
+}
+
+function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
   console.log("TenantDashboard component rendering...");
   const router = useRouter();
   const toast = useToast();
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [scriptsReady, setScriptsReady] = useState(false);
   
   const [roomData, setRoomData] = useState<RoomData | null>(null);
@@ -125,75 +129,47 @@ function TenantDashboard() {
     });
   };
 
-  useEffect(() => {
-    const authUnsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setLoading(true);
-
-        const userDocRef = doc(db, "users", user.uid);
-        const userUnsubscribe = onSnapshot(userDocRef, (userDoc) => {
-          const firestoreData = userDoc.exists() ? userDoc.data() : {};
-          const combinedUser = {
-            uid: user.uid,
-            name: firestoreData.name || user.displayName || "",
-            email: user.email || "",
-            role: firestoreData.role || "user",
-            status: firestoreData.status || "active",
-            photoURL: firestoreData.avatar || user.photoURL || undefined,
-            roomId: firestoreData.roomId,
-          };
-          setCurrentUser(combinedUser);
-          console.log("Current User Loaded:", combinedUser);
-        });
-
-        const roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", user.uid), limit(1));
-        const roomUnsubscribe = onSnapshot(roomsQuery, (snapshot) => {
-          if (!snapshot.empty) {
-            const roomDoc = snapshot.docs[0];
-            const currentRoomData = roomDoc.data();
-            const roomId = roomDoc.id;
-            setRoomData({
-              id: roomId,
-              tenantName: currentRoomData.tenantName || "",
-              area: currentRoomData.area || 0,
-              rent: currentRoomData.rent || 0,
-              service: currentRoomData.service || 0,
-              electricity: currentRoomData.electricity || 0,
-              water: currentRoomData.water || 0,
-              latestTotal: currentRoomData.latestTotal || 0,
-              billStatus: currentRoomData.billStatus || "pending",
-              overdueDays: currentRoomData.overdueDays || 0,
-              assessmentFormUrl: currentRoomData.assessmentFormUrl || undefined,
-            });
-            console.log("Room Data Loaded:", { id: roomId, ...currentRoomData });
-            fetchBillHistory(roomId);
-            fetchUndeliveredParcels(roomId);
-          } else {
-            setRoomData(null);
-            setBillHistory([]);
-            setUndeliveredParcels([]);
-            console.log("No Room Data Found for user:", user.uid);
-          }
-          setLoading(false);
-        });
-
-        return () => {
-          userUnsubscribe();
-          roomUnsubscribe();
-        };
-      } else {
-        router.replace("/login");
-      }
-    });
-
-    return () => authUnsubscribe();
-  }, [router, toast]);
+  
 
   useEffect(() => {
-    if (currentUser && currentUser.role && !["user", "tenant"].includes(currentUser.role)) {
-      router.replace("/login");
+    if (currentUser && currentUser.uid) {
+      setLoading(true);
+      const roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", currentUser.uid), limit(1));
+      const roomUnsubscribe = onSnapshot(roomsQuery, (snapshot) => {
+        if (!snapshot.empty) {
+          const roomDoc = snapshot.docs[0];
+          const currentRoomData = roomDoc.data();
+          const roomId = roomDoc.id;
+          setRoomData({
+            id: roomId,
+            tenantName: currentRoomData.tenantName || "",
+            area: currentRoomData.area || 0,
+            rent: currentRoomData.rent || 0,
+            service: currentRoomData.service || 0,
+            electricity: currentRoomData.electricity || 0,
+            water: currentRoomData.water || 0,
+            latestTotal: currentRoomData.latestTotal || 0,
+            billStatus: currentRoomData.billStatus || "pending",
+            overdueDays: currentRoomData.overdueDays || 0,
+            assessmentFormUrl: currentRoomData.assessmentFormUrl || undefined,
+          });
+          console.log("Room Data Loaded:", { id: roomId, ...currentRoomData });
+          fetchBillHistory(roomId);
+          fetchUndeliveredParcels(roomId);
+        } else {
+          setRoomData(null);
+          setBillHistory([]);
+          setUndeliveredParcels([]);
+          console.log("No Room Data Found for user:", currentUser.uid);
+        }
+        setLoading(false);
+      });
+
+      return () => {
+        roomUnsubscribe();
+      };
     }
-  }, [currentUser, router]);
+  }, [currentUser, router, toast]);
 
   useEffect(() => {
     if (!currentUser?.uid) return;
@@ -436,7 +412,7 @@ function TenantDashboard() {
 
   const promptpayNumber = "0812345678";
 
-  if (loading) {
+  if (!currentUser) {
     return (
       <TenantLayout currentUser={currentUser} isProfileOpen={isProfileOpen} onProfileOpen={onProfileOpen} onProfileClose={onProfileClose}>
         <Center h="50vh">

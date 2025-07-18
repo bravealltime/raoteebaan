@@ -43,7 +43,12 @@ interface Room {
 
 // ... (the rest of the component code)
 
-function RoomsPage() {
+interface RoomsPageProps {
+  currentUser: any;
+  role: string | null;
+}
+
+function RoomsPage({ currentUser, role }: RoomsPageProps) {
   const router = useRouter();
   const cancelRef = useRef(null);
   const toast = useToast();
@@ -93,43 +98,15 @@ function RoomsPage() {
   const [newEquipmentCondition, setNewEquipmentCondition] = useState("ดี");
   const [newEquipmentNotes, setNewEquipmentNotes] = useState("");
   const [isMeterReadingModalOpen, setIsMeterReadingModalOpen] = useState(false);
-  const [role, setRole] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<any | null>(null); // Add currentUser state
   const [isUploadSlipModalOpen, setIsUploadSlipModalOpen] = useState(false);
   const [selectedRoomForSlip, setSelectedRoomForSlip] = useState<Room | null>(null);
   const [isSlipViewModalOpen, setIsSlipViewModalOpen] = useState(false);
   const [currentSlipUrl, setCurrentSlipUrl] = useState<string | null>(null);
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        router.replace('/login')
-        return;
-      }
-      const snap = await getDoc(doc(db, "users", user.uid));
-      const userRole = snap.exists() ? snap.data().role : "user";
-      const firestoreData = snap.exists() ? snap.data() : {};
-
-      setUserId(user.uid);
-      setUserEmail(user.email);
-      setRole(userRole);
-      setCurrentUser({
-        uid: user.uid,
-        name: firestoreData.name || user.displayName || '',
-        email: firestoreData.email || user.email || '',
-        role: userRole,
-        photoURL: firestoreData.avatar || user.photoURL || undefined, // Ensure photoURL is taken from Firestore first, then Auth
-        roomNumber: firestoreData.roomNumber || undefined,
-      });
-      setLoading(false)
-    });
-    return () => unsub();
-  }, []);
+  
 
   const fetchData = useCallback(async () => {
-    if (!userId || !role) return;
+    if (!currentUser || !role) return;
 
     setLoading(true);
     try {
@@ -137,9 +114,9 @@ function RoomsPage() {
       if (role === 'admin') {
         roomsQuery = collection(db, "rooms");
       } else if (role === 'owner') {
-        roomsQuery = query(collection(db, "rooms"), where("ownerId", "==", userId));
+        roomsQuery = query(collection(db, "rooms"), where("ownerId", "==", currentUser.uid));
       } else if (role === 'user') {
-        roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", userId));
+        roomsQuery = query(collection(db, "rooms"), where("tenantId", "==", currentUser.uid));
       } else {
         setRooms([]);
         setLoading(false);
@@ -209,26 +186,15 @@ function RoomsPage() {
     } finally {
       setLoading(false);
     }
-  }, [userId, role, toast]);
+  }, [currentUser, role, toast]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  useEffect(() => {
-    if (loading) return; // Don't run this check while data is still loading
-
-    if (role === 'user' && rooms.length === 0) {
-      toast({
-        title: "ไม่พบข้อมูลห้องพัก",
-        description: "คุณยังไม่ได้ถูกกำหนดให้เข้าพักในห้องใดๆ",
-        status: "info",
-        duration: 5000,
-        isClosable: true,
-      });
-      router.replace('/tenant-dashboard');
+    if (currentUser) {
+      fetchData();
     }
-  }, [loading, role, rooms, router, toast]);
+  }, [currentUser, fetchData]);
+
+  
 
   const handleDelete = (id: string) => {
     setDeleteId(id);
@@ -310,7 +276,7 @@ function RoomsPage() {
         billStatus: "paid",
         tenantId: tenantId,
         tenantEmail: roomData.tenantEmail || null,
-        ownerId: userId || undefined,
+        ownerId: currentUser.uid || undefined,
       };
       
       await setDoc(doc(db, "rooms", sanitizedRoomId), room);
@@ -523,7 +489,7 @@ function RoomsPage() {
           return;
         }
 
-        // --- Start: Calculate Brought Forward Amount ---
+        // --- Start: Calculate Brought Forward Amount ---/
         let broughtForward = 0;
         const previousUnpaidBills: string[] = [];
         const unpaidBillsQuery = query(
@@ -538,7 +504,7 @@ function RoomsPage() {
           // Mark old bill as 'rolled-over' in the same batch
           batch.update(billDoc.ref, { status: "rolled-over" });
         });
-        // --- End: Calculate Brought Forward Amount ---
+        // --- End: Calculate Brought Forward Amount ---/
 
         const electricityUnit = newElec - prevElec;
         const waterUnit = newWater - prevWater;
@@ -710,7 +676,7 @@ function RoomsPage() {
               billStatus: status === 'vacant' ? 'vacant' : 'unpaid',
               tenantId: null,
               tenantEmail: (row as any).tenantEmail || null,
-              ownerId: userId || undefined,
+              ownerId: currentUser.uid || undefined,
               extraServices: [], // Removed from import
             };
 
@@ -1015,7 +981,7 @@ function RoomsPage() {
 
       toast.update(toastId, {
         title: "Marked as Paid",
-        description: `Bill for Room ${roomId} has been marked as paid.`, 
+        description: `Bill for Room ${roomId} has been marked as paid.`,
         status: "success",
         duration: 5000,
       });
@@ -1072,7 +1038,7 @@ function RoomsPage() {
 
       toast.update(toastId, {
         title: "Proof Deleted",
-        description: `Proof for Room ${roomId} has been deleted.`, 
+        description: `Proof for Room ${roomId} has been deleted.`,
         status: "success",
         duration: 5000,
       });
@@ -1284,14 +1250,7 @@ function RoomsPage() {
   if (loading) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
 
   return (
-    <MainLayout role={role} currentUser={{
-      uid: userId || '',
-      name: currentUser?.name || '',
-      email: currentUser?.email || '',
-      role: role || '',
-      photoURL: currentUser?.photoURL || undefined,
-      roomNumber: currentUser?.roomNumber || undefined,
-    }}>
+    <MainLayout role={role} currentUser={currentUser}>
       <Box p={{ base: 2, md: 4 }}>
         <Flex
           direction={{ base: "column", md: "row" }}
@@ -1519,7 +1478,7 @@ function RoomsPage() {
         </ModalContent>
       </Modal>
 
-      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} userRole={role} ownerId={userId || undefined} isCentered size={{ base: "full", md: "2xl" }} />
+      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} userRole={role} ownerId={currentUser.uid || undefined} isCentered size={{ base: "full", md: "2xl" }} />
 
       <EditRoomModal
         isOpen={!!editRoom}
@@ -1768,198 +1727,6 @@ function RoomsPage() {
             </Button>
             <Button colorScheme="blue" ml={3} onClick={handleImportCsv} isDisabled={!importFile}>
               นำเข้าข้อมูล
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-
-      <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)} isCentered size={{ base: "full", md: "xl" }} scrollBehavior="inside">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>ใบประเมินอุปกรณ์</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <FormControl mb={4}>
-              <FormLabel>เลือกห้องที่ต้องการดาวน์โหลด</FormLabel>
-              <Select
-                placeholder="เลือกห้อง"
-                value={selectedRoomForEquipment}
-                onChange={e => setSelectedRoomForEquipment(e.target.value)}
-              >
-                {rooms.map(room => (
-                  <option key={room.id} value={room.id}>
-                    ห้อง {room.id} ({room.tenantName})
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
-
-            <Box mb={6}>
-              <Heading size="md" mb={3} color="blue.700">เพิ่มอุปกรณ์ใหม่</Heading>
-              <VStack spacing={3} align="stretch" p={4} borderWidth="1px" borderRadius="lg" bg="gray.50">
-                <FormControl>
-                  <FormLabel>ชื่ออุปกรณ์</FormLabel>
-                  <InputGroup>
-                    <Input
-                      placeholder="เช่น โทรทัศน์, ตู้เย็น"
-                      value={newEquipmentName}
-                      onChange={(e) => setNewEquipmentName(e.target.value)}
-                    />
-                    {newEquipmentName && (
-                      <InputRightElement>
-                        <CloseButton onClick={() => setNewEquipmentName("")} size="sm" />
-                      </InputRightElement>
-                    )}
-                  </InputGroup>
-                </FormControl>
-                <HStack spacing={3}>
-                  <FormControl flex={1}>
-                    <FormLabel>สถานะ</FormLabel>
-                    <Select
-                      value={newEquipmentStatus}
-                      onChange={(e) => setNewEquipmentStatus(e.target.value)}
-                    >
-                      <option value="ครบ">ครบ</option>
-                      <option value="ไม่ครบ">ไม่ครบ</option>
-                    </Select>
-                  </FormControl>
-                  <FormControl flex={1}>
-                    <FormLabel>สภาพ</FormLabel>
-                    <Select
-                      value={newEquipmentCondition}
-                      onChange={(e) => setNewEquipmentCondition(e.target.value)}
-                    >
-                      <option value="ดี">ดี</option>
-                      <option value="พอใช้">พอใช้</option>
-                      <option value="ชำรุด">ชำรุด</option>
-                    </Select>
-                  </FormControl>
-                </HStack>
-                <FormControl>
-                  <FormLabel>หมายเหตุ (ถ้ามี)</FormLabel>
-                  <Input
-                    placeholder="เช่น มีรอยขีดข่วนเล็กน้อย"
-                    value={newEquipmentNotes}
-                    onChange={(e) => setNewEquipmentNotes(e.target.value)}
-                  />
-                </FormControl>
-                <Button
-                  leftIcon={<FaPlus />}
-                  colorScheme="blue"
-                  onClick={() => {
-                    if (newEquipmentName.trim() === "") {
-                      toast({ title: "กรุณากรอกชื่ออุปกรณ์", status: "warning" });
-                      return;
-                    }
-                    setEquipmentList([
-                      ...equipmentList,
-                      {
-                        name: newEquipmentName,
-                        status: newEquipmentStatus,
-                        condition: newEquipmentCondition,
-                        notes: newEquipmentNotes,
-                      },
-                    ]);
-                    setNewEquipmentName("");
-                    setNewEquipmentStatus("ครบ");
-                    setNewEquipmentCondition("ดี");
-                    setNewEquipmentNotes("");
-                  }}
-                >
-                  เพิ่มอุปกรณ์
-                </Button>
-              </VStack>
-            </Box>
-
-            <Box>
-              <Heading size="md" mb={3} color="blue.700">รายการอุปกรณ์</Heading>
-              <Box maxH="400px" overflowY="auto" mb={4} borderWidth="1px" borderRadius="lg" p={2} bg="white">
-                <Table variant="simple" size="sm" width="full">
-                  <Thead bg="gray.100">
-                    <Tr>
-                      <Th>อุปกรณ์</Th>
-                      <Th>สถานะ</Th>
-                      <Th>สภาพ</Th>
-                      <Th>หมายเหตุ</Th>
-                      <Th></Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {equipmentList.length === 0 ? (
-                      <Tr>
-                        <Td colSpan={5} textAlign="center" color="gray.500">ไม่มีอุปกรณ์ในรายการ</Td>
-                      </Tr>
-                    ) : (
-                      equipmentList.map((item, index) => (
-                        <Tr key={index}>
-                          <Td py={2}>{item.name}</Td>
-                          <Td py={2}>
-                            <Select
-                              value={item.status}
-                              onChange={(e) => {
-                                const newEquipmentList = [...equipmentList];
-                                newEquipmentList[index].status = e.target.value;
-                                setEquipmentList(newEquipmentList);
-                              }}
-                              size="sm"
-                            >
-                              <option value="ครบ">ครบ</option>
-                              <option value="ไม่ครบ">ไม่ครบ</option>
-                            </Select>
-                          </Td>
-                          <Td py={2}>
-                            <Select
-                              value={item.condition}
-                              onChange={(e) => {
-                                const newEquipmentList = [...equipmentList];
-                                newEquipmentList[index].condition = e.target.value;
-                                setEquipmentList(newEquipmentList);
-                              }}
-                              size="sm"
-                            >
-                              <option value="ดี">ดี</option>
-                              <option value="พอใช้">พอใช้</option>
-                              <option value="ชำรุด">ชำรุด</option>
-                            </Select>
-                          </Td>
-                          <Td py={2}>
-                            <Input
-                              value={item.notes}
-                              onChange={(e) => {
-                                const newEquipmentList = [...equipmentList];
-                                newEquipmentList[index].notes = e.target.value;
-                                setEquipmentList(newEquipmentList);
-                              }}
-                              size="sm"
-                            />
-                          </Td>
-                          <Td py={2}>
-                            <IconButton
-                              aria-label="ลบอุปกรณ์"
-                              icon={<FaTrash />}
-                              size="sm"
-                              colorScheme="red"
-                              variant="ghost"
-                              onClick={() => {
-                                const newEquipmentList = equipmentList.filter((_, i) => i !== index);
-                                setEquipmentList(newEquipmentList);
-                              }}
-                            />
-                          </Td>
-                        </Tr>
-                      ))
-                    )}
-                  </Tbody>
-                </Table>
-              </Box>
-            </Box>
-          </ModalBody>
-          <ModalFooter>
-            <Button colorScheme="gray" mr={3} onClick={() => setIsEquipmentModalOpen(false)}>
-              ยกเลิก
-            </Button>
-            <Button colorScheme="purple" onClick={handleConfirmEquipmentDownload}>
-              ดาวน์โหลด PDF
             </Button>
           </ModalFooter>
         </ModalContent>

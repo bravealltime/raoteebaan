@@ -1,5 +1,5 @@
 
-import { Box, Heading, VStack, Spinner, Text, Flex, Button, Icon, HStack, IconButton, Tooltip } from "@chakra-ui/react";
+import { Box, Heading, VStack, Spinner, Text, Flex, Button, Icon, HStack, IconButton, Tooltip, Container } from "@chakra-ui/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { db } from "../lib/firebase";
@@ -120,52 +120,54 @@ export default function NotificationsPage() {
 
   return (
     <Layout role={role} currentUser={userData}>
-      <Box maxWidth="800px" mx="auto">
-        <Flex justify="space-between" align="center" mb={6}>
-            <HStack spacing={4}>
-                <Tooltip label="ย้อนกลับ" placement="bottom">
-                    <IconButton 
-                        aria-label="Go back" 
-                        icon={<FaArrowLeft />} 
-                        onClick={() => router.back()} 
-                        isRound
-                        variant="ghost"
-                    />
-                </Tooltip>
-                <Heading>การแจ้งเตือนทั้งหมด</Heading>
-            </HStack>
-            <Button onClick={handleMarkAllAsRead} leftIcon={<FaCheckCircle/>}>ทำเครื่องหมายว่าอ่านแล้วทั้งหมด</Button>
-        </Flex>
-        
-        {notifications.length === 0 ? (
-          <Text>ไม่มีการแจ้งเตือน</Text>
-        ) : (
-          <VStack align="stretch" spacing={3}>
-            {notifications.map((notif) => (
-              <Flex
-                key={notif.id}
-                p={4}
-                bg={notif.isRead ? "white" : "blue.50"}
-                borderRadius="md"
-                boxShadow="sm"
-                cursor="pointer"
-                onClick={() => handleNotificationClick(notif)}
-                _hover={{ boxShadow: "md", transform: "translateY(-2px)" }}
-                transition="all 0.2s"
-                align="center"
-              >
-                <Icon as={FaBell} color={notif.isRead ? "gray.400" : "blue.500"} boxSize={6} mr={4}/>
-                <Box>
-                    <Text>{notif.message}</Text>
-                    <Text fontSize="sm" color="gray.500">
-                        <TimeAgo date={notif.createdAt.toDate()} formatter={formatter} />
-                    </Text>
-                </Box>
-              </Flex>
-            ))}
-          </VStack>
-        )}
-      </Box>
+      <Container maxW="container.lg" py={6}>
+        <VStack align="stretch" spacing={6}>
+          <Flex justify="space-between" align="center">
+              <HStack spacing={4}>
+                  <Tooltip label="ย้อนกลับ" placement="bottom">
+                      <IconButton 
+                          aria-label="Go back" 
+                          icon={<FaArrowLeft />} 
+                          onClick={() => router.back()} 
+                          isRound
+                          variant="ghost"
+                      />
+                  </Tooltip>
+                  <Heading>การแจ้งเตือนทั้งหมด</Heading>
+              </HStack>
+              <Button onClick={handleMarkAllAsRead} leftIcon={<FaCheckCircle/>}>ทำเครื่องหมายว่าอ่านแล้วทั้งหมด</Button>
+          </Flex>
+          
+          {notifications.length === 0 ? (
+            <Text>ไม่มีการแจ้งเตือน</Text>
+          ) : (
+            <VStack align="stretch" spacing={3}>
+              {notifications.map((notif) => (
+                <Flex
+                  key={notif.id}
+                  p={4}
+                  bg={notif.isRead ? "white" : "blue.50"}
+                  borderRadius="md"
+                  boxShadow="sm"
+                  cursor="pointer"
+                  onClick={() => handleNotificationClick(notif)}
+                  _hover={{ boxShadow: "md", transform: "translateY(-2px)" }}
+                  transition="all 0.2s"
+                  align="center"
+                >
+                  <Icon as={FaBell} color={notif.isRead ? "gray.400" : "blue.500"} boxSize={6} mr={4}/>
+                  <Box>
+                      <Text>{notif.message}</Text>
+                      <Text fontSize="sm" color="gray.500">
+                          <TimeAgo date={notif.createdAt.toDate()} formatter={formatter} />
+                      </Text>
+                  </Box>
+                </Flex>
+              ))}
+            </VStack>
+          )}
+        </VStack>
+      </Container>
     </Layout>
   );
 }

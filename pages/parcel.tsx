@@ -73,6 +73,18 @@ import {
 import { onAuthStateChanged } from "firebase/auth";
 import MainLayout from "../components/MainLayout";
 
+const StatBox = ({ icon, label, value, color }) => (
+  <Stat bg="white" p={5} borderRadius="xl" boxShadow="sm">
+    <Flex alignItems="center">
+      <Icon as={icon} fontSize="2xl" color={color} mr={4} />
+      <Box>
+        <StatLabel color="gray.500">{label}</StatLabel>
+        <StatNumber color={color}>{value}</StatNumber>
+      </Box>
+    </Flex>
+  </Stat>
+);
+
 interface Parcel {
   id: string;
   roomId: string;
@@ -610,33 +622,13 @@ export default function Parcel() {
         </Flex>
 
         {/* Stats Summary */}
-        <SimpleGrid columns={{ base: 1, sm: 2, lg: 5 }} spacing={{ base: 4, md: 6 }} mb={8}>
-          <Stat bg="white" p={5} borderRadius="xl" boxShadow="sm">
-            <StatLabel color="gray.500">ทั้งหมด</StatLabel>
-            <StatNumber color="blue.600">{stats.total}</StatNumber>
-            <StatHelpText>พัสดุทั้งหมด</StatHelpText>
-          </Stat>
-          <Stat bg="white" p={5} borderRadius="xl" boxShadow="sm">
-            <StatLabel color="gray.500">รอรับ</StatLabel>
-            <StatNumber color="orange.500">{stats.pending}</StatNumber>
-            <StatHelpText>ยังไม่ได้รับ</StatHelpText>
-          </Stat>
-          <Stat bg="white" p={5} borderRadius="xl" boxShadow="sm">
-            <StatLabel color="gray.500">รับแล้ว</StatLabel>
-            <StatNumber color="teal.500">{stats.received}</StatNumber>
-            <StatHelpText>รอส่งมอบ</StatHelpText>
-          </Stat>
-          <Stat bg="white" p={5} borderRadius="xl" boxShadow="sm">
-            <StatLabel color="gray.500">ส่งมอบแล้ว</StatLabel>
-            <StatNumber color="green.500">{stats.delivered}</StatNumber>
-            <StatHelpText>เสร็จสิ้น</StatHelpText>
-          </Stat>
-          <Stat bg="white" p={5} borderRadius="xl" boxShadow="sm">
-            <StatLabel color="gray.500">เกินกำหนด</StatLabel>
-            <StatNumber color="red.500">{stats.overdue}</StatNumber>
-            <StatHelpText>เก็บเกิน 3 วัน</StatHelpText>
-          </Stat>
-        </SimpleGrid>
+        <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(5, 1fr)" }} gap={{ base: 3, md: 6 }} mb={8}>
+          <StatBox icon={FaBox} label="ทั้งหมด" value={stats.total} color="blue.600" />
+          <StatBox icon={FaClock} label="รอรับ" value={stats.pending} color="orange.500" />
+          <StatBox icon={FaCheckCircle} label="รับแล้ว" value={stats.received} color="teal.500" />
+          <StatBox icon={FaCheckCircle} label="ส่งมอบแล้ว" value={stats.delivered} color="green.500" />
+          <StatBox icon={FaExclamationTriangle} label="เกินกำหนด" value={stats.overdue} color="red.500" />
+        </Grid>
 
         {/* Room Cards with Parcels */}
         <Box bg="white" p={{ base: 4, md: 6 }} borderRadius="xl" boxShadow="sm">
