@@ -51,7 +51,7 @@ const NavItem = ({ href, icon, children, onCloseMobileSidebar }) => {
 export default function Sidebar({ role, currentUser, onCloseMobileSidebar, onProfileOpen }: SidebarProps) {
   const router = useRouter();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const cancelRef = useRef();
+  const cancelRef = useRef(null);
 
   const handleLogout = async () => {
     // Implement logout logic here
