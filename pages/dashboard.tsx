@@ -837,102 +837,124 @@ function Dashboard({ currentUser, role }: DashboardProps) {
   }
 
   return (
-    <MainLayout 
-      role={role} 
+    <MainLayout
+      role={role}
       currentUser={currentUser}
       isProofModalOpen={isProofModalOpen}
       onProofModalClose={onProofModalClose}
       proofImageUrl={proofImageUrl}
     >
-      <Container maxW="container.xl" py={{ base: 2, md: 4 }}>
+      <Container maxW="container.2xl" py={{ base: 4, md: 6 }} px={{ base: 4, md: 6 }}>
         <VStack spacing={6} align="stretch">
-          {/* Summary Cards */}
-          <SimpleGrid columns={{ base: 1, sm: 2, md: 4, lg: 4 }} spacing={{ base: 4, md: 6 }}>
-            <SummaryCard icon={FaHome} label="ห้องทั้งหมด" value={totalRooms} />
-            <SummaryCard icon={FaBed} label="ห้องมีผู้เช่า" value={availableRooms} />
-            <SummaryCard icon={FaBed} label="ห้องว่าง" value={vacantRooms} color="green.500" />
-            <SummaryCard icon={FaFileInvoiceDollar} label="รอตรวจสอบ" value={paymentsUnderReview} color="yellow.500" />
-            <SummaryCard icon={FaInbox} label="กล่องข้อความ" value={inboxCount} />
-            <SummaryCard icon={FaBox} label="พัสดุ" value={parcelCount} />
-            <SummaryCard icon={FaFileInvoiceDollar} label="รายรับที่ต้องได้เดือนนี้" value={`${monthlyIncome.toLocaleString()} บาท`} color="blue.500" />
-            <SummaryCard icon={FaCheckCircle} label="รายรับที่ได้เดือนนี้" value={`${monthlyPaid.toLocaleString()} บาท`} color="green.500" />
-            <Box bg="white" borderRadius="xl" p={{ base: 3, md: 5 }} boxShadow="sm">
-              <RoomStatusChart data={roomStatusData} />
-            </Box>
-            <Box bg="white" borderRadius="xl" p={{ base: 3, md: 5 }} boxShadow="sm">
-              <PaymentStatusChart data={paymentStatusData} />
+          {/* Header */}
+          <Flex
+            direction={{ base: "column", md: "row" }}
+            justify="space-between"
+            align={{ base: "flex-start", md: "center" }}
+            gap={4}
+          >
+            <VStack align="flex-start" spacing={1}>
+              <Heading as="h1" size="lg" color="gray.800">
+                ภาพรวมระบบ
+              </Heading>
+              <Text color="gray.500">
+                ติดตามข้อมูลสำคัญทั้งหมดได้ในที่เดียว
+              </Text>
+            </VStack>
+          </Flex>
+
+          {/* Stats Grid */}
+          <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={5}>
+            <SummaryCard icon={FaHome} label="ห้องทั้งหมด" value={totalRooms} colorScheme="purple" />
+            <SummaryCard icon={FaBed} label="ห้องมีผู้เช่า" value={availableRooms} colorScheme="blue" />
+            <SummaryCard icon={FaBed} label="ห้องว่าง" value={vacantRooms} colorScheme="green" />
+            <SummaryCard icon={FaFileInvoiceDollar} label="รอตรวจสอบ" value={paymentsUnderReview} colorScheme="yellow" />
+            <SummaryCard icon={FaInbox} label="กล่องข้อความ" value={inboxCount} colorScheme="pink" />
+            <SummaryCard icon={FaBox} label="พัสดุ" value={parcelCount} colorScheme="orange" />
+            <SummaryCard icon={FaFileInvoiceDollar} label="รายรับที่คาดการณ์" value={`${monthlyIncome.toLocaleString()}`} suffix="บาท" colorScheme="cyan" />
+            <SummaryCard icon={FaCheckCircle} label="รายรับที่ได้รับ" value={`${monthlyPaid.toLocaleString()}`} suffix="บาท" colorScheme="teal" />
+          </SimpleGrid>
+          
+          {/* Charts and Announcements */}
+          <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6} alignItems="start">
+            <VStack spacing={6} align="stretch" gridColumn={{ base: "auto", lg: "span 2" }}>
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
+                  <Heading size="sm" mb={4}>สถานะห้อง</Heading>
+                  <RoomStatusChart data={roomStatusData} />
+                </Box>
+                <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
+                  <Heading size="sm" mb={4}>สถานะการชำระเงิน</Heading>
+                  <PaymentStatusChart data={paymentStatusData} />
+                </Box>
+              </SimpleGrid>
+              <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
+                <AnnouncementsList currentUser={currentUser} />
+              </Box>
+            </VStack>
+            <Box bg="white" borderRadius="xl" p={5} boxShadow="md" gridColumn={{ base: "auto", lg: "span 1" }}>
+               <AddAnnouncementCard currentUser={currentUser} />
             </Box>
           </SimpleGrid>
 
-          {/* Announcements Section */}
-          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={{ base: 4, md: 6 }} alignItems="start">
-            <AddAnnouncementCard currentUser={currentUser} />
-            <AnnouncementsList currentUser={currentUser} />
-          </SimpleGrid>
 
-          {/* Main Content */}
-          <Box bg="white" borderRadius="xl" p={{ base: 3, md: 5 }} boxShadow="sm">
+          {/* Main Content: Room List */}
+          <Box bg="white" borderRadius="xl" p={{ base: 4, md: 6 }} boxShadow="md">
             <Flex direction={{ base: "column", md: "row" }} justify="space-between" align={{ base: "flex-start", md: "center" }} mb={5} gap={4}>
               <VStack align="flex-start" spacing={1}>
-                <Heading as="h2" size="md">
-                  {filterType === 'review' ? 'รายการรอตรวจสอบ' : 
-                   filterType === 'unpaid' ? 'ค้างชำระ' :
-                   filterType === 'vacant' ? 'ห้องว่าง' : 'ห้องทั้งหมด'}
+                <Heading as="h2" size="md" color="gray.700">
+                  {filterLabels[filterType]}
                 </Heading>
                 <Text color="gray.500" fontSize="sm">
-                  {filterType === 'review' ? 'รายการที่มีการส่งสลิปเข้ามาให้ตรวจสอบ' :
-                   filterType === 'unpaid' ? 'รายการห้องที่ยังไม่ได้ชำระเงิน' :
-                   filterType === 'vacant' ? 'รายการห้องว่าง' : 'รายการห้องทั้งหมด'}
+                  {
+                   filterType === 'review' ? `มี ${filteredRooms.length} รายการที่ต้องตรวจสอบ` :
+                   filterType === 'unpaid' ? `มี ${filteredRooms.length} ห้องที่ค้างชำระ` :
+                   filterType === 'vacant' ? `มี ${filteredRooms.length} ห้องว่าง` : `แสดงห้องทั้งหมด ${filteredRooms.length} ห้อง`
+                  }
                 </Text>
-                {filterType === 'unpaid' && (
-                  <Button
-                    leftIcon={<FaBolt />}
-                    colorScheme="orange"
-                    borderRadius="lg"
-                    fontWeight="bold"
-                    size="sm"
-                    onClick={handleNotifyAllUnpaidRooms}
-                    mt={2}
-                  >
-                    แจ้งเตือนห้องค้างชำระทั้งหมด
-                  </Button>
-                )}
               </VStack>
-              <Flex gap={2} w={{ base: "full", md: "auto" }}>
-                <Menu>
-                  <MenuButton as={Button} leftIcon={<FaFilter />} colorScheme="purple" variant="outline" w={{ base: "full", md: "auto" }} size="sm">
-                    <Text as="span" isTruncated>{filterLabels[filterType]}</Text>
-                  </MenuButton>
-                  <MenuList>
-                    <MenuItem onClick={() => setFilterType('all')} fontWeight={filterType === 'all' ? 'bold' : 'normal'}>ทั้งหมด</MenuItem>
-                    <MenuItem onClick={() => setFilterType('unpaid')} fontWeight={filterType === 'unpaid' ? 'bold' : 'normal'}>ค้างชำระ</MenuItem>
-                    <MenuItem onClick={() => setFilterType('vacant')} fontWeight={filterType === 'vacant' ? 'bold' : 'normal'}>ห้องว่าง</MenuItem>
-                    <MenuItem onClick={() => setFilterType('review')} fontWeight={filterType === 'review' ? 'bold' : 'normal'}>รอตรวจสอบ</MenuItem>
-                  </MenuList>
-                </Menu>
-                <InputGroup w={{ base: "full", md: "auto" }} size="sm">
-                  <Input
-                    placeholder="ค้นหาห้องหรือชื่อผู้เช่า..."
+              <Flex gap={3} w={{ base: "full", md: "auto" }} direction={{ base: "column", sm: "row" }}>
+                <InputGroup w={{ base: "full", md: "250px" }} size="sm">
+                   <Input
+                    placeholder="ค้นหาห้องหรือผู้เช่า..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     borderRadius="lg"
                   />
                 </InputGroup>
+                <Menu>
+                  <MenuButton as={Button} rightIcon={<FaFilter />} colorScheme="gray" variant="outline" w={{ base: "full", sm: "auto" }} size="sm" borderRadius="lg">
+                    <Text as="span" isTruncated>ตัวกรอง: {filterLabels[filterType]}</Text>
+                  </MenuButton>
+                  <MenuList>
+                    <MenuItem onClick={() => setFilterType('unpaid')} fontWeight={filterType === 'unpaid' ? 'bold' : 'normal'}>ค้างชำระ</MenuItem>
+                    <MenuItem onClick={() => setFilterType('review')} fontWeight={filterType === 'review' ? 'bold' : 'normal'}>รอตรวจสอบ</MenuItem>
+                    <MenuItem onClick={() => setFilterType('vacant')} fontWeight={filterType === 'vacant' ? 'bold' : 'normal'}>ห้องว่าง</MenuItem>
+                    <MenuItem onClick={() => setFilterType('all')} fontWeight={filterType === 'all' ? 'bold' : 'normal'}>ทั้งหมด</MenuItem>
+                  </MenuList>
+                </Menu>
+                 {filterType === 'unpaid' && (
+                  <Button
+                    leftIcon={<FaBolt />}
+                    colorScheme="orange"
+                    size="sm"
+                    onClick={handleNotifyAllUnpaidRooms}
+                    borderRadius="lg"
+                  >
+                    แจ้งเตือนทั้งหมด
+                  </Button>
+                )}
               </Flex>
             </Flex>
             
             {loading ? (
               <Center h="200px">
-                <Spinner size="xl" />
+                <Spinner size="xl" color="purple.500" />
               </Center>
-            ) : filterType === 'review' && filteredRooms.length === 0 ? (
-              <Text color="gray.400" textAlign="center" py={8}>
-                ไม่มีรายการรอตรวจสอบ
-              </Text>
             ) : filteredRooms.length > 0 ? (
-              <RoomPaymentCardList rooms={roomPaymentCards} gridProps={{ columns: { base: 1, md: 2, lg: 4, xl: 4 }, spacing: 6 }} />
+              <RoomPaymentCardList rooms={roomPaymentCards} gridProps={{ columns: { base: 1, md: 2, lg: 3, xl: 4 }, spacing: 6 }} />
             ) : (
-              <Center h="200px">
+              <Center h="200px" bg="gray.50" borderRadius="lg">
                 <VStack spacing={4}>
                   <Icon as={FaClipboardList} w={16} h={16} color="gray.300" />
                   <Heading as="h3" size="md" color="gray.500">ไม่พบข้อมูล</Heading>
@@ -945,14 +967,23 @@ function Dashboard({ currentUser, role }: DashboardProps) {
       </Container>
 
       <Modal isOpen={isProofModalOpen} onClose={onProofModalClose} isCentered size={{ base: "full", md: "xl" }}>
-        <ModalOverlay />
+        <ModalOverlay bg="blackAlpha.700" />
         <ModalContent>
+          <ModalHeader>หลักฐานการชำระเงิน</ModalHeader>
           <ModalCloseButton />
           <ModalBody p={4}>
             {proofImageUrl && (
               <Image src={proofImageUrl} alt="Payment Proof" maxW="full" maxH="80vh" objectFit="contain" />
             )}
           </ModalBody>
+           <ModalFooter>
+            <Button colorScheme='red' mr={3} onClick={roomPaymentCards.find(r => r.status === 'review')?.onRevert}>
+              ปฏิเสธ
+            </Button>
+            <Button colorScheme='green' onClick={roomPaymentCards.find(r => r.status === 'review')?.onConfirmPayment}>
+              ยืนยันการชำระเงิน
+            </Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
 
@@ -970,7 +1001,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
         <AlertDialogOverlay>
           <AlertDialogContent m={{ base: 4, md: "auto" }}>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              ลบห้อง
+              ยืนยันการลบ
             </AlertDialogHeader>
             <AlertDialogBody>
               คุณแน่ใจหรือไม่ว่าต้องการลบห้องนี้? การกระทำนี้ไม่สามารถย้อนกลับได้
@@ -994,14 +1025,32 @@ function Dashboard({ currentUser, role }: DashboardProps) {
   );
 }
 
-const SummaryCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; color?: string; }> = ({ icon, label, value, color = "gray.700" }) => (
-  <Flex align="center" bg="white" borderRadius="xl" p={4} boxShadow="sm">
-    <Icon as={icon} w={8} h={8} color={color} />
-    <Box ml={4}>
-      <Text color="gray.500">{label}</Text>
-      <Text fontWeight="bold" fontSize="2xl">{value}</Text>
+const SummaryCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; colorScheme?: string; suffix?: string; }> = ({ icon, label, value, colorScheme = "gray", suffix }) => (
+    <Box p={5} bg="white" borderRadius="xl" boxShadow="md" transition="all 0.2s" _hover={{ transform: "translateY(-4px)", boxShadow: "lg" }}>
+        <Flex align="center">
+            <Flex
+                justify="center"
+                align="center"
+                w={12}
+                h={12}
+                borderRadius="lg"
+                bg={`${colorScheme}.100`}
+            >
+                <Icon as={icon} w={6} h={6} color={`${colorScheme}.600`} />
+            </Flex>
+            <Box ml={4}>
+                <Text color="gray.500" fontSize="sm" fontWeight="medium" noOfLines={1}>
+                    {label}
+                </Text>
+                <HStack>
+                  <Text fontWeight="bold" fontSize="2xl" color="gray.800">
+                      {value}
+                  </Text>
+                  {suffix && <Text fontSize="md" color="gray.600" alignSelf="flex-end">{suffix}</Text>}
+                </HStack>
+            </Box>
+        </Flex>
     </Box>
-  </Flex>
-); 
+);
 
 export default Dashboard; 
