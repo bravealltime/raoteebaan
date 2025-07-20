@@ -25,27 +25,10 @@ export async function middleware(request: NextRequest) {
     // If the route is public, let the request through
     if (publicRoutes.includes(pathname)) {
         if (token) {
-            try {
-                const verifyUrl = new URL('/api/auth/verify-token', request.url);
-                const response = await fetch(verifyUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token })
-                });
-                if (response.ok) {
-                    const { role } = await response.json();
-                    return NextResponse.redirect(new URL(getDashboardPath(role), request.url));
-                }
-                // If token is invalid, clear it and let user proceed to public route
-                const res = NextResponse.next();
-                res.cookies.delete('token');
-                return res;
-            } catch (e) {
-                // On error, also clear token and proceed
-                const res = NextResponse.next();
-                res.cookies.delete('token');
-                return res;
-            }
+            // If a token exists on a public route, clear it and redirect to login
+            const res = NextResponse.redirect(new URL('/login', request.url));
+            res.cookies.set('token', '', { expires: new Date(0), path: '/' });
+            return res;
         }
         return NextResponse.next();
     }

@@ -422,3 +422,139 @@
 [debug] [2025-07-18T15:58:39.932Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com [omitted]
 [debug] [2025-07-18T15:58:39.937Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
 [debug] [2025-07-18T15:58:39.938Z] > authorizing via signed-in user (bravealltime1997@gmail.com)
+[debug] [2025-07-18T16:48:08.861Z] Checked if tokens are valid: false, expires at: 1752857917434
+[debug] [2025-07-18T16:48:08.863Z] Checked if tokens are valid: false, expires at: 1752857917434
+[debug] [2025-07-18T16:48:08.863Z] > refreshing access token with scopes: []
+[debug] [2025-07-18T16:48:08.864Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-07-18T16:48:08.864Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-18T16:48:08.884Z] Checked if tokens are valid: false, expires at: 1752857917434
+[debug] [2025-07-18T16:48:08.884Z] Checked if tokens are valid: false, expires at: 1752857917434
+[debug] [2025-07-18T16:48:08.884Z] > refreshing access token with scopes: []
+[debug] [2025-07-18T16:48:08.884Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-07-18T16:48:08.884Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-18T16:48:08.885Z] Checked if tokens are valid: false, expires at: 1752857917434
+[debug] [2025-07-18T16:48:08.885Z] Checked if tokens are valid: false, expires at: 1752857917434
+[debug] [2025-07-18T16:48:08.885Z] > refreshing access token with scopes: []
+[debug] [2025-07-18T16:48:08.886Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-07-18T16:48:08.886Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-18T16:48:08.905Z] Checked if tokens are valid: false, expires at: 1752857917434
+[debug] [2025-07-18T16:48:08.906Z] Checked if tokens are valid: false, expires at: 1752857917434
+[debug] [2025-07-18T16:48:08.906Z] > refreshing access token with scopes: []
+[debug] [2025-07-18T16:48:08.906Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-07-18T16:48:08.906Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-18T16:48:08.907Z] Checked if tokens are valid: false, expires at: 1752857917434
+[debug] [2025-07-18T16:48:08.907Z] Checked if tokens are valid: false, expires at: 1752857917434
+[debug] [2025-07-18T16:48:08.907Z] > refreshing access token with scopes: []
+[debug] [2025-07-18T16:48:08.907Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-07-18T16:48:08.907Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-18T16:48:08.908Z] Checked if tokens are valid: false, expires at: 1752857917434
+[debug] [2025-07-18T16:48:08.909Z] Checked if tokens are valid: false, expires at: 1752857917434
+[debug] [2025-07-18T16:48:08.909Z] > refreshing access token with scopes: []
+[debug] [2025-07-18T16:48:08.909Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-07-18T16:48:08.909Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-18T16:48:09.055Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-07-18T16:48:09.056Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-18T16:48:09.068Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com [none]
+[debug] [2025-07-18T16:48:09.068Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/raoteebaan
+[debug] [2025-07-18T16:48:09.068Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-07-18T16:48:09.068Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-18T16:48:09.077Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com [none]
+[debug] [2025-07-18T16:48:09.077Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com x-goog-quota-user=projects/raoteebaan
+[debug] [2025-07-18T16:48:09.079Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-07-18T16:48:09.079Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-18T16:48:09.089Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com [none]
+[debug] [2025-07-18T16:48:09.089Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/raoteebaan
+[debug] [2025-07-18T16:48:09.089Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-07-18T16:48:09.089Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-18T16:48:09.099Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com [none]
+[debug] [2025-07-18T16:48:09.099Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com x-goog-quota-user=projects/raoteebaan
+[debug] [2025-07-18T16:48:09.100Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-07-18T16:48:09.100Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-18T16:48:09.108Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com [none]
+[debug] [2025-07-18T16:48:09.108Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/raoteebaan
+[debug] [2025-07-18T16:48:09.109Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-07-18T16:48:09.109Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-18T16:48:09.117Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com [none]
+[debug] [2025-07-18T16:48:09.117Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/raoteebaan
+[debug] [2025-07-18T16:48:10.553Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com 200
+[debug] [2025-07-18T16:48:10.553Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2025-07-18T16:48:10.560Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com 200
+[debug] [2025-07-18T16:48:10.560Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2025-07-18T16:48:10.567Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com 200
+[debug] [2025-07-18T16:48:10.567Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2025-07-18T16:48:10.593Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com 200
+[debug] [2025-07-18T16:48:10.593Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2025-07-18T16:48:10.594Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com 200
+[debug] [2025-07-18T16:48:10.594Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com [omitted]
+[debug] [2025-07-18T16:48:10.658Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com 200
+[debug] [2025-07-18T16:48:10.658Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com [omitted]
+[debug] [2025-07-18T16:48:10.700Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-07-18T16:48:10.701Z] > authorizing via signed-in user (bravealltime1997@gmail.com)
+[debug] [2025-07-19T16:45:50.816Z] Checked if tokens are valid: false, expires at: 1752860888109
+[debug] [2025-07-19T16:45:50.818Z] Checked if tokens are valid: false, expires at: 1752860888109
+[debug] [2025-07-19T16:45:50.818Z] > refreshing access token with scopes: []
+[debug] [2025-07-19T16:45:50.819Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-07-19T16:45:50.819Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-19T16:45:50.842Z] Checked if tokens are valid: false, expires at: 1752860888109
+[debug] [2025-07-19T16:45:50.843Z] Checked if tokens are valid: false, expires at: 1752860888109
+[debug] [2025-07-19T16:45:50.843Z] > refreshing access token with scopes: []
+[debug] [2025-07-19T16:45:50.843Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-07-19T16:45:50.843Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-19T16:45:50.844Z] Checked if tokens are valid: false, expires at: 1752860888109
+[debug] [2025-07-19T16:45:50.844Z] Checked if tokens are valid: false, expires at: 1752860888109
+[debug] [2025-07-19T16:45:50.844Z] > refreshing access token with scopes: []
+[debug] [2025-07-19T16:45:50.844Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-07-19T16:45:50.844Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-19T16:45:50.857Z] Checked if tokens are valid: false, expires at: 1752860888109
+[debug] [2025-07-19T16:45:50.857Z] Checked if tokens are valid: false, expires at: 1752860888109
+[debug] [2025-07-19T16:45:50.857Z] > refreshing access token with scopes: []
+[debug] [2025-07-19T16:45:50.857Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-07-19T16:45:50.857Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-19T16:45:50.857Z] Checked if tokens are valid: false, expires at: 1752860888109
+[debug] [2025-07-19T16:45:50.858Z] Checked if tokens are valid: false, expires at: 1752860888109
+[debug] [2025-07-19T16:45:50.858Z] > refreshing access token with scopes: []
+[debug] [2025-07-19T16:45:50.858Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-07-19T16:45:50.858Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-19T16:45:50.858Z] Checked if tokens are valid: false, expires at: 1752860888109
+[debug] [2025-07-19T16:45:50.858Z] Checked if tokens are valid: false, expires at: 1752860888109
+[debug] [2025-07-19T16:45:50.858Z] > refreshing access token with scopes: []
+[debug] [2025-07-19T16:45:50.858Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-07-19T16:45:50.858Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-19T16:45:51.041Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-07-19T16:45:51.042Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-19T16:45:51.053Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com [none]
+[debug] [2025-07-19T16:45:51.054Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com x-goog-quota-user=projects/raoteebaan
+[debug] [2025-07-19T16:45:51.057Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-07-19T16:45:51.057Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-19T16:45:51.073Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com [none]
+[debug] [2025-07-19T16:45:51.073Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/raoteebaan
+[debug] [2025-07-19T16:45:51.077Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-07-19T16:45:51.077Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-19T16:45:51.088Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com [none]
+[debug] [2025-07-19T16:45:51.088Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com x-goog-quota-user=projects/raoteebaan
+[debug] [2025-07-19T16:45:51.090Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-07-19T16:45:51.090Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-19T16:45:51.101Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com [none]
+[debug] [2025-07-19T16:45:51.101Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com x-goog-quota-user=projects/raoteebaan
+[debug] [2025-07-19T16:45:51.102Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-07-19T16:45:51.102Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-19T16:45:51.113Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com [none]
+[debug] [2025-07-19T16:45:51.113Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/raoteebaan
+[debug] [2025-07-19T16:45:51.113Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-07-19T16:45:51.113Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-07-19T16:45:51.124Z] >>> [apiv2][query] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com [none]
+[debug] [2025-07-19T16:45:51.124Z] >>> [apiv2][(partial)header] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com x-goog-quota-user=projects/raoteebaan
+[debug] [2025-07-19T16:45:52.756Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com 200
+[debug] [2025-07-19T16:45:52.756Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2025-07-19T16:45:52.770Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com 200
+[debug] [2025-07-19T16:45:52.770Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com [omitted]
+[debug] [2025-07-19T16:45:52.771Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com 200
+[debug] [2025-07-19T16:45:52.771Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2025-07-19T16:45:52.782Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com 200
+[debug] [2025-07-19T16:45:52.782Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebaseapphosting.googleapis.com [omitted]
+[debug] [2025-07-19T16:45:54.078Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com 200
+[debug] [2025-07-19T16:45:54.078Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasedataconnect.googleapis.com [omitted]
+[debug] [2025-07-19T16:45:54.139Z] <<< [apiv2][status] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com 200
+[debug] [2025-07-19T16:45:54.140Z] <<< [apiv2][body] GET https://serviceusage.googleapis.com/v1/projects/raoteebaan/services/firebasecrashlytics.googleapis.com [omitted]
+[debug] [2025-07-19T16:45:54.222Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-07-19T16:45:54.222Z] > authorizing via signed-in user (bravealltime1997@gmail.com)

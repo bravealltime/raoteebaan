@@ -50,15 +50,9 @@ function TechnicianDashboard() {
     onUpdateModalOpen();
   };
 
-  const handleModalClose = () => {
-    onUpdateModalClose();
-    // Re-fetch issues to update the list after modal closes
-    fetchIssues('first'); 
-  };
-
   const handleImageClick = (imageUrls: string[]) => {
     setSelectedImageUrls(imageUrls);
-    setCurrentImageIndex(0); // Reset index when opening new gallery
+    setCurrentImageIndex(0);
     onImageModalOpen();
   };
 
@@ -101,12 +95,10 @@ function TechnicianDashboard() {
       let issuesQuery;
       const baseConditions = [
         where("status", "==", filterStatus),
-        where("technicianId", "==", currentUser.uid), // Filter by technicianId
         orderBy("reportedAt", "desc"),
       ];
 
       if (pageDirection === 'first') {
-        setPage(1);
         issuesQuery = query(collection(db, "issues"), ...baseConditions, limit(ISSUES_PER_PAGE));
       } else if (pageDirection === 'next' && lastVisible) {
         issuesQuery = query(collection(db, "issues"), ...baseConditions, startAfter(lastVisible), limit(ISSUES_PER_PAGE));
@@ -124,12 +116,8 @@ function TechnicianDashboard() {
       }) as Issue);
 
       if (documentSnapshots.empty) {
-        if (pageDirection === 'first') {
-          setIssues([]);
-        }
-        if (pageDirection === 'next') {
-          setLastVisible(null); // Disable next button if no more items
-        }
+        if (pageDirection === 'first') setIssues([]);
+        if (pageDirection === 'next') setLastVisible(null);
         toast({
           title: "ไม่มีข้อมูล",
           description: "ไม่มีรายการแจ้งซ่อมเพิ่มเติม",
@@ -144,7 +132,6 @@ function TechnicianDashboard() {
         if (pageDirection === 'next') setPage(p => p + 1);
         if (pageDirection === 'prev' && page > 1) setPage(p => p - 1);
       }
-
     } catch (error) {
       console.error("Error fetching issues:", error);
       toast({
@@ -156,7 +143,7 @@ function TechnicianDashboard() {
       });
     }
     setLoading(false);
-  }, [currentUser, filterStatus, lastVisible, firstVisible]);
+  }, [currentUser, filterStatus, lastVisible, firstVisible, toast]);
 
   useEffect(() => {
     if (currentUser) {
@@ -165,49 +152,29 @@ function TechnicianDashboard() {
       setPage(1);
       fetchIssues('first');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser, filterStatus]);
 
   const handleFilterChange = (status: string) => {
     setFilterStatus(status);
-    // fetchIssues will be called by the useEffect that depends on filterStatus
   }
 
-  const fetchNextPage = () => {
-    fetchIssues('next');
-  };
+  const fetchNextPage = () => fetchIssues('next');
+  const fetchPrevPage = () => fetchIssues('prev');
 
-  const fetchPrevPage = () => {
-    fetchIssues('prev');
-  };
+  const getStatusColor = (status: string) => ({
+    "pending": "red",
+    "in_progress": "yellow",
+    "resolved": "green"
+  }[status] || "gray");
 
+  const getStatusText = (status: string) => ({
+    "pending": "รอรับเรื่อง",
+    "in_progress": "กำลังดำเนินการ",
+    "resolved": "แก้ไขแล้ว"
+  }[status] || "ไม่ทราบสถานะ");
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "red";
-      case "in_progress":
-        return "yellow";
-      case "resolved":
-        return "green";
-      default:
-        return "gray";
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "รอรับเรื่อง";
-      case "in_progress":
-        return "กำลังดำเนินการ";
-      case "resolved":
-        return "แก้ไขแล้ว";
-      default:
-        return "ไม่ทราบสถานะ";
-    }
-  };
-
-  if (loading) {
+  if (loading && issues.length === 0) {
     return (
       <TenantLayout currentUser={currentUser}>
         <Center h="50vh">
@@ -225,7 +192,6 @@ function TechnicianDashboard() {
             แดชบอร์ดช่าง
           </Heading>
 
-          {/* Personal Information Card */}
           <Card boxShadow="md" borderRadius="lg" bg="white" p={{ base: 4, md: 6 }}>
             <CardHeader pb={2}>
               <Heading size="md" color="blue.600">
@@ -261,124 +227,107 @@ function TechnicianDashboard() {
             </CardBody>
           </Card>
 
-          {/* Issues List Card */}
           <Card boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 2, md: 4 }} py={{ base: 4, md: 6 }}>
             <CardHeader>
-              <Flex justify="space-between" align="center">
-                <Heading size="md" color="brand.600" letterSpacing="wide">
+              <Flex direction={{ base: 'column', md: 'row' }} justify="space-between" align={{ base: 'stretch', md: 'center' }} gap={{ base: 3, md: 2 }}>
+                <Heading size="md" color="brand.600" letterSpacing="wide" textAlign={{ base: 'center', md: 'left' }}>
                   <Icon as={FaBell} mr={3} verticalAlign="middle" />
                   รายการแจ้งซ่อม
                 </Heading>
-                <Flex>
-                  <Button size="sm" colorScheme={filterStatus === 'pending' ? 'red' : 'gray'} onClick={() => handleFilterChange('pending')}>งานใหม่</Button>
-                  <Button size="sm" colorScheme={filterStatus === 'in_progress' ? 'yellow' : 'gray'} onClick={() => handleFilterChange('in_progress')} mx={2}>กำลังดำเนินการ</Button>
-                  <Button size="sm" colorScheme={filterStatus === 'resolved' ? 'green' : 'gray'} onClick={() => handleFilterChange('resolved')}>เสร็จสิ้น</Button>
-                </Flex>
+                <HStack spacing={2} justify={{ base: 'center', md: 'flex-end' }} wrap="wrap">
+                  <Button size="sm" colorScheme={filterStatus === 'pending' ? 'red' : 'gray'} variant={filterStatus === 'pending' ? 'solid' : 'outline'} onClick={() => handleFilterChange('pending')}>งานใหม่</Button>
+                  <Button size="sm" colorScheme={filterStatus === 'in_progress' ? 'yellow' : 'gray'} variant={filterStatus === 'in_progress' ? 'solid' : 'outline'} onClick={() => handleFilterChange('in_progress')}>กำลังดำเนินการ</Button>
+                  <Button size="sm" colorScheme={filterStatus === 'resolved' ? 'green' : 'gray'} variant={filterStatus === 'resolved' ? 'solid' : 'outline'} onClick={() => handleFilterChange('resolved')}>เสร็จสิ้น</Button>
+                </HStack>
               </Flex>
             </CardHeader>
             <CardBody>
-              <TableContainer>
-                <Table variant="simple" size="sm">
-                  <Thead>
-                    <Tr>
-                      <Th>ห้อง</Th>
-                      <Th>ผู้แจ้ง</Th> 
-                      <Th>ปัญหา</Th>
-                      <Th>รูปภาพ</Th>
-                      <Th>วันที่แจ้ง</Th>
-                      <Th>สถานะ</Th>
-                      <Th>อัปเดตล่าสุด</Th>
-                      <Th>จัดการ</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {issues.length > 0 ? (
-                      issues.map((issue) => (
-                        <Tr key={issue.id}>
-                          <Td>{issue.roomId}</Td>
-                          <Td>{issue.tenantName}</Td> 
-                          <Td><Text noOfLines={2}>{issue.description}</Text></Td>
-                          <Td>
-                            {issue.imageUrls && issue.imageUrls.length > 0 ? (
-                              <Button 
-                                leftIcon={<FaImage />} 
-                                aria-label="View images" 
-                                size="sm"
-                                onClick={() => handleImageClick(issue.imageUrls!)}
-                                variant="outline"
-                              >
-                                {issue.imageUrls.length}
-                              </Button>
-                            ) : (
-                              <Text color="gray.400">-</Text>
-                            )}
-                          </Td>
-                          <Td>{issue.reportedAt && new Date(issue.reportedAt.seconds * 1000).toLocaleDateString('th-TH')}</Td>
-                          <Td>
-                            <Badge colorScheme={getStatusColor(issue.status)} px={2} py={1} borderRadius="md">
-                              {getStatusText(issue.status)}
-                            </Badge>
-                            {issue.status === 'pending' && (new Date().getTime() - new Date(issue.reportedAt.seconds * 1000).getTime()) > 3 * 24 * 60 * 60 * 1000 && (
-                              <Flex align="center" mt={1}>
-                                <Icon as={FaExclamationTriangle} color="red.500" mr={1} />
-                                <Text fontSize="xs" color="red.500">ค้างเกิน 3 วัน</Text>
-                              </Flex>
-                            )}
-                          </Td>
-                          <Td>
-                            {issue.updates && issue.updates.length > 0 ? (
-                              <Text fontSize="sm" noOfLines={2}>
-                                {issue.updates[issue.updates.length - 1].notes}
-                              </Text>
-                            ) : (
-                              <Text fontSize="sm" color="gray.500">ไม่มีการอัปเดต</Text>
-                            )}
-                          </Td>
-                          <Td>
-                            <Button size="xs" colorScheme="blue" onClick={() => handleUpdateClick(issue)}>อัปเดตสถานะ</Button>
-                          </Td>
-                        </Tr>
-                      ))
-                    ) : (
-                      <Tr>
-                        <Td colSpan={7} textAlign="center">
-                          <Text color="gray.500" py={8}>ยังไม่มีรายการแจ้งซ่อมสำหรับสถานะ "{getStatusText(filterStatus)}"</Text>
-                        </Td>
-                      </Tr>
-                    )}
-                  </Tbody>
-                </Table>
-              </TableContainer>
-              <Flex justify="space-between" align="center" mt={4}>
-                <Button onClick={fetchPrevPage} isDisabled={page <= 1} leftIcon={<FaArrowLeft />}>ก่อนหน้า</Button>
+              {loading && <Center my={4}><Spinner /></Center>}
+              {!loading && issues.length === 0 ? (
+                <Center py={8}>
+                  <Text color="gray.500">ยังไม่มีรายการแจ้งซ่อมสำหรับสถานะ "{getStatusText(filterStatus)}"</Text>
+                </Center>
+              ) : (
+                <Flex wrap="wrap" gap={6} justify="center" mt={4}>
+                  {issues.map((issue) => (
+                    <Card 
+                      key={issue.id} 
+                      p={4} 
+                      borderRadius="lg" 
+                      boxShadow="md" 
+                      bg="gray.50"
+                      w={{ base: '100%', sm: 'calc(50% - 1.5rem)', md: 'calc(33.33% - 1.5rem)' }}
+                      display="flex"
+                      flexDirection="column"
+                      justifyContent="space-between"
+                      transition="all 0.2s"
+                      _hover={{ transform: 'translateY(-4px)', boxShadow: 'lg' }}
+                    >
+                      <VStack align="stretch" spacing={3} flex="1">
+                        <Flex justify="space-between" align="center">
+                          <Text fontWeight="bold" fontSize="lg" color="blue.600">ห้อง {issue.roomId}</Text>
+                          <Badge colorScheme={getStatusColor(issue.status)} px={2} py={1} borderRadius="md">
+                            {getStatusText(issue.status)}
+                          </Badge>
+                        </Flex>
+                        <Text fontSize="sm" color="gray.600">ผู้แจ้ง: {issue.tenantName}</Text>
+                        <Text fontSize="md" fontWeight="medium" noOfLines={2} minH="40px">{issue.description}</Text>
+                        <Text fontSize="xs" color="gray.500">แจ้งเมื่อ: {issue.reportedAt && new Date(issue.reportedAt.seconds * 1000).toLocaleDateString('th-TH')}</Text>
+
+                        {issue.status === 'pending' && (new Date().getTime() - new Date(issue.reportedAt.seconds * 1000).getTime()) > 3 * 24 * 60 * 60 * 1000 && (
+                          <HStack mt={1} color="red.500">
+                            <Icon as={FaExclamationTriangle} />
+                            <Text fontSize="xs">ค้างเกิน 3 วัน</Text>
+                          </HStack>
+                        )}
+                      </VStack>
+
+                      <Flex mt={4} gap={2} justify="flex-end" wrap="wrap">
+                        {issue.imageUrls && issue.imageUrls.length > 0 && (
+                          <Button 
+                            leftIcon={<FaImage />} 
+                            size="sm"
+                            onClick={() => handleImageClick(issue.imageUrls!)}
+                            variant="outline"
+                            flex={{ base: "1", md: "auto" }}
+                          >
+                            รูปภาพ ({issue.imageUrls.length})
+                          </Button>
+                        )}
+                        <Button 
+                          size="sm" 
+                          colorScheme="blue" 
+                          onClick={() => handleUpdateClick(issue)} 
+                          flex={{ base: "1", md: "auto" }}
+                        >
+                          อัปเดตสถานะ
+                        </Button>
+                      </Flex>
+                    </Card>
+                  ))}
+                </Flex>
+              )}
+              <Flex justify="space-between" align="center" mt={6}>
+                <Button onClick={fetchPrevPage} isDisabled={page <= 1 || loading} leftIcon={<FaArrowLeft />}>ก่อนหน้า</Button>
                 <Text>หน้า {page}</Text>
-                <Button onClick={fetchNextPage} isDisabled={!lastVisible || issues.length < ISSUES_PER_PAGE} rightIcon={<FaArrowRight />}>ถัดไป</Button>
+                <Button onClick={fetchNextPage} isDisabled={!lastVisible || issues.length < ISSUES_PER_PAGE || loading} rightIcon={<FaArrowRight />}>ถัดไป</Button>
               </Flex>
             </CardBody>
           </Card>
         </VStack>
       </Container>
 
-      <Modal isOpen={isUpdateModalOpen} onClose={onUpdateModalClose} isCentered>
-          <ModalOverlay />
-          <ModalContent>
-            <ModalHeader>อัปเดตสถานะการแจ้งซ่อม</ModalHeader>
-            <ModalCloseButton />
-            <ModalBody>
-              {selectedIssue && (
-                <UpdateIssueStatusModal
-                  isOpen={isUpdateModalOpen}
-                  onClose={() => {
-                    onUpdateModalClose();
-                    fetchIssues('first'); // Refetch issues after closing the modal
-                  }}
-                  issue={selectedIssue}
-                  technicianName={currentUser?.name || 'ช่าง'}
-                />
-              )}
-            </ModalBody>
-          </ModalContent>
-        </Modal>
+      {selectedIssue && (
+        <UpdateIssueStatusModal
+          isOpen={isUpdateModalOpen}
+          onClose={() => {
+            onUpdateModalClose();
+            fetchIssues('first');
+          }}
+          issue={selectedIssue}
+          technicianName={currentUser?.name || 'ช่าง'}
+        />
+      )}
 
       <Modal isOpen={isImageModalOpen} onClose={onImageModalClose} size="4xl" isCentered>
         <ModalOverlay />
