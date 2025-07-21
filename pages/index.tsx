@@ -128,7 +128,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
         const d = doc.data() as Room;
         return {
           id: doc.id,
-          status: d.status || "occupied",
+          status: d.tenantId ? "occupied" : "vacant",
           tenantName: d.tenantName || "-",
           area: d.area || 0,
           latestTotal: d.latestTotal || 0,
@@ -1210,11 +1210,11 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
       room.tenantName.toLowerCase().includes(searchRoom.trim().toLowerCase());
     let matchFilter = true;
     if (filterType === 'unpaid') {
-      matchFilter = room.billStatus === 'unpaid';
+      matchFilter = room.billStatus === 'unpaid' && room.status === 'occupied';
     } else if (filterType === 'vacant') {
-      matchFilter = room.status === 'vacant' && !room.tenantEmail;
+      matchFilter = room.status === 'vacant';
     } else if (filterType === 'occupied') {
-      matchFilter = room.status === 'occupied' && !!room.tenantEmail;
+      matchFilter = room.status === 'occupied';
     }
     return matchSearch && matchFilter;
   });
@@ -1330,7 +1330,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
                 colorScheme="red"
                 onClick={() => setFilterType('unpaid')}
               >
-                ค้างชำระ ({rooms.filter(r => r.billStatus === 'unpaid').length})
+                ค้างชำระ ({rooms.filter(r => r.billStatus === 'unpaid' && r.status === 'occupied').length})
               </Button>
             </HStack>
             <InputGroup maxW={{ base: "full", md: "300px" }}>
