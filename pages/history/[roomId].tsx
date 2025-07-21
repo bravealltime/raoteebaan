@@ -49,7 +49,7 @@ export default function HistoryRoom() {
     return () => unsubscribe();
   }, [router]);
 
-  // โหลดข้อมูลห้องから Firestore
+  // โหลดข้อมูลห้องかฉอง Firestore
   useEffect(() => {
     if (!roomId) return;
     const fetchRoomData = async () => {
@@ -260,10 +260,12 @@ export default function HistoryRoom() {
   };
 
   const handleDeleteBill = (billId: string) => {
+    console.log("handleDeleteBill called with id:", billId);
     setDeleteConfirmId(billId);
   };
 
   const confirmDeleteBill = async () => {
+    console.log("confirmDeleteBill called, deleteConfirmId:", deleteConfirmId, "roomId:", roomId);
     if (!deleteConfirmId || !roomId) return;
 
     try {
@@ -488,6 +490,7 @@ export default function HistoryRoom() {
                                 size="sm"
                                 borderRadius="full"
                                 _hover={{ bg: "red.100" }}
+                                style={{ border: '2px solid red', zIndex: 9999, pointerEvents: 'auto' }}
                               />
                             </Tooltip>
                           </Td>
@@ -689,6 +692,7 @@ export default function HistoryRoom() {
                                 size="sm"
                                 borderRadius="full"
                                 _hover={{ bg: "red.100" }}
+                                style={{ border: '2px solid red', zIndex: 9999, pointerEvents: 'auto' }}
                               />
                             </Tooltip>
                           </Td>
