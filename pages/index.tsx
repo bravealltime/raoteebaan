@@ -264,7 +264,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
 
       const room: Room = {
         id: sanitizedRoomId,
-        status: roomData.status || "occupied",
+        status: data.status === "vacant" ? "vacant" : "occupied",
         tenantName: roomData.tenantName,
         area: roomData.area,
         latestTotal: (roomData.elecTotal || 0) + (roomData.waterTotal || 0) + (roomData.rent || 0) + (roomData.service || 0),

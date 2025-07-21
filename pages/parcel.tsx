@@ -246,22 +246,7 @@ export default function Parcel() {
               
               setParcels(allParcels);
               
-              // Calculate stats
-              const now = new Date();
-              const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
               
-              const stats: ParcelStats = {
-                total: allParcels.length,
-                pending: allParcels.filter(p => p.status === "pending").length,
-                received: allParcels.filter(p => p.status === "received").length,
-                delivered: allParcels.filter(p => p.status === "delivered").length,
-                overdue: allParcels.filter(p => 
-                  p.status === "received" && 
-                  p.receivedDate?.toDate && 
-                  p.receivedDate.toDate() < threeDaysAgo
-                ).length
-              };
-              setStats(stats);
             }, (error) => {
               console.error("Error in parcel snapshot listener:", error);
               // Don't show error to user for missing collection, just continue with empty data
@@ -327,6 +312,32 @@ export default function Parcel() {
       setRoomParcels(updatedRoomParcels);
     }
   }, [parcels, selectedRoom]);
+
+  // Recalculate stats every minute to update overdue count
+  useEffect(() => {
+    const calculateStats = () => {
+      const now = new Date();
+      const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000);
+
+      const newStats: ParcelStats = {
+        total: parcels.length,
+        pending: parcels.filter(p => p.status === "pending").length,
+        received: parcels.filter(p => p.status === "received").length,
+        delivered: parcels.filter(p => p.status === "delivered").length,
+        overdue: parcels.filter(p => 
+          p.status === "received" && 
+          p.receivedDate?.toDate && 
+          p.receivedDate.toDate() < threeDaysAgo
+        ).length
+      };
+      setStats(newStats);
+    };
+
+    calculateStats(); // Initial calculation
+    const intervalId = setInterval(calculateStats, 60 * 1000); // Recalculate every minute
+
+    return () => clearInterval(intervalId); // Cleanup on unmount
+  }, [parcels]);
 
   const handleRoomClick = (room: Room) => {
     const roomParcelsData = parcels.filter(p => p.roomId === room.id);
@@ -580,7 +591,7 @@ export default function Parcel() {
       );
     }
     
-    return filteredRooms;
+    return filteredRooms.sort((a, b) => a.id.localeCompare(b.id));
   };
 
   if (role === null || loading) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;

@@ -64,7 +64,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
   const [lastWaterMeter, setLastWaterMeter] = useState<number | undefined>(undefined);
   const [lastElecMeter, setLastElecMeter] = useState<number | undefined>(undefined);
   const [roomBills, setRoomBills] = useState<Record<string, any>>({});
-  const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant' | 'review'>('unpaid');
+  const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant' | 'review'>('all');
   const [isEquipmentModalOpen, setIsEquipmentModalOpen] = useState(false);
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
   const [loadingUser, setLoadingUser] = useState(true);
@@ -137,7 +137,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
 
         return {
           id: doc.id,
-          status: d.status || "occupied",
+          status: (d.status === "vacant" || !d.tenantName || !d.tenantId) ? "vacant" : "occupied",
             tenantName: d.tenantName || "-",
             tenantId: d.tenantId || undefined, // Add this line
             area: d.area || 0,
@@ -296,7 +296,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
     try {
       const room: Room = {
         id: roomData.id,
-        status: roomData.status || "occupied",
+        status: roomData.status === "vacant" ? "vacant" : "occupied",
         tenantName: roomData.tenantName,
         area: roomData.area,
         latestTotal: (roomData.elecTotal || 0) + (roomData.waterTotal || 0) + (roomData.rent || 0) + (roomData.service || 0),
