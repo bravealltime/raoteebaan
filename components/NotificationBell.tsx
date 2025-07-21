@@ -136,7 +136,7 @@ export default function NotificationBell({ currentUser, showViewAllLink = true }
             {unreadCount}
           </Badge>
         )}
-        <MenuList zIndex={1500}>
+        <MenuList portal={true} zIndex={20000}>
           <Flex justify="space-between" align="center" px={3} py={2}>
             <Text fontWeight="bold">การแจ้งเตือน</Text>
             {unreadCount > 0 && (

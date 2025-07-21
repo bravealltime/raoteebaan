@@ -173,7 +173,7 @@ const ComplaintsList = ({ currentUser, role }: ComplaintsListProps) => {
                                         colorScheme={statusColors[c.status]}>
                                         {statusTexts[c.status]}
                                     </MenuButton>
-                                    <MenuList>
+                                    <MenuList portal={true} zIndex={20000}>
                                         <MenuItem onClick={() => handleStatusChange(c.id, 'new')}>เรื่องใหม่</MenuItem>
                                         <MenuItem onClick={() => handleStatusChange(c.id, 'in_progress')}>กำลังดำเนินการ</MenuItem>
                                         <MenuItem onClick={() => handleStatusChange(c.id, 'resolved')}>แก้ไขแล้ว</MenuItem>

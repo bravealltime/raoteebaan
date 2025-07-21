@@ -184,7 +184,7 @@ const AdminUsersContent = ({ currentUser, role, users, rooms, bills, search, set
           {loading ? (
             <Center py={10}><Spinner size="xl" color="blue.500" /></Center>
           ) : (
-            <Box overflowX="auto">
+            <Box overflowX="auto" style={{ overflow: 'visible' }}>
               <Table variant="simple" size="md">
                 <Thead bg="gray.50">
                   <Tr>
@@ -258,7 +258,7 @@ const AdminUsersContent = ({ currentUser, role, users, rooms, bills, search, set
                               size="sm"
                               aria-label="User actions"
                             />
-                            <MenuList>
+                            <MenuList portal={true} zIndex={20000}>
                               <MenuItem icon={<FaEdit />} onClick={() => handleEditClick(user)}>
                                 แก้ไข
                               </MenuItem>
