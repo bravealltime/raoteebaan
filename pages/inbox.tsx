@@ -8,6 +8,12 @@ import {
   Heading,
   useToast,
   Button,
+  Grid,
+  GridItem,
+  Text,
+  VStack,
+  Icon,
+  useBreakpointValue,
 } from '@chakra-ui/react';
 import { onAuthStateChanged } from 'firebase/auth';
 import {
@@ -26,7 +32,7 @@ import MainLayout from '../components/MainLayout';
 import ChatList from '../components/ChatList';
 import ChatWindow from '../components/ChatWindow';
 import NewConversationModal from '../components/NewConversationModal';
-import { FaPlus } from 'react-icons/fa';
+import { FaPlus, FaComments } from 'react-icons/fa';
 import { User, Conversation } from '../types/chat';
 
 const Inbox = () => {
@@ -37,6 +43,7 @@ const Inbox = () => {
   const [loading, setLoading] = useState(true);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
+  const isDesktop = useBreakpointValue({ base: false, lg: true });
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -143,29 +150,83 @@ const Inbox = () => {
 
   if (loading) {
     return (
-      <MainLayout role={role} currentUser={currentUser} showSidebar={false}>
+      <MainLayout role={role} currentUser={currentUser} showSidebar={role !== 'user'}>
         <Center h="100vh"><Spinner /></Center>
       </MainLayout>
     );
   }
 
+  if (!isDesktop) {
+    // Mobile view - original logic
+    return (
+      <MainLayout role={role} currentUser={currentUser} showSidebar={role !== 'user'}>
+        <Box h="calc(100vh - 110px)" bg="white" borderRadius="lg" boxShadow="sm" overflow="hidden">
+          {selectedConversation ? (
+            <ChatWindow
+              conversation={selectedConversation}
+              currentUser={currentUser}
+              onClose={() => setSelectedConversation(null)}
+            />
+          ) : (
+            <Flex direction="column" h="100%">
+              <Flex
+                justify="space-between"
+                align="center"
+                p={4}
+                borderBottom="1px solid"
+                borderColor="gray.200"
+              >
+                <Heading size="md">Messages</Heading>
+                {(role === 'admin' || role === 'owner') && (
+                  <Button
+                    size="sm"
+                    leftIcon={<FaPlus />}
+                    onClick={onOpen}
+                    colorScheme="blue"
+                  >
+                    New Conversation
+                  </Button>
+                )}
+              </Flex>
+              <Box flex="1" overflowY="auto">
+                <ChatList
+                  conversations={conversations}
+                  currentUser={currentUser}
+                  onSelectConversation={setSelectedConversation}
+                />
+              </Box>
+            </Flex>
+          )}
+        </Box>
+        <NewConversationModal
+          isOpen={isOpen}
+          onClose={onClose}
+          currentUser={currentUser}
+          onSelectUser={handleSelectUser}
+        />
+      </MainLayout>
+    )
+  }
+
+  // Desktop view - 2-column layout
   return (
-    <MainLayout role={role} currentUser={currentUser} showSidebar={false}>
-      <Box h="calc(100vh - 110px)" bg="white" borderRadius="lg" boxShadow="sm" overflow="hidden">
-        {selectedConversation ? (
-          <ChatWindow
-            conversation={selectedConversation}
-            currentUser={currentUser}
-            onClose={() => setSelectedConversation(null)}
-          />
-        ) : (
-          <Flex direction="column" h="100%">
+    <MainLayout role={role} currentUser={currentUser} showSidebar={role !== 'user'}>
+      <Grid
+        h="calc(100vh - 110px)"
+        templateColumns="350px 1fr"
+        gap={4}
+        bg="gray.50"
+        p={4}
+      >
+        <GridItem bg="white" borderRadius="lg" boxShadow="sm" overflow="hidden">
+           <Flex direction="column" h="100%">
             <Flex
               justify="space-between"
               align="center"
               p={4}
               borderBottom="1px solid"
               borderColor="gray.200"
+              flexShrink={0}
             >
               <Heading size="md">Messages</Heading>
               {(role === 'admin' || role === 'owner') && (
@@ -175,7 +236,7 @@ const Inbox = () => {
                   onClick={onOpen}
                   colorScheme="blue"
                 >
-                  New Conversation
+                  New
                 </Button>
               )}
             </Flex>
@@ -184,11 +245,29 @@ const Inbox = () => {
                 conversations={conversations}
                 currentUser={currentUser}
                 onSelectConversation={setSelectedConversation}
+                selectedConversationId={selectedConversation?.id}
               />
             </Box>
           </Flex>
-        )}
-      </Box>
+        </GridItem>
+        <GridItem bg="white" borderRadius="lg" boxShadow="sm" overflow="hidden">
+          {selectedConversation ? (
+            <ChatWindow
+              conversation={selectedConversation}
+              currentUser={currentUser}
+              onClose={() => setSelectedConversation(null)} // This will be hidden on desktop
+            />
+          ) : (
+            <Center h="100%">
+              <VStack spacing={4}>
+                <Icon as={FaComments} w={16} h={16} color="gray.300" />
+                <Heading size="md" color="gray.500">Select a conversation</Heading>
+                <Text color="gray.400">Choose from the list on the left to start chatting.</Text>
+              </VStack>
+            </Center>
+          )}
+        </GridItem>
+      </Grid>
       <NewConversationModal
         isOpen={isOpen}
         onClose={onClose}

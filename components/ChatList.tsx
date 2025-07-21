@@ -7,9 +7,10 @@ interface ChatListProps {
   currentUser: User | null;
   onSelectConversation: (conversation: Conversation) => void;
   onlineStatus?: Record<string, any>;
+  selectedConversationId?: string | null;
 }
 
-const ChatList = ({ conversations, currentUser, onSelectConversation, onlineStatus = {} }: ChatListProps) => {
+const ChatList = ({ conversations, currentUser, onSelectConversation, onlineStatus = {}, selectedConversationId }: ChatListProps) => {
   const getOtherParticipant = (conversation: Conversation) => {
     if (!conversation || !currentUser) {
       return undefined;
@@ -24,14 +25,16 @@ const ChatList = ({ conversations, currentUser, onSelectConversation, onlineStat
         const isOnline = otherUser ? onlineStatus[otherUser.uid]?.state === 'online' : false;
         const isUnread = convo.lastMessage && convo.lastMessage.senderId !== currentUser?.uid && !convo.lastMessage.isRead;
 
+        const isSelected = convo.id === selectedConversationId;
+
         return (
           <HStack
             key={convo.id}
             p={3}
             borderRadius="lg"
             cursor="pointer"
-            bg={isUnread ? "blue.50" : "white"}
-            _hover={{ bg: "gray.100" }}
+            bg={isSelected ? "blue.100" : isUnread ? "blue.50" : "white"}
+            _hover={{ bg: isSelected ? "blue.200" : "gray.100" }}
             onClick={() => onSelectConversation(convo)}
             transition="background 0.2s"
             alignItems="center"

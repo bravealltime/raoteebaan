@@ -6,8 +6,9 @@ import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp, startAfter, endBefore, limitToLast } from "firebase/firestore";
 import TenantLayout from "../components/TenantLayout";
-import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools, FaBullhorn, FaPhone, FaLine, FaCopy, FaComments, FaQrcode, FaBolt, FaTint, FaCheckCircle, FaSpinner, FaClock, FaMoneyBillWave, FaArrowRight, FaImage, FaArrowLeft, FaFilePdf, FaPaperPlane } from "react-icons/fa";
+import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools, FaBullhorn, FaPhone, FaLine, FaCopy, FaComments, FaQrcode, FaBolt, FaTint, FaCheckCircle, FaSpinner, FaClock, FaMoneyBillWave, FaArrowRight, FaImage, FaArrowLeft, FaFilePdf, FaPaperPlane, FaCommentDots } from "react-icons/fa";
 import ReportIssueModal from '../components/ReportIssueModal';
+import ComplaintModal from '../components/ComplaintModal';
 import AnnouncementsList from '../components/AnnouncementsList';
 
 interface UserData {
@@ -71,6 +72,14 @@ interface Issue {
   lastFollowUpAt?: Timestamp;
 }
 
+interface Complaint {
+  id: string;
+  subject: string;
+  description: string;
+  status: 'new' | 'in_progress' | 'resolved';
+  createdAt: Timestamp;
+}
+
 // @ts-ignore
 declare global {
   interface Window { ThaiQRCode: any }
@@ -100,6 +109,7 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
   const { isOpen: isAlertOpen, onOpen: onAlertOpen, onClose: onAlertClose } = useDisclosure();
   const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
   const { isOpen: isReportModalOpen, onOpen: onReportModalOpen, onClose: onReportModalClose } = useDisclosure();
+  const { isOpen: isComplaintModalOpen, onOpen: onComplaintModalOpen, onClose: onComplaintModalClose } = useDisclosure();
   const { isOpen: isAssessmentModalOpen, onOpen: onAssessmentModalOpen, onClose: onAssessmentModalClose } = useDisclosure();
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -115,6 +125,7 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
   const { isOpen: isIssueImageModalOpen, onOpen: onIssueImageModalOpen, onClose: onIssueImageModalClose } = useDisclosure();
   const [currentIssueImageIndex, setCurrentIssueImageIndex] = useState(0);
   const [expandedIssues, setExpandedIssues] = useState<Set<string>>(new Set());
+  const [complaintHistory, setComplaintHistory] = useState<Complaint[]>([]);
   const [followUpLoading, setFollowUpLoading] = useState<Record<string, boolean>>({});
 
   const toggleIssueExpansion = (issueId: string) => {
@@ -214,6 +225,31 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
       fetchIssueHistory('first');
     }
   }, [roomData]);
+
+  useEffect(() => {
+    if (currentUser?.uid) {
+      const q = query(
+        collection(db, "complaints"),
+        where("tenantId", "==", currentUser.uid),
+        orderBy("createdAt", "desc")
+      );
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const complaints = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Complaint[];
+        setComplaintHistory(complaints);
+      }, (error) => {
+        console.error("Error fetching complaints: ", error);
+        toast({ title: 'ไม่สามารถโหลดประวัติร้องเรียนได้', status: 'error' });
+      });
+
+      return () => unsubscribe();
+    } else {
+      setComplaintHistory([]);
+    }
+  }, [currentUser, toast]);
 
   const fetchIssueHistory = async (direction: 'first' | 'next' | 'prev') => {
     if (!roomData?.id) return;
@@ -441,8 +477,11 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
             </Box>
           </Flex>
           <Flex gap={3}>
+            <Button leftIcon={<FaCommentDots />} colorScheme="blue" variant="outline" onClick={onComplaintModalOpen} isDisabled={!roomData}>
+              แจ้งเรื่องทั่วไป
+            </Button>
             <Button leftIcon={<FaTools />} colorScheme="orange" variant="solid" onClick={onReportModalOpen} isDisabled={!roomData}>
-              แจ้งปัญหา
+              แจ้งซ่อม
             </Button>
             <Button leftIcon={<FaUser />} colorScheme="gray" variant="outline" onClick={onProfileOpen}>
               โปรไฟล์
@@ -600,6 +639,36 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
           <VStack spacing={6} align="stretch">
             {/* Announcements */}
             <AnnouncementsList currentUser={currentUser} />
+
+            {/* Complaints History */}
+            <Card borderRadius="xl" boxShadow="lg" bg="white">
+              <CardHeader>
+                <Heading size="md" color="brand.700"><Icon as={FaCommentDots} mr={2} />ประวัติการแจ้งเรื่องทั่วไป</Heading>
+              </CardHeader>
+              <CardBody>
+                {complaintHistory.length > 0 ? (
+                  <VStack align="stretch" spacing={3}>
+                    {complaintHistory.map((complaint) => (
+                      <Box key={complaint.id} bg="gray.50" borderRadius="md" p={4}>
+                        <Flex align="center" gap={4}>
+                          <Box flex="1">
+                            <Text color="gray.800" fontWeight="bold">{complaint.subject}</Text>
+                            <Text color="gray.500" fontSize="sm">แจ้งเมื่อ: {complaint.createdAt?.toDate().toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
+                          </Box>
+                          <Badge colorScheme={complaint.status === 'resolved' ? 'green' : complaint.status === 'in_progress' ? 'blue' : 'yellow'}>
+                            {complaint.status === 'new' && 'เรื่องใหม่'}
+                            {complaint.status === 'in_progress' && 'กำลังดำเนินการ'}
+                            {complaint.status === 'resolved' && 'แก้ไขแล้ว'}
+                          </Badge>
+                        </Flex>
+                      </Box>
+                    ))}
+                  </VStack>
+                ) : (
+                  <Text color="gray.500">ยังไม่มีประวัติการแจ้งเรื่องทั่วไป</Text>
+                )}
+              </CardBody>
+            </Card>
 
             {/* Parcels */}
             <Card borderRadius="xl" boxShadow="lg" bg="white">
@@ -844,6 +913,16 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
         <ReportIssueModal 
           isOpen={isReportModalOpen} 
           onClose={onReportModalClose} 
+          roomId={roomData.id} 
+          tenantId={currentUser.uid}
+          tenantName={currentUser.name}
+        />
+      )}
+
+      {roomData && currentUser && (
+        <ComplaintModal 
+          isOpen={isComplaintModalOpen} 
+          onClose={onComplaintModalClose} 
           roomId={roomData.id} 
           tenantId={currentUser.uid}
           tenantName={currentUser.name}

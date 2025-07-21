@@ -21,6 +21,7 @@ import RoomStatusChart from '../components/RoomStatusChart';
 import PaymentStatusChart from '../components/PaymentStatusChart';
 import AddAnnouncementCard from '../components/AddAnnouncementCard';
 import AnnouncementsList from '../components/AnnouncementsList';
+import ComplaintsList from '../components/ComplaintsList';
 
 interface Room {
   id: string;
@@ -890,6 +891,9 @@ function Dashboard({ currentUser, role }: DashboardProps) {
               </SimpleGrid>
               <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
                 <AnnouncementsList currentUser={currentUser} />
+              </Box>
+              <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
+                <ComplaintsList currentUser={currentUser} role={role as 'admin' | 'owner'} />
               </Box>
             </VStack>
             <Box bg="white" borderRadius="xl" p={5} boxShadow="md" gridColumn={{ base: "auto", lg: "span 1" }}>

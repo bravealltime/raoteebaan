@@ -21,6 +21,7 @@ import RoomStatusChart from '../components/RoomStatusChart';
 import PaymentStatusChart from '../components/PaymentStatusChart';
 import AddAnnouncementCard from '../components/AddAnnouncementCard';
 import AnnouncementsList from '../components/AnnouncementsList';
+import ComplaintsList from '../components/ComplaintsList';
 
 interface Room {
   id: string;
@@ -803,6 +804,7 @@ export default function OwnerDashboard({ currentUser, role }: OwnerDashboardProp
           <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={{ base: 4, md: 6 }} alignItems="start">
             <AddAnnouncementCard currentUser={currentUser} />
             <AnnouncementsList currentUser={currentUser} />
+            <ComplaintsList currentUser={currentUser} role={role as 'admin' | 'owner'} />
           </SimpleGrid>
 
           {/* Main Content */}
