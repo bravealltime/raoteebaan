@@ -69,6 +69,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
   const [selectedRoomForEquipment, setSelectedRoomForEquipment] = useState<string>("");
   const [loadingUser, setLoadingUser] = useState(true);
   const [proofImageUrl, setProofImageUrl] = useState<string | null>(null);
+  const [selectedRoomForProof, setSelectedRoomForProof] = useState<Room | null>(null);
   const { isOpen: isProofModalOpen, onOpen: onProofModalOpen, onClose: onProofModalClose } = useDisclosure();
   const [selectedBill, setSelectedBill] = useState<any | null>(null);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
@@ -436,54 +437,39 @@ function Dashboard({ currentUser, role }: DashboardProps) {
     setEditRoom(null);
   };
 
-  const handleMarkAsPaid = async (roomId: string, billId: string) => {
+  const handleConfirmPayment = async (roomId: string, billId: string) => {
     try {
       await setDoc(doc(db, "bills", billId), { status: "paid", proofUrl: null }, { merge: true });
       await setDoc(doc(db, "rooms", roomId), { billStatus: "paid" }, { merge: true });
       toast({ title: "ทำเครื่องหมายว่าชำระแล้วสำเร็จ", status: "success" });
-      const querySnapshot = await getDocs(collection(db, "rooms"));
-      let data: Room[] = await Promise.all(querySnapshot.docs.map(async doc => {
-        const d = doc.data();
-        let billStatus = d.billStatus || "paid";
-        let proofUrl = null;
-
-        const q = query(
-          collection(db, "bills"),
-          where("roomId", "==", doc.id),
-          orderBy("createdAt", "desc"),
-          limit(1)
-        );
-        const billSnap = await getDocs(q);
-        if (!billSnap.empty) {
-          const latestBill = billSnap.docs[0].data();
-          billStatus = latestBill.status || billStatus;
-          proofUrl = latestBill.proofUrl || null;
-        }
-
-        return {
-          id: doc.id,
-          status: d.status || "occupied",
-          tenantName: d.tenantName || "-",
-          area: d.area || 0,
-          latestTotal: d.latestTotal || 0,
-          electricity: d.electricity || 0,
-          water: d.water || 0,
-          rent: d.rent || 0,
-          service: d.service || 0,
-          overdueDays: d.overdueDays || 0,
-          billStatus: billStatus,
-          proofUrl: proofUrl,
-        };
-      }));
-      setRooms(data);
+      setRooms(prevRooms => prevRooms.map(r =>
+        r.id === roomId ? { ...r, billStatus: 'paid', proofUrl: null } : r
+      ));
+      onProofModalClose();
     } catch (e) {
       console.error("Error marking as paid:", e);
       toast({ title: "ทำเครื่องหมายว่าชำระแล้วไม่สำเร็จ", status: "error" });
     }
   };
 
-  const handleViewProof = (url: string) => {
+  const handleRevertPayment = async (roomId: string, billId: string) => {
+    try {
+      await setDoc(doc(db, "bills", billId), { status: "unpaid", proofUrl: null }, { merge: true });
+      await setDoc(doc(db, "rooms", roomId), { billStatus: "unpaid" }, { merge: true });
+      toast({ title: "ย้อนกลับสถานะการชำระเงินสำเร็จ", status: "success" });
+      setRooms(prevRooms => prevRooms.map(r =>
+        r.id === roomId ? { ...r, billStatus: 'unpaid', proofUrl: null } : r
+      ));
+      onProofModalClose();
+    } catch (e) {
+      console.error("Error reverting payment status:", e);
+      toast({ title: "ย้อนกลับสถานะการชำระเงินไม่สำเร็จ", status: "error" });
+    }
+  };
+
+  const handleViewProof = (url: string, room: Room) => {
     setProofImageUrl(url);
+    setSelectedRoomForProof(room);
     onProofModalOpen();
   };
 
@@ -717,9 +703,11 @@ function Dashboard({ currentUser, role }: DashboardProps) {
     const total = bill?.total || room.latestTotal || 0;
     
     // Determine status based on filterType and room data
-    let status: "pending" | "unpaid" | "review" | "paid" = "unpaid";
+    let status: "pending" | "unpaid" | "review" | "paid" | "vacant" = "unpaid"; // Added "vacant" to status type
     if (filterType === 'review' && room.proofUrl) {
       status = "review";
+    } else if (filterType === 'vacant') { // Added this condition
+      status = "vacant";
     } else if (room.billStatus === 'pending') {
       status = "pending";
     } else if (room.billStatus === 'unpaid') {
@@ -738,8 +726,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
       
       onReview: status === "review" ? () => {
         if (room.proofUrl) {
-          setProofImageUrl(room.proofUrl);
-          onProofModalOpen();
+          handleViewProof(room.proofUrl, room);
         }
       } : undefined,
       onRevert: status === "review" ? async () => {
@@ -981,10 +968,10 @@ function Dashboard({ currentUser, role }: DashboardProps) {
             )}
           </ModalBody>
            <ModalFooter>
-            <Button colorScheme='red' mr={3} onClick={roomPaymentCards.find(r => r.status === 'review')?.onRevert}>
+            <Button colorScheme='red' mr={3} onClick={() => selectedRoomForProof?.latestBillId && handleRevertPayment(selectedRoomForProof.id, selectedRoomForProof.latestBillId)}>
               ปฏิเสธ
             </Button>
-            <Button colorScheme='green' onClick={roomPaymentCards.find(r => r.status === 'review')?.onConfirmPayment}>
+            <Button colorScheme='green' onClick={() => selectedRoomForProof?.latestBillId && handleConfirmPayment(selectedRoomForProof.id, selectedRoomForProof.latestBillId)}>
               ยืนยันการชำระเงิน
             </Button>
           </ModalFooter>
