@@ -2,7 +2,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
 import {
   Box, Heading, Text, Flex, Button, Input, Table, Thead, Tbody, Tr, Th, Td, Icon, InputGroup, InputLeftElement, Stack, useToast, useBreakpointValue, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay,
-  TableContainer
+  TableContainer, Tooltip, IconButton
 } from "@chakra-ui/react";
 import { FaArrowLeft, FaCalculator, FaBolt, FaTint, FaTrash } from "react-icons/fa";
 import MainLayout from "../../components/MainLayout";
@@ -478,9 +478,18 @@ export default function HistoryRoom() {
                         </Td>
                         {userRole !== 'user' && (
                           <Td>
-                            <Button size="sm" colorScheme="red" variant="ghost" borderRadius="lg" onClick={() => handleDeleteBill(item.id)} leftIcon={<FaTrash />}>
-                              ลบ
-                            </Button>
+                            <Tooltip label="ลบบิลนี้" hasArrow>
+                              <IconButton
+                                icon={<FaTrash />}
+                                colorScheme="red"
+                                variant="ghost"
+                                aria-label="Delete Bill"
+                                onClick={() => handleDeleteBill(item.id)}
+                                size="sm"
+                                borderRadius="full"
+                                _hover={{ bg: "red.100" }}
+                              />
+                            </Tooltip>
                           </Td>
                         )}
                       </Tr>
@@ -670,9 +679,18 @@ export default function HistoryRoom() {
                         </Td>
                         {userRole !== 'user' && (
                           <Td>
-                            <Button size="sm" colorScheme="red" variant="ghost" borderRadius="lg" onClick={() => handleDeleteBill(item.id)} leftIcon={<FaTrash />}>
-                              ลบ
-                            </Button>
+                            <Tooltip label="ลบบิลนี้" hasArrow>
+                              <IconButton
+                                icon={<FaTrash />}
+                                colorScheme="red"
+                                variant="ghost"
+                                aria-label="Delete Bill"
+                                onClick={() => handleDeleteBill(item.id)}
+                                size="sm"
+                                borderRadius="full"
+                                _hover={{ bg: "red.100" }}
+                              />
+                            </Tooltip>
                           </Td>
                         )}
                       </Tr>
