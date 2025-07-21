@@ -20,6 +20,10 @@ interface MainLayoutProps {
   proofImageUrl?: string | null;
 }
 
+import { getAuth, signOut } from "firebase/auth";
+
+// ... (imports)
+
 export default function MainLayout({ children, role, currentUser, showSidebar = true, isProofModalOpen, onProofModalClose, proofImageUrl }: MainLayoutProps) {
   const router = useRouter();
   const toast = useToast();
@@ -29,6 +33,18 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const isMobile = useBreakpointValue({ base: true, md: false });
   const { isOpen: isProfileOpen, onOpen: onProfileOpen, onClose: onProfileClose } = useDisclosure();
+
+  const handleLogout = async () => {
+    const auth = getAuth();
+    try {
+      await signOut(auth);
+      toast({ title: "ออกจากระบบสำเร็จ", status: "success" });
+      router.push('/login');
+    } catch (error) {
+      console.error("Error signing out: ", error);
+      toast({ title: "เกิดข้อผิดพลาดในการออกจากระบบ", status: "error" });
+    }
+  };
 
   useEffect(() => {
     console.log("MainLayout useEffect - role:", role);
@@ -131,7 +147,7 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
           </ModalBody>
         </ModalContent>
       </Modal>
-      <ProfileModal isOpen={isProfileOpen} onClose={onProfileClose} />
+      <ProfileModal isOpen={isProfileOpen} onClose={onProfileClose} onLogout={handleLogout} />
       {currentUser && router.pathname !== '/inbox' && <ChatWidget />}
       <audio ref={notificationSoundRef} src="/sounds/notification.mp3" preload="auto" />
     </Flex>

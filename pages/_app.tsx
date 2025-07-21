@@ -5,10 +5,11 @@ import ErrorBoundary from "../components/ErrorBoundary";
 import "../styles/fonts.css";
 import "../styles/globals.css";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, ReactElement, ReactNode } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
+import { NextPage } from "next";
 
 const theme = extendTheme({
   fonts: {
@@ -45,7 +46,15 @@ const theme = extendTheme({
   },
 });
 
-function MyApp({ Component, pageProps }: AppProps) {
+type NextPageWithLayout = NextPage & {
+  getLayout?: (page: ReactElement) => ReactNode;
+};
+
+type AppPropsWithLayout = AppProps & {
+  Component: NextPageWithLayout;
+};
+
+function MyApp({ Component, pageProps }: AppPropsWithLayout) {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,6 +97,8 @@ function MyApp({ Component, pageProps }: AppProps) {
     );
   }
 
+  const getLayout = Component.getLayout || ((page) => page);
+
   return (
     <ErrorBoundary>
       <Head>
@@ -99,7 +110,7 @@ function MyApp({ Component, pageProps }: AppProps) {
         />
       </Head>
       <ChakraProvider theme={theme}>
-        <Component {...pageProps} currentUser={currentUser} role={role} />
+        {getLayout(<Component {...pageProps} currentUser={currentUser} role={role} />)}
       </ChakraProvider>
     </ErrorBoundary>
   );

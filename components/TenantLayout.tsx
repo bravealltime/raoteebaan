@@ -156,7 +156,7 @@ export default function TenantLayout({ children, currentUser, isProofModalOpen, 
           </ModalBody>
         </ModalContent>
       </Modal>
-      <ProfileModal isOpen={!!isProfileOpen} onClose={onProfileClose || (() => {})} />
+      <ProfileModal isOpen={!!isProfileOpen} onClose={onProfileClose || (() => {})} onLogout={handleLogout} />
       {currentUser && <ChatWidget />}
       <audio ref={notificationSoundRef} src="/sounds/notification.mp3" preload="auto" />
     </Flex>

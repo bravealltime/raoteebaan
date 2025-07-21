@@ -16,7 +16,7 @@ import Sidebar from "../components/Sidebar";
 import { onAuthStateChanged } from "firebase/auth";
 import MainLayout from "../components/MainLayout";
 import InvoiceModal from "../components/InvoiceModal";
-import RoomPaymentCardList, { RoomPaymentCard } from "../components/RoomPaymentCard";
+import RoomPaymentCardList, { RoomPaymentCardProps } from "../components/RoomPaymentCard";
 import RoomStatusChart from '../components/RoomStatusChart';
 import PaymentStatusChart from '../components/PaymentStatusChart';
 import AddAnnouncementCard from '../components/AddAnnouncementCard';
@@ -703,11 +703,13 @@ function Dashboard({ currentUser, role }: DashboardProps) {
     const total = bill?.total || room.latestTotal || 0;
     
     // Determine status based on filterType and room data
-    let status: "pending" | "unpaid" | "review" | "paid" | "vacant" = "unpaid"; // Added "vacant" to status type
+    if (room.status === 'vacant') {
+      return null; // Don't create a card for vacant rooms
+    }
+
+    let status: "pending" | "unpaid" | "review" | "paid" = "unpaid";
     if (filterType === 'review' && room.proofUrl) {
       status = "review";
-    } else if (filterType === 'vacant') { // Added this condition
-      status = "vacant";
     } else if (room.billStatus === 'pending') {
       status = "pending";
     } else if (room.billStatus === 'unpaid') {
@@ -814,7 +816,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
         }
       },
     };
-  });
+  }).filter(Boolean) as RoomPaymentCardProps[];
 
   if (!currentUser || !role) {
     return (

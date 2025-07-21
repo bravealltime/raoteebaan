@@ -7,9 +7,10 @@ import {
 import { FaArrowLeft, FaCalculator, FaBolt, FaTint, FaTrash } from "react-icons/fa";
 import MainLayout from "../../components/MainLayout";
 import TenantLayout from "../../components/TenantLayout";
-import { db, auth } from "../../lib/firebase";
+import { db } from "../../lib/firebase";
 import { collection, addDoc, query, where, orderBy, limit, getDocs, deleteDoc, doc, getDoc, setDoc, updateDoc, Timestamp } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+
 
 export default function HistoryRoom() {
   const router = useRouter();
@@ -22,28 +23,33 @@ export default function HistoryRoom() {
   const isMobile = useBreakpointValue({ base: true, md: false });
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const cancelRef = useRef<any>(null);
-  const [currentUser, setCurrentUser] = useState<any | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [fullUserData, setFullUserData] = useState<any | null>(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        setCurrentUser(user);
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if (snap.exists()) {
-          const userData = snap.data();
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setCurrentUser({ ...user, ...userData });
           setUserRole(userData.role);
-          setFullUserData(userData);
+        } else {
+          // Handle case where user is authenticated but not in Firestore
+          setUserRole(null);
+          setCurrentUser(user);
         }
       } else {
-        router.replace("/login");
+        setCurrentUser(null);
+        setUserRole(null);
+        router.push('/login');
       }
     });
-    return () => unsub();
+    return () => unsubscribe();
   }, [router]);
 
-  // โหลดข้อมูลห้องจาก Firestore
+  // โหลดข้อมูลห้องから Firestore
   useEffect(() => {
     if (!roomId) return;
     const fetchRoomData = async () => {
@@ -61,20 +67,20 @@ export default function HistoryRoom() {
   }, [roomId]);
 
   useEffect(() => {
-    if (!fullUserData || !roomData) return; // Wait for all data to be loaded
+    if (!currentUser || !roomData || !userRole) return; // Wait for all data to be loaded
 
-    const { role, uid } = fullUserData;
+    const { uid } = currentUser;
 
-    if (role === 'admin') {
+    if (userRole === 'admin') {
       // Admin can access everything
       return;
-    } else if (role === 'owner') {
+    } else if (userRole === 'owner') {
       // Owner can access only their own rooms
       if (roomData.ownerId !== uid) {
         toast({ title: "ไม่มีสิทธิ์เข้าถึง", description: "คุณไม่ใช่เจ้าของห้องนี้", status: "error" });
         router.replace('/');
       }
-    } else if (role === 'user') {
+    } else if (userRole === 'user') {
       // Tenant can only access their own room
       if (roomData.tenantId !== uid) {
         toast({ title: "ไม่มีสิทธิ์เข้าถึง", description: "นี่ไม่ใช่ห้องของคุณ", status: "error" });
@@ -86,7 +92,7 @@ export default function HistoryRoom() {
       router.replace('/login');
     }
 
-  }, [fullUserData, roomData, router, toast]);
+  }, [currentUser, roomData, userRole, router, toast]);
 
   // โหลดประวัติจาก Firestore ทุกครั้งที่ roomId เปลี่ยน
   useEffect(() => {
@@ -253,7 +259,7 @@ export default function HistoryRoom() {
     }
   };
 
-  const handleDeleteBill = async (billId: string) => {
+  const handleDeleteBill = (billId: string) => {
     setDeleteConfirmId(billId);
   };
 
@@ -265,19 +271,20 @@ export default function HistoryRoom() {
       await deleteDoc(doc(db, "bills", deleteConfirmId));
       toast({ title: "ลบข้อมูลสำเร็จ", status: "success", duration: 2000 });
 
-      // 2. Fetch the new latest bill for the room
-      const q = query(
+      // 2. Refresh the history list on the current page to get the new state
+      const updatedHistoryQuery = query(
         collection(db, "bills"),
         where("roomId", "==", String(roomId)),
-        orderBy("createdAt", "desc"),
-        limit(1)
+        orderBy("createdAt", "desc")
       );
-      const snap = await getDocs(q);
+      const updatedSnap = await getDocs(updatedHistoryQuery);
+      const newHistory = updatedSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setHistory(newHistory); // Update the UI with the new history
 
+      // 3. Determine the new latest bill from the refreshed data
       let newLatestBillData;
-      if (!snap.empty) {
-        // If there's a new latest bill, use its data
-        const latestBill = snap.docs[0].data();
+      if (newHistory.length > 0) {
+        const latestBill = newHistory[0] as any; // The new latest bill
         newLatestBillData = {
           latestTotal: latestBill.total || 0,
           billStatus: latestBill.status || 'paid',
@@ -286,7 +293,7 @@ export default function HistoryRoom() {
           overdueDays: 0, // Reset overdue days
         };
       } else {
-        // If no bills are left, reset to default values
+        // If no bills are left, reset room to default values
         newLatestBillData = {
           latestTotal: 0,
           billStatus: 'paid',
@@ -296,25 +303,15 @@ export default function HistoryRoom() {
         };
       }
 
-      // 3. Update the room document with the new latest data
+      // 4. Update the room document with the new latest data
       const roomDocRef = doc(db, "rooms", String(roomId));
       await updateDoc(roomDocRef, newLatestBillData);
-
-      // 4. Refresh the history list on the current page
-      const updatedHistoryQuery = query(
-        collection(db, "bills"),
-        where("roomId", "==", String(roomId)),
-        orderBy("createdAt", "desc")
-      );
-      const updatedSnap = await getDocs(updatedHistoryQuery);
-      const newHistory = updatedSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setHistory(newHistory);
 
     } catch (e) {
       console.error("Error deleting bill:", e);
       toast({ title: "ลบข้อมูลไม่สำเร็จ", description: "เกิดข้อผิดพลาด โปรดลองอีกครั้ง", status: "error" });
     } finally {
-      setDeleteConfirmId(null);
+      setDeleteConfirmId(null); // Close the modal
     }
   };
 
