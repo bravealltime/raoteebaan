@@ -17,7 +17,7 @@ import {
   Heading,
   HStack,
 } from "@chakra-ui/react";
-import { FaEnvelope, FaBars, FaHome } from "react-icons/fa";
+import { FaEnvelope, FaBars, FaHome, FaArrowLeft } from "react-icons/fa";
 import NotificationBell from './NotificationBell';
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
@@ -174,16 +174,28 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
         <Spacer />
         <HStack spacing={4}>
           {router.pathname === '/inbox' && (
-            <IconButton
-              aria-label="Go to Home"
-              icon={<FaHome />}
-              variant="ghost"
-              fontSize="xl"
-              color="gray.600"
-              _hover={{ bg: "gray.200" }}
-              borderRadius="full"
-              onClick={handleHomeClick}
-            />
+            <>
+              <IconButton
+                aria-label="Go Back"
+                icon={<FaArrowLeft />}
+                variant="ghost"
+                fontSize="xl"
+                color="gray.600"
+                _hover={{ bg: "gray.200" }}
+                borderRadius="full"
+                onClick={() => router.back()}
+              />
+              <IconButton
+                aria-label="Go to Home"
+                icon={<FaHome />}
+                variant="ghost"
+                fontSize="xl"
+                color="gray.600"
+                _hover={{ bg: "gray.200" }}
+                borderRadius="full"
+                onClick={handleHomeClick}
+              />
+            </>
           )}
           <NotificationBell currentUser={currentUser} />
           <Box position="relative">
