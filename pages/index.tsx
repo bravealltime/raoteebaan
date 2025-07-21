@@ -1358,7 +1358,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
               initial="hidden"
               animate="visible"
             >
-              <SimpleGrid columns={{ base: 1, md: 2, lg: 3, xl: 4 }} spacing={{ base: 6, md: 8 }}>
+              <SimpleGrid minChildWidth="280px" spacing={{ base: 6, md: 8 }}>
                 {paginatedRooms.map(room => {
                   const bill = roomBills[room.id];
                   const electricity = bill?.electricityTotal || room.electricity || 0;
