@@ -159,10 +159,10 @@ export default function RoomCard({ id, tenantName, tenantEmail, area, latestTota
       border="2.5px solid"
       borderColor={status === "occupied" ? "blue.100" : "gray.100"}
       boxShadow="0 4px 24px 0 rgba(33,150,243,0.18), 0 1.5px 8px 0 rgba(0,0,0,0.08)"
-      minW="340px"
-      maxW="340px"
-      w="340px"
-      h="500px"
+      minW={{ base: '100%', sm: '320px', md: '280px', lg: '320px' }}
+      maxW={{ base: '100%', sm: '360px', md: '320px', lg: '340px' }}
+      w="100%"
+      h={{ base: 'auto', md: '500px' }}
       borderWidth="2px"
       borderStyle="solid"
       display="flex"
@@ -179,25 +179,25 @@ export default function RoomCard({ id, tenantName, tenantEmail, area, latestTota
       {/* Watermark Icon */}
       <Icon as={FaFileInvoice} color="blue.100" boxSize={32} position="absolute" top={-8} right={-8} zIndex={0} opacity={0.10} pointerEvents="none" />
       {/* Header Section */}
-      <Box bg="blue.50" px={4} pt={5} pb={2} borderBottom="1px solid" borderColor="blue.100" zIndex={1}>
-        <Flex align="center" justify="space-between">
-          <Flex align="center" gap={2}>
+      <Box bg="blue.50" px={{ base: 3, md: 4 }} pt={5} pb={2} borderBottom="1px solid" borderColor="blue.100" zIndex={1}>
+        <Flex align="center" justify="space-between" wrap="wrap">
+          <Flex align="center" gap={2} minW={0}>
             <Icon as={FaDoorOpen} color="blue.400" boxSize={5} />
-            <Text fontWeight="extrabold" fontSize="xl" color="blue.700">Room {id}</Text>
+            <Text fontWeight="extrabold" fontSize={{ base: 'lg', md: 'xl' }} color="blue.700" isTruncated>Room {id}</Text>
           </Flex>
-          <Badge colorScheme={status === "occupied" ? "green" : "gray"} borderRadius="full" px={2} fontSize="sm" bg={status === "occupied" ? "green.100" : "gray.100"} color={status === "occupied" ? "green.700" : "gray.600"}>
+          <Badge colorScheme={status === "occupied" ? "green" : "gray"} borderRadius="full" px={2} fontSize="sm" bg={status === "occupied" ? "green.100" : "gray.100"} color={status === "occupied" ? "green.700" : "gray.600"} mt={{ base: 2, md: 0 }}>
             {status === "occupied" ? "มีคนอยู่" : "ว่าง"}
           </Badge>
         </Flex>
-        <Flex align="center" gap={2} mt={1}>
+        <Flex align="center" gap={2} mt={1} wrap="wrap">
           <Avatar src={avatarUrl} size="sm" name={tenantName} mr={1} />
           <Icon as={FaUser} color="gray.400" boxSize={4} />
-          <Text color="gray.700" fontSize="md" noOfLines={1} fontWeight="semibold">{tenantName || "-"}</Text>
-          <Divider orientation="vertical" h={3} mx={2} borderColor="gray.200" />
+          <Text color="gray.700" fontSize="md" noOfLines={1} fontWeight="semibold" isTruncated>{tenantName || "-"}</Text>
+          <Divider orientation="vertical" h={3} mx={2} borderColor="gray.200" display={{ base: 'none', md: 'block' }} />
           <Icon as={FaCalendarAlt} color="gray.400" boxSize={4} />
           <Text color="gray.500" fontSize="sm">{area} ตร.ม.</Text>
         </Flex>
-        <Flex align="center" gap={2} mt={1}>
+        <Flex align="center" gap={2} mt={1} wrap="wrap">
           {dueDate && <Text color="blue.500" fontSize="sm">ครบกำหนด: {dueDate}</Text>}
           {overdueDays > 0 && (
             <Badge colorScheme="red" borderRadius="full" px={2} fontSize="sm">เกินกำหนด {overdueDays} วัน</Badge>
@@ -205,7 +205,7 @@ export default function RoomCard({ id, tenantName, tenantEmail, area, latestTota
         </Flex>
       </Box>
       {/* Bill Status Section */}
-      <Box px={4} py={2} bg="white" borderBottom="1px solid" borderColor="gray.100" zIndex={1}>
+      <Box px={{ base: 3, md: 4 }} py={2} bg="white" borderBottom="1px solid" borderColor="gray.100" zIndex={1}>
         <Flex align="center" gap={2}>
           <Badge bg={statusInfo.bg} color={statusInfo.text} borderRadius="full" fontSize="xs" px={2}>{statusInfo.label}</Badge>
           {overdueDays > 30 && billStatus === 'unpaid' && (
@@ -214,12 +214,12 @@ export default function RoomCard({ id, tenantName, tenantEmail, area, latestTota
         </Flex>
       </Box>
       {/* Progress Bar Section */}
-      <Box px={4} pt={2} pb={0}>
+      <Box px={{ base: 3, md: 4 }} pt={2} pb={0}>
         <Progress value={daysLeft > 0 ? 30 - daysLeft : 30} max={30} size="sm" colorScheme={daysLeft < 0 ? "red" : "blue"} borderRadius="md" />
       </Box>
       {/* Total Section */}
       <Box bg="blue.50" borderRadius="lg" py={2} px={4} mx={4} my={2} boxShadow="sm" zIndex={1}>
-        <Text color="blue.800" fontWeight="extrabold" fontSize="3xl" textAlign="center">฿{latestTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Text>
+        <Text color="blue.800" fontWeight="extrabold" fontSize={{ base: '2xl', md: '3xl' }} textAlign="center">฿{latestTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</Text>
         {broughtForward > 0 && (
           <Tooltip label={`ยอดเดือนนี้: ฿${(currentMonthTotal || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 })} + ยอดยกมา: ฿${broughtForward.toLocaleString('th-TH', { minimumFractionDigits: 2 })}`}>
             <Text color="gray.500" fontSize="sm" textAlign="center" mt={0}>
@@ -228,24 +228,24 @@ export default function RoomCard({ id, tenantName, tenantEmail, area, latestTota
           </Tooltip>
         )}
       </Box>
-      {/* Details Section */}
-      <Box px={4} py={2} bg="gray.50" borderRadius="md" mx={4} mb={2} zIndex={1}>
-        <Flex align="center" justify="space-between" mb={1}>
+      {/* Details Section (กระชับขึ้น) */}
+      <Box px={{ base: 3, md: 4 }} py={2} bg="gray.50" borderRadius="md" mx={4} mb={2} zIndex={1}>
+        <Flex align="center" justify="space-between" mb={1} wrap="wrap">
           <Tooltip label="ค่าไฟฟ้า" fontSize="sm"><Text color="gray.600" fontSize="md">ไฟ: <b>฿{electricity.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</b></Text></Tooltip>
           <Tooltip label="ค่าน้ำ" fontSize="sm"><Text color="gray.600" fontSize="md">น้ำ: <b>฿{water.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</b></Text></Tooltip>
         </Flex>
-        <Flex align="center" justify="space-between">
+        <Flex align="center" justify="space-between" wrap="wrap">
           <Tooltip label="ค่าเช่า" fontSize="sm"><Text color="gray.600" fontSize="md">เช่า: <b>฿{rent.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</b></Text></Tooltip>
           <Tooltip label="ค่าบริการ" fontSize="sm"><Text color="gray.600" fontSize="md">บริการ: <b>฿{service.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</b></Text></Tooltip>
         </Flex>
       </Box>
       {/* Note/Status Message */}
-      <Box px={4} pb={1}>
+      <Box px={{ base: 3, md: 4 }} pb={1}>
         <Text color={note.includes('ค้างชำระ') ? 'red.500' : note.includes('รอการตรวจสอบ') ? 'orange.500' : 'gray.600'} fontSize="md" textAlign="center" fontWeight="semibold">{note}</Text>
       </Box>
       {/* Assessment Form Upload */}
       {(role === 'admin' || role === 'owner') && (
-        <Box px={4} py={2} borderTopWidth="1px" borderColor="gray.100">
+        <Box px={{ base: 3, md: 4 }} py={2} borderTopWidth="1px" borderColor="gray.100">
           {assessmentFormUrl ? (
             <Flex justify="space-between" align="center">
               <Button 
@@ -293,8 +293,8 @@ export default function RoomCard({ id, tenantName, tenantEmail, area, latestTota
           <Input type="file" ref={fileInputRef} onChange={handleFileChange} accept="application/pdf" hidden />
         </Box>
       )}
-      {/* Actions Section */}
-      <Flex align="center" justify="space-evenly" gap={4} w="full" px={4} pb={2}>
+      {/* Actions Section (responsive, ปุ่มเรียงแถวเดียว, ขนาดเหมาะสม) */}
+      <Flex align="center" justify="space-evenly" gap={2} w="full" px={{ base: 2, md: 4 }} pb={2} wrap="wrap">
         {role === 'user' ? (
           <Flex direction="column" w="full" gap={1}>
             {billStatus === 'unpaid' && (
@@ -308,50 +308,29 @@ export default function RoomCard({ id, tenantName, tenantEmail, area, latestTota
             )}
             <Button leftIcon={<FaFileInvoice />} colorScheme="blue" variant="outline" size="xs" w="full" borderRadius="lg" onClick={onViewBill}>ดูใบแจ้งหนี้</Button>
           </Flex>
-        ) : (
-          <Flex gap={4} w="full" justify="center">
-            {billStatus === 'pending' && (role === 'admin' || role === 'owner') ? (
-              <Flex direction="column" w="full" gap={1}>
-                <Button leftIcon={<FaEye />} colorScheme="orange" variant="solid" size="sm" w="full" borderRadius="lg" onClick={() => onViewProof && slipUrl && onViewProof(slipUrl)} isDisabled={!slipUrl}>ดูสลิป</Button>
-                <Button leftIcon={<FaCheckCircle />} colorScheme="green" variant="solid" size="sm" w="full" borderRadius="lg" onClick={onMarkAsPaid}>ยืนยันรับเงิน</Button>
-              </Flex>
-            ) : (
-              <>
-                <Flex direction="column" align="center" gap={1} mx={1.5} minW="64px">
-                  <Tooltip label="เพิ่มข้อมูลใหม่" fontSize="xs" hasArrow placement="top">
-                    <IconButton aria-label="เพิ่มข้อมูล" icon={<FaPlus fontSize="1.5rem" />} colorScheme="teal" variant="ghost" borderRadius="lg" size="md" w="48px" h="48px" _hover={{ bg: "teal.100", color: "teal.600", transform: "scale(1.08)", borderRadius: "lg" }} onClick={onAddData} />
-                  </Tooltip>
-                  <Text fontSize="sm" color="gray.800" fontWeight="medium">เพิ่ม</Text>
-                </Flex>
-                <Flex direction="column" align="center" gap={1} mx={1.5} minW="64px">
-                  <Tooltip label="ดูใบแจ้งค่าใช้จ่าย" fontSize="xs" hasArrow placement="top">
-                    <IconButton aria-label="ดูใบแจ้งค่าใช้จ่าย" icon={<FaFileInvoice fontSize="1.5rem" />} colorScheme="blue" variant="ghost" borderRadius="lg" size="md" w="48px" h="48px" _hover={{ bg: "blue.50", color: "blue.600", transform: "scale(1.08)", borderRadius: "lg" }} onClick={onViewBill} />
-                  </Tooltip>
-                  <Text fontSize="sm" color="gray.800" fontWeight="medium">บิล</Text>
-                </Flex>
-                {onSettings && (
-                  <Flex direction="column" align="center" gap={1} mx={1.5} minW="64px">
-                    <Tooltip label="ตั้งค่าห้อง" fontSize="xs" hasArrow placement="top">
-                      <IconButton aria-label="ตั้งค่าห้อง" icon={<FaCog fontSize="1.5rem" />} size="md" colorScheme="gray" variant="ghost" borderRadius="lg" w="48px" h="48px" _hover={{ bg: "gray.200", color: "gray.700", transform: "scale(1.08)", borderRadius: "lg" }} onClick={onSettings} />
-                    </Tooltip>
-                    <Text fontSize="sm" color="gray.800" fontWeight="medium">ตั้งค่า</Text>
-                  </Flex>
-                )}
-                {onDelete && (
-                  <Flex direction="column" align="center" gap={1} mx={1.5} minW="64px">
-                    <Tooltip label="ลบห้องนี้" fontSize="xs" hasArrow placement="top">
-                      <IconButton aria-label="ลบห้องนี้" icon={<FaTrash fontSize="1.5rem" />} size="md" colorScheme="red" variant="ghost" borderRadius="lg" w="48px" h="48px" _hover={{ bg: "red.100", color: "red.700", transform: "scale(1.08)", borderRadius: "lg" }} onClick={onDelete} />
-                    </Tooltip>
-                    <Text fontSize="sm" color="gray.800" fontWeight="medium">ลบ</Text>
-                  </Flex>
-                )}
-              </>
+        ) :
+          <Flex gap={2} w="full" justify="center" wrap="wrap">
+            <Tooltip label="เพิ่มข้อมูลใหม่" fontSize="xs" hasArrow placement="top">
+              <IconButton aria-label="เพิ่มข้อมูล" icon={<FaPlus fontSize="1.2rem" />} colorScheme="teal" variant="ghost" borderRadius="lg" size="md" w="40px" h="40px" _hover={{ bg: "teal.100", color: "teal.600", transform: "scale(1.08)", borderRadius: "lg" }} onClick={onAddData} />
+            </Tooltip>
+            <Tooltip label="ดูใบแจ้งค่าใช้จ่าย" fontSize="xs" hasArrow placement="top">
+              <IconButton aria-label="ดูใบแจ้งค่าใช้จ่าย" icon={<FaFileInvoice fontSize="1.2rem" />} colorScheme="blue" variant="ghost" borderRadius="lg" size="md" w="40px" h="40px" _hover={{ bg: "blue.50", color: "blue.600", transform: "scale(1.08)", borderRadius: "lg" }} onClick={onViewBill} />
+            </Tooltip>
+            {onSettings && (
+              <Tooltip label="ตั้งค่าห้อง" fontSize="xs" hasArrow placement="top">
+                <IconButton aria-label="ตั้งค่าห้อง" icon={<FaCog fontSize="1.2rem" />} size="md" colorScheme="gray" variant="ghost" borderRadius="lg" w="40px" h="40px" _hover={{ bg: "gray.200", color: "gray.700", transform: "scale(1.08)", borderRadius: "lg" }} onClick={onSettings} />
+              </Tooltip>
+            )}
+            {onDelete && (
+              <Tooltip label="ลบห้องนี้" fontSize="xs" hasArrow placement="top">
+                <IconButton aria-label="ลบห้องนี้" icon={<FaTrash fontSize="1.2rem" />} size="md" colorScheme="red" variant="ghost" borderRadius="lg" w="40px" h="40px" _hover={{ bg: "red.100", color: "red.700", transform: "scale(1.08)", borderRadius: "lg" }} onClick={onDelete} />
+              </Tooltip>
             )}
           </Flex>
-        )}
+        }
       </Flex>
       {/* Last Updated Section */}
-      <Box px={4} pb={2}>
+      <Box px={{ base: 3, md: 4 }} pb={2}>
         <Text color="gray.400" fontSize="xs" textAlign="right">อัปเดตล่าสุด: {lastUpdated}</Text>
       </Box>
     </MotionBox>
