@@ -69,21 +69,27 @@ export default function Login() {
         });
 
         // Redirect based on role
+        let redirectUrl = "/";
         switch (userData.role) {
           case "admin":
-            router.push("/");
+            redirectUrl = "/";
             break;
           case "owner":
-            router.push("/");
+            redirectUrl = "/";
             break;
           case "user":
-            router.push("/tenant-dashboard");
+            redirectUrl = "/tenant-dashboard";
             break;
           case "employee":
-            router.push("/employee");
+            redirectUrl = "/employee";
             break;
           default:
-            router.push("/");
+            redirectUrl = "/";
+        }
+        try {
+          await router.push(redirectUrl);
+        } catch (e) {
+          window.location.href = redirectUrl;
         }
       } else {
         setError("User data not found.");
