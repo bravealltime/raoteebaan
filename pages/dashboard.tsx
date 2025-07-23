@@ -681,7 +681,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
         baseRooms = rooms.filter(room => room.status === 'vacant');
         break;
       case 'review':
-        baseRooms = rooms.filter(room => room.proofUrl && room.proofUrl !== null);
+        baseRooms = rooms.filter(room => roomBills[room.id]?.proofUrl && roomBills[room.id]?.proofUrl !== null);
         break;
       default:
         baseRooms = rooms;
