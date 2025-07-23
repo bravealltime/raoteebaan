@@ -297,6 +297,9 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
         if (direction === 'first') {
             setIssueHistory([]);
         }
+        if (direction === 'next') {
+            setLastIssueVisible(null);
+        }
         toast({ title: "ไม่มีข้อมูลเพิ่มเติม", status: "info", duration: 2000 });
     }
   };

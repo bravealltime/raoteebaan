@@ -36,7 +36,7 @@ function TechnicianDashboard() {
   const [lastVisible, setLastVisible] = useState<any>(null);
   const [firstVisible, setFirstVisible] = useState<any>(null);
   const [page, setPage] = useState(1);
-  const ISSUES_PER_PAGE = 10;
+  const ISSUES_PER_PAGE = 6;
 
   const { isOpen: isUpdateModalOpen, onOpen: onUpdateModalOpen, onClose: onUpdateModalClose } = useDisclosure();
   const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
