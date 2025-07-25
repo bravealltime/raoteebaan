@@ -338,18 +338,36 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
 
         const data = await res.json();
 
-        if (!res.ok || !data.success) {
-          if (res.status === 400 && data.error.includes('อีเมลนี้มีผู้ใช้งานแล้ว')) {
-            // If email already exists, link the existing user
-            finalTenantId = data.user?.uid; // Assuming data.user.uid is returned even on email exists error
-            toast({ title: "ผู้เช่ามีบัญชีอยู่แล้ว", description: "กำลังเชื่อมโยงบัญชี...", status: "info" });
-          } else {
-            throw new Error(data.error || 'Failed to create or link user');
-          }
-        } else {
-          finalTenantId = data.user.uid;
-          toast({ title: "สร้างบัญชีผู้เช่าสำเร็จ", description: `รหัสผ่านถูกส่งไปที่ ${editedRoom.tenantEmail}`, status: "success" });
+        if (!res.ok) {
+          // This will catch 500 errors from the API
+          throw new Error(data.error || 'Failed to create user.');
         }
+
+        // At this point, res.ok is true. The API sends success: true for both new and existing users.
+        if (data.user && data.user.uid) {
+            finalTenantId = data.user.uid;
+            if (data.isNewUser) {
+                toast({
+                    title: "สร้างบัญชีผู้เช่าใหม่สำเร็จ",
+                    description: `ส่งอีเมลสำหรับตั้งรหัสผ่านไปที่ ${editedRoom.tenantEmail} แล้ว`,
+                    status: "success",
+                    duration: 7000,
+                    isClosable: true,
+                });
+            } else {
+                toast({
+                    title: "ผู้เช่ามีบัญชีอยู่แล้ว",
+                    description: `ทำการเชื่อมโยงบัญชีกับห้องพักนี้เรียบร้อย`,
+                    status: "info",
+                    duration: 7000,
+                    isClosable: true,
+                });
+            }
+        } else {
+            // This would be an unexpected response from the API
+            throw new Error(data.error || 'Could not retrieve user information after creation.');
+        }
+        
         // For a newly created/linked tenant, set status to occupied and bill status to unpaid
         finalStatus = "occupied";
         finalBillStatus = "unpaid";
