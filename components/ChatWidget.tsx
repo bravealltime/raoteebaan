@@ -25,8 +25,8 @@ const ChatWidget = () => {
   const [loading, setLoading] = useState(true);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [hasUnread, setHasUnread] = useState(false);
-  const { isOpen, onToggle, onClose } = useDisclosure();
   const [isOffline, setIsOffline] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   // Effect to get current user
   useEffect(() => {
@@ -97,12 +97,12 @@ const ChatWidget = () => {
       setHasUnread(unreadFound);
       
       if (unreadFound && !isOpen) {
-        onToggle();
+        setIsOpen(true);
       }
     });
 
     return () => unsubscribe();
-  }, [currentUser, isOpen, onToggle]);
+  }, [currentUser, isOpen]);
 
   // Check for offline
   useEffect(() => {
@@ -127,11 +127,23 @@ const ChatWidget = () => {
   
   const handleCloseWidget = () => {
     setSelectedConversation(null);
-    onClose();
+    setIsOpen(false);
   }
 
   if (loading) {
-    return null; 
+    return (
+      <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
+        bgGradient="linear(135deg, #262c36 0%, #23272f 100%)"
+        minH={{ base: "70vh", sm: "500px" }}
+        borderRadius="2xl"
+        boxShadow="2xl"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+      >
+        <Spinner size="xl" color="white" thickness="4px" speed="0.7s" />
+      </Box>
+    );
   }
 
   if (isOffline) {
@@ -155,86 +167,155 @@ const ChatWidget = () => {
   }
 
   if (!currentUser) {
-    return null; 
+    return (
+      <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
+        bgGradient="linear(135deg, #262c36 0%, #23272f 100%)"
+        minH={{ base: "70vh", sm: "500px" }}
+        borderRadius="2xl"
+        boxShadow="2xl"
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+      >
+        <Text color="white" fontWeight="bold" fontSize="lg">กรุณาเข้าสู่ระบบเพื่อใช้งานแชท</Text>
+      </Box>
+    );
   }
 
-  return (
-    <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}>
-      <ScaleFade initialScale={0.9} in={isOpen}>
+  // นับจำนวน unread จริง ๆ
+  const unreadCount = conversations.filter(
+    (c) => c.lastMessage && c.lastMessage.senderId !== currentUser?.uid && !c.lastMessage.isRead
+  ).length;
+
+  if (isOpen) {
+    return (
+      <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
+        bgGradient="linear(135deg, #262c36 0%, #23272f 100%)"
+        width={{ base: "98vw", sm: "400px" }}
+        maxW="400px"
+        height={{ base: "560px", sm: "560px" }}
+        borderRadius="24px"
+        boxShadow="2xl"
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+      >
         <Box
-          width={{ base: "95vw", sm: "340px" }}
-          maxW="100vw"
-          height={{ base: "65vh", sm: "480px" }}
-          bg="white"
+          width="100%"
+          height="100%"
+          bg="rgba(255,255,255,0.07)"
           boxShadow="2xl"
-          borderRadius="lg"
+          borderRadius="24px"
           display="flex"
           flexDirection="column"
           overflow="hidden"
+          backdropFilter="blur(6px)"
         >
-          <Flex p={3} borderBottom="1px solid" borderColor="gray.200" alignItems="center" bg="blue.500" color="white">
-            <Text fontWeight="bold">
-              {selectedConversation && selectedConversation.participants && selectedConversation.participants.length > 1
-                ? `Chat with ${selectedConversation.participants.find((p) => p.uid !== currentUser.uid)?.name}`
-                : 'Messages'}
+          <Box display="flex" alignItems="center" justifyContent="space-between" p={4} borderBottom="1px solid #e2e8f0">
+            <Text color="white" fontWeight="bold" fontSize="xl">
+              {selectedConversation ? 'แชทกับ ' + (selectedConversation.participants.find(p => p.uid !== currentUser?.uid)?.name || '') : 'ข้อความ'}
             </Text>
-            <IconButton
-              aria-label="Close chat"
-              icon={<FaTimes />}
-              size="sm"
-              isRound
-              variant="ghost"
-              _hover={{ bg: 'blue.600' }}
-              ml="auto"
-              onClick={handleCloseWidget}
-            />
-          </Flex>
-
-          {selectedConversation && currentUser ? (
+            <Box as="button" onClick={() => {
+              if (selectedConversation) setSelectedConversation(null);
+              else setIsOpen(false);
+            }} color="white" fontSize="2xl" _hover={{ color: '#6c38ff' }}>
+              ×
+            </Box>
+          </Box>
+          {selectedConversation ? (
             <ChatWindow
               conversation={selectedConversation}
               currentUser={currentUser}
-              onClose={handleBackToList} 
+              onClose={() => setSelectedConversation(null)}
+              containerHeight={480}
             />
           ) : (
             <ChatList
               conversations={conversations}
               currentUser={currentUser}
-              onSelectConversation={handleSelectConversation}
+              onSelectConversation={setSelectedConversation}
+              containerHeight={480}
             />
           )}
         </Box>
-      </ScaleFade>
+      </Box>
+    );
+  }
 
-      {!isOpen && (
-        <Tooltip label="กล่องข้อความ" aria-label="กล่องข้อความ" placement="left" hasArrow>
-          <IconButton
-            aria-label="Open chat"
-            icon={<FaComments />}
-            isRound
-            size="lg"
-            colorScheme="blue"
-            boxShadow="lg"
-            onClick={onToggle}
-            position="absolute"
-            right={0}
-            bottom={0}
-            m={1}
-            zIndex={1700}
-          >
-            {hasUnread && (
-              <Circle
-                size="10px"
-                bg="red.500"
-                position="absolute"
-                top="2px"
-                right="2px"
-                border="2px solid white"
-              />
-            )}
-          </IconButton>
-        </Tooltip>
-      )}
+  return (
+    <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
+      bgGradient="linear(135deg, #262c36 0%, #23272f 100%)"
+      width={{ base: "90vw", sm: "320px" }}
+      maxW="320px"
+      height="64px"
+      borderRadius="28px"
+      boxShadow="2xl"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      px={6}
+      py={0}
+    >
+      <Box
+        width="100%"
+        height="100%"
+        bg="rgba(255,255,255,0.07)"
+        boxShadow="2xl"
+        borderRadius="28px"
+        display="flex"
+        flexDirection="row"
+        alignItems="center"
+        gap={4}
+        overflow="auto"
+        backdropFilter="blur(6px)"
+        cursor="pointer"
+        onClick={() => setIsOpen(true)}
+      >
+        {/* ไอคอน + badge */}
+        <Box position="relative" mr={1}>
+          <FaComments color="white" size={22} />
+          {unreadCount > 0 && (
+            <Circle
+              size="18px"
+              bg="red.500"
+              color="white"
+              fontSize="xs"
+              fontWeight="bold"
+              position="absolute"
+              top="-8px"
+              left="12px"
+              border="2px solid #23272f"
+            >
+              {unreadCount}
+            </Circle>
+          )}
+        </Box>
+        {/* ข้อความ */}
+        <Text color="white" fontWeight="bold" fontSize="md" mr={2}>
+          ข้อความ
+        </Text>
+        {/* โปรไฟล์ + วงแหวน */}
+        <Box
+          ml="auto"
+          border="3px solid #6c38ff"
+          borderRadius="full"
+          p="1px"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Box
+            as="img"
+            src={currentUser?.photoURL || "/default-avatar.png"}
+            alt="profile"
+            width="32px"
+            height="32px"
+            borderRadius="full"
+            objectFit="cover"
+          />
+        </Box>
+      </Box>
     </Box>
   );
 };
