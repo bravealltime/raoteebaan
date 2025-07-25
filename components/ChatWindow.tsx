@@ -32,9 +32,24 @@ interface ChatWindowProps {
   currentUser: User | null;
   onClose: () => void;
   containerHeight?: number;
+  height?: string | number;
+  bg?: string;
+  borderRadius?: string | number;
+  boxShadow?: string;
+  p?: number;
 }
 
-const ChatWindow = ({ conversation, currentUser, onClose, containerHeight = 480 }: ChatWindowProps) => {
+const ChatWindow = ({
+  conversation,
+  currentUser,
+  onClose,
+  containerHeight,
+  height = '100%',
+  bg = 'transparent',
+  borderRadius = 0,
+  boxShadow = 'none',
+  p = 0,
+}: ChatWindowProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -140,7 +155,7 @@ const ChatWindow = ({ conversation, currentUser, onClose, containerHeight = 480 
   }
 
   return (
-    <Flex direction="column" h={containerHeight} bg="#fff" borderRadius="20px" boxShadow="sm" overflowY="auto">
+    <Flex direction="column" h={containerHeight || height} bg={bg} borderRadius={borderRadius} boxShadow={boxShadow} overflowY="auto" p={p}>
       <HStack p={4} borderBottom="1px solid" borderColor="gray.200" bg="#f5f6fa">
         <IconButton
           aria-label="Back to conversations"

@@ -9,9 +9,36 @@ interface ChatListProps {
   onlineStatus?: Record<string, any>;
   selectedConversationId?: string | null;
   containerHeight?: number;
+  bg?: string;
+  borderRadius?: string | number;
+  boxShadow?: string;
+  avatarSize?: string;
+  fontSizeName?: string;
+  fontSizeMsg?: string;
+  spacing?: number;
+  px?: number;
+  py?: number;
+  mb?: number;
 }
 
-const ChatList = ({ conversations, currentUser, onSelectConversation, onlineStatus = {}, selectedConversationId, containerHeight = 480 }: ChatListProps) => {
+const ChatList = ({
+  conversations,
+  currentUser,
+  onSelectConversation,
+  onlineStatus = {},
+  selectedConversationId,
+  containerHeight,
+  bg = "transparent",
+  borderRadius = 0,
+  boxShadow = "none",
+  avatarSize = "40px",
+  fontSizeName = "17px",
+  fontSizeMsg = "15px",
+  spacing = 2,
+  px = 0,
+  py = 0,
+  mb = 2,
+}: ChatListProps) => {
   const getOtherParticipant = (conversation: Conversation) => {
     if (!conversation || !currentUser) {
       return undefined;
@@ -20,7 +47,7 @@ const ChatList = ({ conversations, currentUser, onSelectConversation, onlineStat
   };
 
   return (
-    <VStack as="nav" spacing={1.5} align="stretch" p={3} bg="#fff" borderRadius="20px" boxShadow="sm" maxH={containerHeight} overflowY="auto">
+    <VStack as="nav" spacing={0} align="stretch" p={0} bg={bg} borderRadius={borderRadius} boxShadow={boxShadow} maxH={containerHeight} overflowY={containerHeight ? "auto" : undefined}>
       {conversations.map((convo) => {
         const otherUser = getOtherParticipant(convo);
         const isOnline = otherUser ? onlineStatus[otherUser.uid]?.state === 'online' : false;
@@ -30,27 +57,27 @@ const ChatList = ({ conversations, currentUser, onSelectConversation, onlineStat
         return (
           <HStack
             key={convo.id}
-            p={2.5}
-            borderRadius="20px"
-            boxShadow="sm"
-            mb={2}
+            w="100%"
+            px={px || 3}
+            py={py || 3}
+            mb={mb}
+            borderRadius={borderRadius || 18}
+            boxShadow={boxShadow || "md"}
             cursor="pointer"
             bg={isSelected ? "#e9e3ff" : "#fff"}
             border={isSelected ? "2px solid #a992ff" : "2px solid transparent"}
-            _hover={{ bg: isSelected ? "#d6cfff" : "#f5f6fa" }}
+            _hover={{ bg: "#f0f1f5" }}
             onClick={() => onSelectConversation(convo)}
-            transition="all 0.15s"
             alignItems="center"
-            spacing={2}
+            spacing={spacing || 3}
+            transition="all 0.15s"
           >
             <Box position="relative">
               <Avatar
-                size="md"
+                size="lg"
                 name={otherUser?.name}
                 src={otherUser?.photoURL}
-                boxSize="40px"
-                border={isSelected ? "2px solid #a992ff" : "2px solid #e2e8f0"}
-                borderColor={isSelected ? "#a992ff" : "#e2e8f0"}
+                boxSize={avatarSize}
                 bg={otherUser?.photoURL ? undefined : "#bdb2ff"}
                 color="#23272f"
                 fontWeight="bold"
@@ -75,11 +102,11 @@ const ChatList = ({ conversations, currentUser, onSelectConversation, onlineStat
                 />
               )}
             </Box>
-            <VStack align="start" spacing={0.5} flex={1} minW={0}>
-              <Text fontWeight={isUnread ? "extrabold" : "bold"} fontSize="17px" color="#23272f" noOfLines={1}>
+            <VStack align="start" spacing={0} flex={1} minW={0}>
+              <Text fontWeight="bold" fontSize={fontSizeName} color="#23272f" noOfLines={1}>
                 {otherUser?.name}
               </Text>
-              <Text fontSize="15px" color="#7c7f87" noOfLines={1}>
+              <Text fontSize={fontSizeMsg} color="#7c7f87" mt={2} noOfLines={1}>
                 {convo.lastMessage?.text || 'No messages yet'}
               </Text>
             </VStack>
