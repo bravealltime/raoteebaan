@@ -467,22 +467,21 @@ export default function BillDetail() {
   const renderContent = () => (
     <Container maxW="container.xl" py={{ base: 4, md: 8 }}>
       <VStack spacing={6} align="stretch">
-        <Button
-          leftIcon={<FaArrowLeft />}
-          colorScheme="teal"
-          variant="ghost"
-          onClick={() => router.back()}
-          alignSelf="flex-start"
-          mb={4}
-          borderRadius="md"
-        >
-          ย้อนกลับ
-        </Button>
         <Flex justify="space-between" align={{ base: "flex-start", md: "center" }} direction={{ base: "column", md: "row" }} gap={4} pt={8}>
-          <Box>
-            <Heading size={{ base: "md", lg: "lg" }} color="gray.700">ใบแจ้งหนี้ - ห้อง {roomId}</Heading>
-            <Text color="gray.500">สำหรับ {bill.tenant}</Text>
-          </Box>
+          <HStack spacing={4} align="center">
+            <IconButton
+              icon={<FaArrowLeft />}
+              aria-label="ย้อนกลับ"
+              colorScheme="teal"
+              variant="ghost"
+              borderRadius="md"
+              onClick={() => router.back()}
+            />
+            <Box>
+              <Heading size={{ base: "md", lg: "lg" }} color="gray.700">ใบแจ้งหนี้ - ห้อง {roomId}</Heading>
+              <Text color="gray.500">สำหรับ {bill.tenant}</Text>
+            </Box>
+          </HStack>
           <Badge colorScheme={
             bill.billStatus === 'paid' ? 'green' :
             bill.billStatus === 'pending' ? 'yellow' : 'red'

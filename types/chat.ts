@@ -8,6 +8,8 @@ export interface User {
   role: string;
   photoURL?: string;
   roomNumber?: string;
+  isOnline?: boolean;
+  lastSeen?: Timestamp;
 }
 
 export interface Conversation {

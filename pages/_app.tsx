@@ -9,7 +9,9 @@ import { useEffect, useState, ReactElement, ReactNode } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../lib/firebase";
+import { setupPresence, setOffline } from "../lib/presence";
 import { NextPage } from "next";
+import { User } from "../types/chat";
 
 const theme = extendTheme({
   fonts: {
@@ -67,14 +69,34 @@ function MyApp({ Component, pageProps }: AppPropsWithLayout) {
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          setCurrentUser({ ...user, ...userData });
+          const fullUser: User = {
+            uid: user.uid,
+            email: user.email || '',
+            name: userData.name || user.displayName || '',
+            role: userData.role || 'user',
+            photoURL: user.photoURL || userData.photoURL || undefined,
+            roomNumber: userData.roomNumber || undefined,
+          };
+          setCurrentUser(fullUser);
           setRole(userData.role);
+          setupPresence(fullUser);
         } else {
           // Handle case where user exists in auth but not in firestore
-          setCurrentUser(user);
+          const defaultUser: User = {
+            uid: user.uid,
+            email: user.email || '',
+            name: user.displayName || '',
+            role: 'user', // Default role
+            photoURL: user.photoURL || undefined,
+          };
+          setCurrentUser(defaultUser);
           setRole(null);
+          setupPresence(defaultUser);
         }
       } else {
+        if (currentUser && currentUser.uid) {
+          await setOffline(currentUser.uid);
+        }
         setCurrentUser(null);
         setRole(null);
         if (router.pathname !== '/login' && router.pathname !== '/reset-password') {

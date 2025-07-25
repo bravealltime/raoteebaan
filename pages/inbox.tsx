@@ -44,6 +44,7 @@ const Inbox = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
   const isDesktop = useBreakpointValue({ base: false, lg: true });
+  const [onlineStatus, setOnlineStatus] = useState<Record<string, any>>({});
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -102,6 +103,29 @@ const Inbox = () => {
       return () => unsubscribe();
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (conversations.length > 0) {
+      // Subscribe presence for all participants
+      const unsubscribes = new Set<() => void>();
+      const userIds = new Set<string>();
+      conversations.forEach(convo => {
+        convo.participants.forEach((p: any) => {
+          if (typeof p === 'string') userIds.add(p);
+          else if (p.uid) userIds.add(p.uid);
+        });
+      });
+      userIds.forEach(uid => {
+        const unsub = onSnapshot(doc(db, 'users', uid), (docSnap) => {
+          if (docSnap.exists()) {
+            setOnlineStatus(prev => ({ ...prev, [uid]: { state: docSnap.data().state } }));
+          }
+        });
+        unsubscribes.add(unsub);
+      });
+      return () => { unsubscribes.forEach(unsub => unsub()); };
+    }
+  }, [conversations]);
 
   const handleSelectUser = useCallback(async (user: User) => {
     if (!currentUser) return;
@@ -193,6 +217,7 @@ const Inbox = () => {
                   conversations={conversations}
                   currentUser={currentUser}
                   onSelectConversation={setSelectedConversation}
+                  onlineStatus={onlineStatus}
                 />
               </Box>
             </Flex>
@@ -246,6 +271,7 @@ const Inbox = () => {
                 currentUser={currentUser}
                 onSelectConversation={setSelectedConversation}
                 selectedConversationId={selectedConversation?.id}
+                onlineStatus={onlineStatus}
               />
             </Box>
           </Flex>
