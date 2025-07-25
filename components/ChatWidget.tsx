@@ -212,10 +212,8 @@ const ChatWidget = () => {
           overflow="hidden"
           backdropFilter="blur(6px)"
         >
-          <Box display="flex" alignItems="center" justifyContent="space-between" p={4} borderBottom="1px solid #e2e8f0">
-            <Text color="white" fontWeight="bold" fontSize="xl">
-              {selectedConversation ? 'แชทกับ ' + (selectedConversation.participants.find(p => p.uid !== currentUser?.uid)?.name || '') : 'ข้อความ'}
-            </Text>
+          {/* ปุ่มปิดกล่อง */}
+          <Box display="flex" alignItems="center" justifyContent="flex-end" p={2} borderBottom="1px solid #e2e8f0">
             <Box as="button" onClick={() => {
               if (selectedConversation) setSelectedConversation(null);
               else setIsOpen(false);
@@ -245,7 +243,7 @@ const ChatWidget = () => {
 
   return (
     <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
-      bgGradient="linear(135deg, #262c36 0%, #23272f 100%)"
+      bg="#fff"
       width={{ base: "90vw", sm: "320px" }}
       maxW="320px"
       height="64px"
@@ -260,7 +258,7 @@ const ChatWidget = () => {
       <Box
         width="100%"
         height="100%"
-        bg="rgba(255,255,255,0.07)"
+        bg="#fff"
         boxShadow="2xl"
         borderRadius="28px"
         display="flex"
@@ -274,31 +272,31 @@ const ChatWidget = () => {
       >
         {/* ไอคอน + badge */}
         <Box position="relative" mr={1}>
-          <FaComments color="white" size={22} />
+          <FaComments color="#2563eb" size={22} />
           {unreadCount > 0 && (
             <Circle
               size="18px"
-              bg="red.500"
+              bg="#2563eb"
               color="white"
               fontSize="xs"
               fontWeight="bold"
               position="absolute"
               top="-8px"
               left="12px"
-              border="2px solid #23272f"
+              border="2px solid #fff"
             >
               {unreadCount}
             </Circle>
           )}
         </Box>
         {/* ข้อความ */}
-        <Text color="white" fontWeight="bold" fontSize="md" mr={2}>
+        <Text color="#23272f" fontWeight="bold" fontSize="md" mr={2}>
           ข้อความ
         </Text>
         {/* โปรไฟล์ + วงแหวน */}
         <Box
           ml="auto"
-          border="3px solid #6c38ff"
+          border="3px solid #2563eb"
           borderRadius="full"
           p="1px"
           display="flex"

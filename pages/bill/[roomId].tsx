@@ -466,18 +466,18 @@ export default function BillDetail() {
 
   const renderContent = () => (
     <Container maxW="container.xl" py={{ base: 4, md: 8 }}>
-      <IconButton
-        icon={<FaArrowLeft />}
-        aria-label="ย้อนกลับ"
-        position="absolute"
-        top={{ base: 2, md: 4 }}
-        left={{ base: 2, md: 4 }}
-        colorScheme="blue"
-        variant="ghost"
-        borderRadius="full"
-        onClick={() => router.back()}
-      />
       <VStack spacing={6} align="stretch">
+        <Button
+          leftIcon={<FaArrowLeft />}
+          colorScheme="teal"
+          variant="ghost"
+          onClick={() => router.back()}
+          alignSelf="flex-start"
+          mb={4}
+          borderRadius="md"
+        >
+          ย้อนกลับ
+        </Button>
         <Flex justify="space-between" align={{ base: "flex-start", md: "center" }} direction={{ base: "column", md: "row" }} gap={4} pt={8}>
           <Box>
             <Heading size={{ base: "md", lg: "lg" }} color="gray.700">ใบแจ้งหนี้ - ห้อง {roomId}</Heading>

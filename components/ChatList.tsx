@@ -47,7 +47,23 @@ const ChatList = ({
   };
 
   return (
-    <VStack as="nav" spacing={0} align="stretch" p={0} bg={bg} borderRadius={borderRadius} boxShadow={boxShadow} maxH={containerHeight} overflowY={containerHeight ? "auto" : undefined}>
+    <VStack
+      as="nav"
+      spacing={0}
+      align="stretch"
+      p={0}
+      bg="#fff"
+      borderRadius={24}
+      boxShadow="2xl"
+      maxH={containerHeight}
+      overflowY={containerHeight ? "auto" : undefined}
+      css={{
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#e2e8f0 #fff',
+        '&::-webkit-scrollbar': { width: '6px' },
+        '&::-webkit-scrollbar-thumb': { background: '#e2e8f0', borderRadius: '8px' }
+      }}
+    >
       {conversations.map((convo) => {
         const otherUser = getOtherParticipant(convo);
         const isOnline = otherUser ? onlineStatus[otherUser.uid]?.state === 'online' : false;
@@ -58,15 +74,15 @@ const ChatList = ({
           <HStack
             key={convo.id}
             w="100%"
-            px={px || 3}
-            py={py || 3}
-            mb={mb}
+            px={3}
+            py={3}
+            mb={2}
             borderRadius={borderRadius || 18}
-            boxShadow={boxShadow || "md"}
+            boxShadow="none"
             cursor="pointer"
             bg={isSelected ? "#e9e3ff" : "#fff"}
-            border={isSelected ? "2px solid #a992ff" : "2px solid transparent"}
-            _hover={{ bg: "#f0f1f5" }}
+            border={isSelected ? "2px solid #2563eb" : "none"}
+            _hover={{ bg: "#f5f6fa" }}
             onClick={() => onSelectConversation(convo)}
             alignItems="center"
             spacing={spacing || 3}
@@ -94,7 +110,7 @@ const ChatList = ({
               {isUnread && (
                 <Circle
                   size="9px"
-                  bg="red.400"
+                  bg="#2563eb"
                   position="absolute"
                   top={-2}
                   right={-2}
