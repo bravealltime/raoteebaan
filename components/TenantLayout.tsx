@@ -113,7 +113,7 @@ export default function TenantLayout({ children, currentUser, isProofModalOpen, 
             <NotificationBell currentUser={currentUser} />
             <Menu>
               <MenuButton as={Avatar} size="sm" name={currentUser.name} src={currentUser.photoURL} cursor="pointer" />
-              <MenuList portal={true} zIndex={20000}>
+              <MenuList>
                 <MenuItem onClick={onProfileOpen} icon={<FaUserCircle />}>
                   โปรไฟล์
                 </MenuItem>

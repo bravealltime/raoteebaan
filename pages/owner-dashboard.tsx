@@ -827,7 +827,7 @@ export default function OwnerDashboard({ currentUser, role }: OwnerDashboardProp
                   <MenuButton as={Button} leftIcon={<FaFilter />} colorScheme="purple" variant="outline" w={{ base: "full", md: "auto" }} size="sm">
                     <Text as="span" isTruncated>{filterLabels[filterType]}</Text>
                   </MenuButton>
-                  <MenuList portal={true} zIndex={20000}>
+                  <MenuList>
                     <MenuItem onClick={() => setFilterType('all')} fontWeight={filterType === 'all' ? 'bold' : 'normal'}>ทั้งหมด</MenuItem>
                     <MenuItem onClick={() => setFilterType('unpaid')} fontWeight={filterType === 'unpaid' ? 'bold' : 'normal'}>ค้างชำระ</MenuItem>
                     <MenuItem onClick={() => setFilterType('vacant')} fontWeight={filterType === 'vacant' ? 'bold' : 'normal'}>ห้องว่าง</MenuItem>

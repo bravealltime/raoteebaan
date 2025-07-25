@@ -258,7 +258,7 @@ const AdminUsersContent = ({ currentUser, role, users, rooms, bills, search, set
                               size="sm"
                               aria-label="User actions"
                             />
-                            <MenuList portal={true} zIndex={20000}>
+                            <MenuList>
                               <MenuItem icon={<FaEdit />} onClick={() => handleEditClick(user)}>
                                 แก้ไข
                               </MenuItem>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { db } from "./firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, doc, updateDoc } from "firebase/firestore";
 
 interface Room {
   id: string;
@@ -44,4 +44,20 @@ export function useRooms() {
   }, []);
 
   return { rooms, loading, error };
+}
+
+export async function resetRoom(roomId: string) {
+  const roomRef = doc(db, "rooms", roomId);
+  await updateDoc(roomRef, {
+    status: "vacant",
+    tenantName: "",
+    tenantId: null,
+    tenantEmail: null,
+    billStatus: "unpaid",
+    overdueDays: 0,
+    electricity: 0,
+    water: 0,
+    latestTotal: 0,
+    extraServices: [],
+  });
 } 

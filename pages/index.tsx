@@ -1299,7 +1299,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
                   <MenuButton as={Button} colorScheme="gray" variant="outline" boxShadow="sm">
                     เครื่องมือเพิ่มเติม
                   </MenuButton>
-                  <MenuList portal={true} zIndex={20000}>
+                  <MenuList>
                     <MenuItem icon={<FaUpload />} onClick={() => setIsImportOpen(true)}>นำเข้าจาก CSV</MenuItem>
                     <MenuItem icon={<FaFilePdf />} onClick={handleDownloadEquipmentAssessment}>ใบประเมินอุปกรณ์</MenuItem>
                     <MenuItem icon={<FaPlus />} onClick={handleOpenMeterModal}>เพิ่มข้อมูลมิเตอร์ทั้งหมด</MenuItem>

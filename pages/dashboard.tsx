@@ -919,7 +919,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
                   <MenuButton as={Button} rightIcon={<FaFilter />} colorScheme="gray" variant="outline" w={{ base: "full", sm: "auto" }} size="sm" borderRadius="lg">
                     <Text as="span" isTruncated>ตัวกรอง: {filterLabels[filterType]}</Text>
                   </MenuButton>
-                  <MenuList portal={true} zIndex={20000}>
+                  <MenuList>
                     <MenuItem onClick={() => setFilterType('unpaid')} fontWeight={filterType === 'unpaid' ? 'bold' : 'normal'}>ค้างชำระ</MenuItem>
                     <MenuItem onClick={() => setFilterType('review')} fontWeight={filterType === 'review' ? 'bold' : 'normal'}>รอตรวจสอบ</MenuItem>
                     <MenuItem onClick={() => setFilterType('vacant')} fontWeight={filterType === 'vacant' ? 'bold' : 'normal'}>ห้องว่าง</MenuItem>

@@ -23,9 +23,17 @@ import {
   Text,
   useToast,
   Box,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
 } from "@chakra-ui/react";
-import { FaCog, FaPaperPlane, FaUserPlus } from "react-icons/fa";
+import { FaCog, FaPaperPlane, FaUserPlus, FaRecycle } from "react-icons/fa";
 import { motion } from "framer-motion";
+import { resetRoom } from "../lib/rooms";
+import React from "react";
 
 interface User {
   uid: string;
@@ -69,6 +77,8 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, us
   const [room, setRoom] = useState<RoomData>(initialRoom);
   const [createNewTenant, setCreateNewTenant] = useState(false);
   const toast = useToast();
+  const cancelRef = React.useRef<HTMLButtonElement>(null);
+  const [isResetAlertOpen, setIsResetAlertOpen] = useState(false);
 
   useEffect(() => {
     // When modal opens or initialRoom changes, reset state
@@ -131,6 +141,33 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, us
         tenantName: "",
         tenantEmail: "",
       }));
+    }
+  };
+
+  const onResetAlertClose = () => setIsResetAlertOpen(false);
+
+  const handleResetRoom = async () => {
+    try {
+      await resetRoom(room.id);
+      toast({
+        title: "รีเซ็ตห้องสำเร็จ",
+        description: `ห้อง ${room.id} ถูกรีเซ็ตเป็นห้องว่างแล้ว`,
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+      onClose(); // Close modal after successful reset
+    } catch (error) {
+      console.error("Error resetting room:", error);
+      toast({
+        title: "เกิดข้อผิดพลาดในการรีเซ็ตห้อง",
+        description: "ไม่สามารถรีเซ็ตห้องได้ กรุณาลองใหม่อีกครั้ง",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setIsResetAlertOpen(false);
     }
   };
 
@@ -352,11 +389,51 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, us
             </SimpleGrid>
           </ModalBody>
           <ModalFooter>
+            <Button
+              leftIcon={<Icon as={FaRecycle} />}
+              colorScheme="red"
+              variant="outline"
+              mr={3}
+              onClick={() => setIsResetAlertOpen(true)}
+              borderRadius="xl"
+              px={6}
+              fontWeight="bold"
+            >
+              รีเซ็ตห้อง
+            </Button>
             <Button colorScheme="blue" mr={3} onClick={handleSave} borderRadius="xl" px={6} fontWeight="bold">บันทึก</Button>
             <Button onClick={onClose} borderRadius="xl">ยกเลิก</Button>
           </ModalFooter>
         </ModalContent>
       </motion.div>
+
+      <AlertDialog
+        isOpen={isResetAlertOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onResetAlertClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              ยืนยันการรีเซ็ตห้อง {room.id}
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              คุณแน่ใจหรือไม่ว่าต้องการรีเซ็ตห้องนี้? การดำเนินการนี้จะลบข้อมูลผู้เช่าทั้งหมด, สถานะบิล, ค่ามิเตอร์, และบริการเสริม ทำให้ห้องกลับมาเป็นห้องว่างเหมือนใหม่.
+              <Text color="red.500" fontWeight="bold" mt={2}>การดำเนินการนี้ไม่สามารถย้อนกลับได้!</Text>
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onResetAlertClose}>
+                ยกเลิก
+              </Button>
+              <Button colorScheme="red" onClick={handleResetRoom} ml={3}>
+                รีเซ็ต
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Modal>
   );
 }
