@@ -52,16 +52,16 @@ const ChatList = ({
       spacing={0}
       align="stretch"
       p={0}
-      bg="#fff"
+      bg="white"
       borderRadius={24}
       boxShadow="2xl"
       maxH={containerHeight}
       overflowY={containerHeight ? "auto" : undefined}
       css={{
         scrollbarWidth: 'thin',
-        scrollbarColor: '#e2e8f0 #fff',
+        scrollbarColor: 'gray.200 white',
         '&::-webkit-scrollbar': { width: '6px' },
-        '&::-webkit-scrollbar-thumb': { background: '#e2e8f0', borderRadius: '8px' }
+        '&::-webkit-scrollbar-thumb': { background: 'gray.200', borderRadius: '8px' }
       }}
     >
       {conversations.map((convo) => {
@@ -80,9 +80,9 @@ const ChatList = ({
             borderRadius={borderRadius || 18}
             boxShadow="none"
             cursor="pointer"
-            bg={isSelected ? "#e9e3ff" : "#fff"}
-            border={isSelected ? "2px solid #2563eb" : "none"}
-            _hover={{ bg: "#f5f6fa" }}
+            bg={isSelected ? "brand.50" : "white"}
+            border={isSelected ? "2px solid brand.600" : "none"}
+            _hover={{ bg: "gray.50" }}
             onClick={() => onSelectConversation(convo)}
             alignItems="center"
             spacing={spacing || 3}
@@ -94,8 +94,8 @@ const ChatList = ({
                 name={otherUser?.name}
                 src={otherUser?.photoURL}
                 boxSize={avatarSize}
-                bg={otherUser?.photoURL ? undefined : "#bdb2ff"}
-                color="#23272f"
+                bg={otherUser?.photoURL ? undefined : "purple.200"}
+                color="gray.800"
                 fontWeight="bold"
                 fontSize="xl"
               />
@@ -110,7 +110,7 @@ const ChatList = ({
               {isUnread && (
                 <Circle
                   size="9px"
-                  bg="#2563eb"
+                  bg="brand.600"
                   position="absolute"
                   top={-2}
                   right={-2}
@@ -122,7 +122,7 @@ const ChatList = ({
               <Text fontWeight="bold" fontSize={fontSizeName} color="#23272f" noOfLines={1}>
                 {otherUser?.name}
               </Text>
-              <Text fontSize={fontSizeMsg} color="#7c7f87" mt={2} noOfLines={1}>
+              <Text fontSize={fontSizeMsg} color="gray.600" mt={2} noOfLines={1}>
                 {convo.lastMessage?.text || 'No messages yet'}
               </Text>
             </VStack>

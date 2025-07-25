@@ -46,7 +46,7 @@ const ChatWindow = ({
   onClose,
   containerHeight,
   height = '100%',
-  bg = '#23272f',
+  bg = 'gray.900',
   borderRadius = 20,
   boxShadow = '2xl',
   p = 0,
@@ -156,9 +156,9 @@ const ChatWindow = ({
   }
 
   return (
-    <Flex direction="column" h={containerHeight || height} bg="#fff" borderRadius={borderRadius} boxShadow={boxShadow} overflow="hidden" p={p}>
+    <Flex direction="column" h={containerHeight || height} bg="white" borderRadius={borderRadius} boxShadow={boxShadow} overflow="hidden" p={p}>
       {/* Header */}
-      <HStack p={4} bg="#2563eb" borderBottom="1px solid #e2e8f0">
+      <HStack p={4} bg="brand.600" borderBottom="1px solid gray.200">
         <Avatar src={otherParticipant?.photoURL} size="sm" />
         <Box>
           <Text color="white" fontWeight="bold" fontSize="md">{otherParticipant?.name}</Text>
@@ -171,18 +171,20 @@ const ChatWindow = ({
         <IconButton aria-label="Close chat" icon={<FaArrowLeft />} onClick={onClose} variant="ghost" color="white" />
       </HStack>
       {/* Messages */}
-      <VStack flex={1} px={3} py={2} spacing={1.5} overflowY="auto" bg="#f5f6fa" align="stretch"
-        css={{
-          scrollbarWidth: 'thin',
-          scrollbarColor: '#e2e8f0 #f5f6fa',
-          '&::-webkit-scrollbar': { width: '6px' },
-          '&::-webkit-scrollbar-thumb': { background: '#e2e8f0', borderRadius: '8px' }
-        }}>
+      <VStack flex={1} px={3} py={2} spacing={1.5} overflowY="auto" bg="gray.50" align="stretch"
+        css={
+          {
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'gray.200 gray.50',
+            '&::-webkit-scrollbar': { width: '6px' },
+            '&::-webkit-scrollbar-thumb': { background: 'gray.200', borderRadius: '8px' }
+          }
+        }>
         {messages.map((msg) => (
           <Flex key={msg.id} w="100%" justify={msg.senderId === currentUser?.uid ? 'flex-end' : 'flex-start'}>
             <Box
-              bg={msg.senderId === currentUser?.uid ? '#2563eb' : '#f0f1f5'}
-              color={msg.senderId === currentUser?.uid ? 'white' : '#23272f'}
+              bg={msg.senderId === currentUser?.uid ? 'brand.600' : 'gray.100'}
+              color={msg.senderId === currentUser?.uid ? 'white' : 'gray.800'}
               px={4}
               py={2}
               borderRadius="2xl"
@@ -208,7 +210,7 @@ const ChatWindow = ({
         <div ref={messagesEndRef} />
       </VStack>
       {/* Input */}
-      <Box p={3} bg="#fff" borderTop="1px solid #e2e8f0">
+      <Box p={3} bg="white" borderTop="1px solid gray.200">
         <HStack spacing={2}>
           <IconButton
             aria-label="Upload Image"
@@ -216,7 +218,7 @@ const ChatWindow = ({
             onClick={() => imageInputRef.current?.click()}
             isLoading={isImageUploading}
             variant="ghost"
-            color="#2563eb"
+            color="brand.600"
           />
           <InputGroup>
             <Input

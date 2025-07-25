@@ -133,7 +133,7 @@ const ChatWidget = () => {
   if (loading) {
     return (
       <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
-        bgGradient="linear(135deg, #262c36 0%, #23272f 100%)"
+        bgGradient="linear(135deg, grayBg.900 0%, grayBg.800 100%)"
         minH={{ base: "70vh", sm: "500px" }}
         borderRadius="2xl"
         boxShadow="2xl"
@@ -169,7 +169,7 @@ const ChatWidget = () => {
   if (!currentUser) {
     return (
       <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
-        bgGradient="linear(135deg, #262c36 0%, #23272f 100%)"
+        bgGradient="linear(135deg, grayBg.900 0%, grayBg.800 100%)"
         minH={{ base: "70vh", sm: "500px" }}
         borderRadius="2xl"
         boxShadow="2xl"
@@ -190,7 +190,7 @@ const ChatWidget = () => {
   if (isOpen) {
     return (
       <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
-        bgGradient="linear(135deg, #262c36 0%, #23272f 100%)"
+        bgGradient="linear(135deg, grayBg.900 0%, grayBg.800 100%)"
         width={{ base: "98vw", sm: "400px" }}
         maxW="400px"
         height={{ base: "560px", sm: "560px" }}
@@ -213,11 +213,11 @@ const ChatWidget = () => {
           backdropFilter="blur(6px)"
         >
           {/* ปุ่มปิดกล่อง */}
-          <Box display="flex" alignItems="center" justifyContent="flex-end" p={2} borderBottom="1px solid #e2e8f0">
+          <Box display="flex" alignItems="center" justifyContent="flex-end" p={2} borderBottom="1px solid gray.200">
             <Box as="button" onClick={() => {
               if (selectedConversation) setSelectedConversation(null);
               else setIsOpen(false);
-            }} color="white" fontSize="2xl" _hover={{ color: '#6c38ff' }}>
+            }} color="white" fontSize="2xl" _hover={{ color: 'brand.700' }}>
               ×
             </Box>
           </Box>
@@ -243,7 +243,7 @@ const ChatWidget = () => {
 
   return (
     <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
-      bg="#fff"
+      bg="white"
       width={{ base: "90vw", sm: "320px" }}
       maxW="320px"
       height="64px"
@@ -258,7 +258,7 @@ const ChatWidget = () => {
       <Box
         width="100%"
         height="100%"
-        bg="#fff"
+        bg="white"
         boxShadow="2xl"
         borderRadius="28px"
         display="flex"
@@ -272,31 +272,31 @@ const ChatWidget = () => {
       >
         {/* ไอคอน + badge */}
         <Box position="relative" mr={1}>
-          <FaComments color="#2563eb" size={22} />
+          <FaComments color="brand.600" size={22} />
           {unreadCount > 0 && (
             <Circle
               size="18px"
-              bg="#2563eb"
+              bg="brand.600"
               color="white"
               fontSize="xs"
               fontWeight="bold"
               position="absolute"
               top="-8px"
               left="12px"
-              border="2px solid #fff"
+              border="2px solid white"
             >
               {unreadCount}
             </Circle>
           )}
         </Box>
         {/* ข้อความ */}
-        <Text color="#23272f" fontWeight="bold" fontSize="md" mr={2}>
+        <Text color="gray.800" fontWeight="bold" fontSize="md" mr={2}>
           ข้อความ
         </Text>
         {/* โปรไฟล์ + วงแหวน */}
         <Box
           ml="auto"
-          border="3px solid #2563eb"
+          border="3px solid brand.600"
           borderRadius="full"
           p="1px"
           display="flex"
