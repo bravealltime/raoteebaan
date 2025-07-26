@@ -13,6 +13,7 @@ import {
 } from '@chakra-ui/react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { collection, query, where, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
+import { getDatabase, ref as dbRef, onValue } from 'firebase/database';
 import { auth, db } from '../lib/firebase';
 import { User, Conversation } from '../types/chat';
 import ChatList from './ChatList';
@@ -27,6 +28,7 @@ const ChatWidget = () => {
   const [hasUnread, setHasUnread] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [onlineStatus, setOnlineStatus] = useState<Record<string, any>>({});
 
   // Effect to get current user
   useEffect(() => {
@@ -99,6 +101,24 @@ const ChatWidget = () => {
       if (unreadFound && !isOpen) {
         setIsOpen(true);
       }
+
+      // Fetch online status for all participants
+      const unsubscribes = new Set<() => void>();
+      const userIds = new Set<string>();
+      convos.forEach(convo => {
+        convo.participants.forEach((p: any) => {
+          if (typeof p === 'string') userIds.add(p);
+          else if (p.uid) userIds.add(p.uid);
+        });
+      });
+      userIds.forEach(uid => {
+        const unsub = onValue(dbRef(getDatabase(), 'status/' + uid), (snapshot) => {
+          const status = snapshot.val();
+          setOnlineStatus(prev => ({ ...prev, [uid]: { state: status?.state } }));
+        });
+        unsubscribes.add(unsub);
+      });
+      return () => { unsubscribes.forEach(unsub => unsub()); };
     });
 
     return () => unsubscribe();
@@ -133,7 +153,7 @@ const ChatWidget = () => {
   if (loading) {
     return (
       <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
-        bgGradient="linear(135deg, grayBg.900 0%, grayBg.800 100%)"
+        bgGradient="linear(135deg, brand.500 0%, brand.600 100%)"
         minH={{ base: "70vh", sm: "500px" }}
         borderRadius="2xl"
         boxShadow="2xl"
@@ -169,7 +189,7 @@ const ChatWidget = () => {
   if (!currentUser) {
     return (
       <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
-        bgGradient="linear(135deg, grayBg.900 0%, grayBg.800 100%)"
+        bgGradient="linear(135deg, brand.500 0%, brand.600 100%)"
         minH={{ base: "70vh", sm: "500px" }}
         borderRadius="2xl"
         boxShadow="2xl"
@@ -190,7 +210,7 @@ const ChatWidget = () => {
   if (isOpen) {
     return (
       <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
-        bgGradient="linear(135deg, grayBg.900 0%, grayBg.800 100%)"
+        bgGradient="linear(135deg, brand.500 0%, brand.600 100%)"
         width={{ base: "98vw", sm: "400px" }}
         maxW="400px"
         height={{ base: "560px", sm: "560px" }}
@@ -272,11 +292,11 @@ const ChatWidget = () => {
       >
         {/* ไอคอน + badge */}
         <Box position="relative" mr={1}>
-          <FaComments color="brand.600" size={22} />
+          <FaComments color="brand.500" size={22} />
           {unreadCount > 0 && (
             <Circle
               size="18px"
-              bg="brand.600"
+              bg="brand.500"
               color="white"
               fontSize="xs"
               fontWeight="bold"
@@ -296,7 +316,7 @@ const ChatWidget = () => {
         {/* โปรไฟล์ + วงแหวน */}
         <Box
           ml="auto"
-          border="3px solid brand.600"
+          border="3px solid brand.500"
           borderRadius="full"
           p="1px"
           display="flex"

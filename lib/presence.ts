@@ -19,7 +19,7 @@ export const setupPresence = (user: User) => {
 
     // Set our initial online status in Realtime Database
     await set(userStatusDatabaseRef, {
-      isOnline: true,
+      state: 'online',
       lastSeen: serverTimestamp(),
     });
 
@@ -31,7 +31,7 @@ export const setupPresence = (user: User) => {
 
     // When I disconnect, update the Realtime Database
     onDisconnect(userStatusDatabaseRef).set({
-      isOnline: false,
+      state: 'offline',
       lastSeen: serverTimestamp(),
     });
   });

@@ -23,6 +23,7 @@ import {
   Circle,
 } from '@chakra-ui/react';
 import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, doc, setDoc, writeBatch } from 'firebase/firestore';
+import { getDatabase, ref as dbRef, onValue } from 'firebase/database';
 import { db } from '../lib/firebase';
 import { FaPaperPlane, FaImage, FaArrowLeft } from 'react-icons/fa';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -59,8 +60,23 @@ const ChatWindow = ({
   const toast = useToast();
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isOnline, setIsOnline] = useState(false);
 
   const otherParticipant = conversation.participants.find(p => p.uid !== currentUser?.uid);
+
+  useEffect(() => {
+    if (!otherParticipant?.uid) return;
+
+    const dbRealtime = getDatabase();
+    const userStatusRef = dbRef(dbRealtime, 'status/' + otherParticipant.uid);
+
+    const unsubscribe = onValue(userStatusRef, (snapshot) => {
+      const status = snapshot.val();
+      setIsOnline(status?.state === 'online');
+    });
+
+    return () => unsubscribe();
+  }, [otherParticipant?.uid]);
 
   useEffect(() => {
     const q = query(collection(db, 'conversations', conversation.id, 'messages'), orderBy('timestamp', 'asc'));
@@ -158,13 +174,13 @@ const ChatWindow = ({
   return (
     <Flex direction="column" h={containerHeight || height} bg="white" borderRadius={borderRadius} boxShadow={boxShadow} overflow="hidden" p={p}>
       {/* Header */}
-      <HStack p={4} bg="brand.600" borderBottom="1px solid gray.200">
+      <HStack p={4} bg="brand.500" borderBottom="1px solid gray.200">
         <Avatar src={otherParticipant?.photoURL} size="sm" />
         <Box>
           <Text color="white" fontWeight="bold" fontSize="md">{otherParticipant?.name}</Text>
           <HStack spacing={1}>
-            <Circle size="8px" bg="green.400" />
-            <Text color="white" fontSize="xs">Active now</Text>
+            <Circle size="8px" bg={isOnline ? "green.300" : "gray.400"} />
+            <Text color="white" fontSize="xs">{isOnline ? "Online" : "Offline"}</Text>
           </HStack>
         </Box>
         <Box flex={1} />
@@ -183,7 +199,7 @@ const ChatWindow = ({
         {messages.map((msg) => (
           <Flex key={msg.id} w="100%" justify={msg.senderId === currentUser?.uid ? 'flex-end' : 'flex-start'}>
             <Box
-              bg={msg.senderId === currentUser?.uid ? 'brand.600' : 'gray.100'}
+              bg={msg.senderId === currentUser?.uid ? 'brand.500' : 'gray.100'}
               color={msg.senderId === currentUser?.uid ? 'white' : 'gray.800'}
               px={4}
               py={2}
@@ -218,7 +234,7 @@ const ChatWindow = ({
             onClick={() => imageInputRef.current?.click()}
             isLoading={isImageUploading}
             variant="ghost"
-            color="brand.600"
+            color="brand.500"
           />
           <InputGroup>
             <Input
@@ -230,18 +246,18 @@ const ChatWindow = ({
               fontSize="16px"
               py={3}
               px={5}
-              bg="#f5f6fa"
-              color="#23272f"
-              border="1px solid #e2e8f0"
+              bg="gray.50"
+              color="gray.800"
+              border="1px solid gray.200"
               boxShadow="xs"
-              _placeholder={{ color: '#aaa' }}
+              _placeholder={{ color: 'gray.500' }}
             />
             <InputRightElement top="50%" transform="translateY(-50%)">
               <IconButton
                 aria-label="Send Message"
                 icon={<FaPaperPlane />}
                 onClick={() => handleSendMessage()}
-                colorScheme="blue"
+                colorScheme="brand"
                 isRound
               />
             </InputRightElement>

@@ -52,7 +52,7 @@ const ChatList = ({
       spacing={0}
       align="stretch"
       p={0}
-      bg="white"
+      bg="gray.50"
       borderRadius={24}
       boxShadow="2xl"
       maxH={containerHeight}
@@ -80,8 +80,8 @@ const ChatList = ({
             borderRadius={borderRadius || 18}
             boxShadow="none"
             cursor="pointer"
-            bg={isSelected ? "brand.50" : "white"}
-            border={isSelected ? "2px solid brand.600" : "none"}
+            bg={isSelected ? "brand.100" : "white"}
+            border={isSelected ? "2px solid brand.400" : "none"}
             _hover={{ bg: "gray.50" }}
             onClick={() => onSelectConversation(convo)}
             alignItems="center"
@@ -94,14 +94,14 @@ const ChatList = ({
                 name={otherUser?.name}
                 src={otherUser?.photoURL}
                 boxSize={avatarSize}
-                bg={otherUser?.photoURL ? undefined : "purple.200"}
+                bg={otherUser?.photoURL ? undefined : "gray.200"}
                 color="gray.800"
                 fontWeight="bold"
                 fontSize="xl"
               />
               <Circle
                 size="10px"
-                bg={isOnline ? "green.400" : "gray.300"}
+                bg={isOnline ? "green.300" : "gray.300"}
                 border="2px solid white"
                 position="absolute"
                 bottom={0}
@@ -110,7 +110,7 @@ const ChatList = ({
               {isUnread && (
                 <Circle
                   size="9px"
-                  bg="brand.600"
+                  bg="brand.400"
                   position="absolute"
                   top={-2}
                   right={-2}
@@ -119,7 +119,7 @@ const ChatList = ({
               )}
             </Box>
             <VStack align="start" spacing={0} flex={1} minW={0}>
-              <Text fontWeight="bold" fontSize={fontSizeName} color="#23272f" noOfLines={1}>
+              <Text fontWeight="bold" fontSize={fontSizeName} color="gray.800" noOfLines={1}>
                 {otherUser?.name}
               </Text>
               <Text fontSize={fontSizeMsg} color="gray.600" mt={2} noOfLines={1}>

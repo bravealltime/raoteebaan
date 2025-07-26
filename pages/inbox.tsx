@@ -28,6 +28,7 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
+import { getDatabase, ref as dbRef, onValue } from 'firebase/database';
 import MainLayout from '../components/MainLayout';
 import ChatList from '../components/ChatList';
 import ChatWindow from '../components/ChatWindow';
@@ -116,10 +117,9 @@ const Inbox = () => {
         });
       });
       userIds.forEach(uid => {
-        const unsub = onSnapshot(doc(db, 'users', uid), (docSnap) => {
-          if (docSnap.exists()) {
-            setOnlineStatus(prev => ({ ...prev, [uid]: { state: docSnap.data().state } }));
-          }
+        const unsub = onValue(dbRef(getDatabase(), 'status/' + uid), (snapshot) => {
+          const status = snapshot.val();
+          setOnlineStatus(prev => ({ ...prev, [uid]: { state: status?.state } }));
         });
         unsubscribes.add(unsub);
       });
