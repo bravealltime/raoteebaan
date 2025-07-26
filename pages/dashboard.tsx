@@ -865,9 +865,10 @@ function Dashboard({ currentUser, role }: DashboardProps) {
             <SummaryCard icon={FaCheckCircle} label="รายรับที่ได้รับ" value={`${monthlyPaid.toLocaleString()}`} suffix="บาท" colorScheme="teal" />
           </SimpleGrid>
           
-          {/* Charts and Announcements */}
-          <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6} alignItems="start">
-            <VStack spacing={6} align="stretch" gridColumn={{ base: "auto", lg: "span 2" }}>
+          {/* New layout for Charts, Announcements, and Complaints */}
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} alignItems="start">
+            {/* Left Column: Charts and Add Announcement */}
+            <VStack spacing={6} align="stretch">
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
                 <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
                   <Heading size="sm" mb={4}>สถานะห้อง</Heading>
@@ -879,15 +880,19 @@ function Dashboard({ currentUser, role }: DashboardProps) {
                 </Box>
               </SimpleGrid>
               <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
+                <AddAnnouncementCard currentUser={currentUser} />
+              </Box>
+            </VStack>
+
+            {/* Right Column: Announcements List and Complaints List */}
+            <VStack spacing={6} align="stretch">
+              <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
                 <AnnouncementsList currentUser={currentUser} />
               </Box>
               <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
                 <ComplaintsList currentUser={currentUser} role={role as 'admin' | 'owner'} />
               </Box>
             </VStack>
-            <Box bg="white" borderRadius="xl" p={5} boxShadow="md" gridColumn={{ base: "auto", lg: "span 1" }}>
-               <AddAnnouncementCard currentUser={currentUser} />
-            </Box>
           </SimpleGrid>
 
 

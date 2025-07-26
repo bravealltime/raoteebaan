@@ -783,28 +783,45 @@ export default function OwnerDashboard({ currentUser, role }: OwnerDashboardProp
       <Container maxW="container.xl" py={{ base: 2, md: 4 }}>
         <VStack spacing={6} align="stretch">
           {/* Summary Cards */}
-          <SimpleGrid columns={{ base: 1, sm: 2, md: 4, lg: 4 }} spacing={{ base: 4, md: 6 }}>
-            <SummaryCard icon={FaHome} label="ห้องทั้งหมด" value={totalRooms} />
-            <SummaryCard icon={FaBed} label="ห้องมีผู้เช่า" value={availableRooms} />
-            <SummaryCard icon={FaBed} label="ห้องว่าง" value={vacantRooms} color="green.500" />
-            <SummaryCard icon={FaFileInvoiceDollar} label="รอตรวจสอบ" value={paymentsUnderReview} color="yellow.500" />
-            <SummaryCard icon={FaInbox} label="กล่องข้อความ" value={inboxCount} />
-            <SummaryCard icon={FaBox} label="พัสดุ" value={parcelCount} />
-            <SummaryCard icon={FaFileInvoiceDollar} label="รายรับที่ต้องได้เดือนนี้" value={`${monthlyIncome.toLocaleString()} บาท`} color="blue.500" />
-            <SummaryCard icon={FaCheckCircle} label="รายรับที่ได้เดือนนี้" value={`${monthlyPaid.toLocaleString()} บาท`} color="green.500" />
-            <Box bg="white" borderRadius="xl" p={{ base: 3, md: 5 }} boxShadow="sm">
-              <RoomStatusChart data={roomStatusData} />
-            </Box>
-            <Box bg="white" borderRadius="xl" p={{ base: 3, md: 5 }} boxShadow="sm">
-              <PaymentStatusChart data={paymentStatusData} />
-            </Box>
+          <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={5}>
+            <SummaryCard icon={FaHome} label="ห้องทั้งหมด" value={totalRooms} colorScheme="purple" />
+            <SummaryCard icon={FaBed} label="ห้องมีผู้เช่า" value={availableRooms} colorScheme="blue" />
+            <SummaryCard icon={FaBed} label="ห้องว่าง" value={vacantRooms} colorScheme="green" />
+            <SummaryCard icon={FaFileInvoiceDollar} label="รอตรวจสอบ" value={paymentsUnderReview} colorScheme="yellow" />
+            <SummaryCard icon={FaInbox} label="กล่องข้อความ" value={inboxCount} colorScheme="pink" />
+            <SummaryCard icon={FaBox} label="พัสดุ" value={parcelCount} colorScheme="orange" />
+            <SummaryCard icon={FaFileInvoiceDollar} label="รายรับที่คาดการณ์" value={`${monthlyIncome.toLocaleString()}`} suffix="บาท" colorScheme="cyan" />
+            <SummaryCard icon={FaCheckCircle} label="รายรับที่ได้รับ" value={`${monthlyPaid.toLocaleString()}`} suffix="บาท" colorScheme="teal" />
           </SimpleGrid>
 
-          {/* Announcements Section */}
-          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={{ base: 4, md: 6 }} alignItems="start">
-            <AddAnnouncementCard currentUser={currentUser} />
-            <AnnouncementsList currentUser={currentUser} />
-            <ComplaintsList currentUser={currentUser} role={role as 'admin' | 'owner'} />
+          {/* New layout for Charts, Announcements, and Complaints */}
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} alignItems="start">
+            {/* Left Column: Charts and Add Announcement */}
+            <VStack spacing={6} align="stretch">
+              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+                <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
+                  <Heading size="sm" mb={4}>สถานะห้อง</Heading>
+                  <RoomStatusChart data={roomStatusData} />
+                </Box>
+                <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
+                  <Heading size="sm" mb={4}>สถานะการชำระเงิน</Heading>
+                  <PaymentStatusChart data={paymentStatusData} />
+                </Box>
+              </SimpleGrid>
+              <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
+                <AddAnnouncementCard currentUser={currentUser} />
+              </Box>
+            </VStack>
+
+            {/* Right Column: Announcements List and Complaints List */}
+            <VStack spacing={6} align="stretch">
+              <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
+                <AnnouncementsList currentUser={currentUser} />
+              </Box>
+              <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
+                <ComplaintsList currentUser={currentUser} role={role as 'admin' | 'owner'} />
+              </Box>
+            </VStack>
           </SimpleGrid>
 
           {/* Main Content */}
@@ -920,12 +937,30 @@ export default function OwnerDashboard({ currentUser, role }: OwnerDashboardProp
   );
 }
 
-const SummaryCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; color?: string; }> = ({ icon, label, value, color = "gray.700" }) => (
-  <Flex align="center" bg="white" borderRadius="xl" p={4} boxShadow="sm">
-    <Icon as={icon} w={8} h={8} color={color} />
-    <Box ml={4}>
-      <Text color="gray.500">{label}</Text>
-      <Text fontWeight="bold" fontSize="2xl">{value}</Text>
+const SummaryCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; colorScheme?: string; suffix?: string; }> = ({ icon, label, value, colorScheme = "gray", suffix }) => (
+    <Box p={5} bg="white" borderRadius="xl" boxShadow="md" transition="all 0.2s" _hover={{ transform: "translateY(-4px)", boxShadow: "lg" }}>
+        <Flex align="center">
+            <Flex
+                justify="center"
+                align="center"
+                w={12}
+                h={12}
+                borderRadius="lg"
+                bg={`${colorScheme}.100`}
+            >
+                <Icon as={icon} w={6} h={6} color={`${colorScheme}.600`} />
+            </Flex>
+            <Box ml={4}>
+                <Text color="gray.500" fontSize="sm" fontWeight="medium" noOfLines={1}>
+                    {label}
+                </Text>
+                <HStack>
+                  <Text fontWeight="bold" fontSize="2xl" color="gray.800">
+                      {value}
+                  </Text>
+                  {suffix && <Text fontSize="md" color="gray.600" alignSelf="flex-end">{suffix}</Text>}
+                </HStack>
+            </Box>
+        </Flex>
     </Box>
-  </Flex>
 );

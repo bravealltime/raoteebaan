@@ -42,8 +42,7 @@ export async function middleware(request: NextRequest) {
 
     // If a token exists, verify it and check role-based access
     try {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
-        const verifyUrl = new URL('/api/auth/verify-token', appUrl);
+        const verifyUrl = new URL('/api/auth/verify-token', request.url);
         const response = await fetch(verifyUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

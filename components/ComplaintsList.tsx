@@ -19,9 +19,11 @@ import {
     Spinner, 
     Center, 
     Flex, 
-    Spacer
+    Spacer,
+    SimpleGrid
 } from '@chakra-ui/react';
 import { FaChevronDown, FaCommentMedical } from 'react-icons/fa';
+import ComplaintChart from './dashboard/ComplaintChart';
 
 interface Complaint {
     id: string;
@@ -52,6 +54,7 @@ const statusTexts: { [key: string]: string } = {
 
 const ComplaintsList = ({ currentUser, role }: ComplaintsListProps) => {
     const [complaints, setComplaints] = useState<Complaint[]>([]);
+    const [complaintStats, setComplaintStats] = useState({ new: 0, in_progress: 0, resolved: 0 });
     const [loading, setLoading] = useState(true);
     const toast = useToast();
 
@@ -107,6 +110,11 @@ const ComplaintsList = ({ currentUser, role }: ComplaintsListProps) => {
                 ...doc.data(),
             })) as Complaint[];
             setComplaints(complaintsData);
+
+            const newCount = complaintsData.filter(c => c.status === 'new').length;
+            const inProgressCount = complaintsData.filter(c => c.status === 'in_progress').length;
+            const resolvedCount = complaintsData.filter(c => c.status === 'resolved').length;
+            setComplaintStats({ new: newCount, in_progress: inProgressCount, resolved: resolvedCount });
             setLoading(false);
         }, (error) => {
             console.error("Error fetching complaints: ", error);
@@ -152,6 +160,9 @@ const ComplaintsList = ({ currentUser, role }: ComplaintsListProps) => {
                     เรื่องร้องเรียนล่าสุด
                 </Heading>
             </Flex>
+            <Box mb={6}>
+                <ComplaintChart data={complaintStats} />
+            </Box>
             {complaints.length === 0 ? (
                 <Center p={5} bg="gray.50" borderRadius="lg">
                     <Text color="gray.500">ไม่มีเรื่องร้องเรียนในขณะนี้</Text>

@@ -7,6 +7,8 @@ import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, upd
 import TenantLayout from "../components/TenantLayout";
 import { FaTools, FaUser, FaBell, FaImage, FaArrowLeft, FaArrowRight, FaExclamationTriangle } from "react-icons/fa";
 import UpdateIssueStatusModal from '../components/UpdateIssueStatusModal';
+import IssueStats from '../components/dashboard/technician/IssueStats';
+import IssueChart from '../components/dashboard/technician/IssueChart';
 
 interface UserData {
   name: string;
@@ -44,6 +46,8 @@ function TechnicianDashboard() {
   const [selectedImageUrls, setSelectedImageUrls] = useState<string[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [filterStatus, setFilterStatus] = useState<string>("pending");
+  
+  const [issueStats, setIssueStats] = useState({ pending: 0, in_progress: 0, resolved: 0, overdue: 0 });
 
   const handleUpdateClick = (issue: Issue) => {
     setSelectedIssue(issue);
@@ -145,12 +149,37 @@ function TechnicianDashboard() {
     setLoading(false);
   }, [currentUser, filterStatus, lastVisible, firstVisible, toast]);
 
+  
+
+  useEffect(() => {
+    const fetchAndSetIssues = async () => {
+      if (!currentUser) return;
+
+      const issuesRef = collection(db, "issues");
+      const q = query(issuesRef);
+      const querySnapshot = await getDocs(q);
+      const allIssues = querySnapshot.docs.map(doc => doc.data() as Issue);
+
+      const pending = allIssues.filter(issue => issue.status === 'pending').length;
+      const in_progress = allIssues.filter(issue => issue.status === 'in_progress').length;
+      const resolved = allIssues.filter(issue => issue.status === 'resolved').length;
+      const overdue = allIssues.filter(issue => issue.status === 'pending' && (new Date().getTime() - new Date(issue.reportedAt.seconds * 1000).getTime()) > 3 * 24 * 60 * 60 * 1000).length;
+
+      setIssueStats({ pending, in_progress, resolved, overdue });
+    };
+
+    if (currentUser) {
+      fetchAndSetIssues();
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     if (currentUser) {
       setLastVisible(null);
       setFirstVisible(null);
       setPage(1);
       fetchIssues('first');
+      
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser, filterStatus]);
@@ -226,6 +255,11 @@ function TechnicianDashboard() {
               </Flex>
             </CardBody>
           </Card>
+
+          <VStack spacing={6} align="stretch">
+            <IssueStats stats={issueStats} />
+            <IssueChart data={[{ name: 'Issues', ...issueStats }]} />
+          </VStack>
 
           <Card boxShadow="2xl" borderRadius="2xl" bg="white" px={{ base: 2, md: 4 }} py={{ base: 4, md: 6 }}>
             <CardHeader>
