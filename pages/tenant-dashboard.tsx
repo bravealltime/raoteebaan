@@ -6,7 +6,7 @@ import { auth, db } from "../lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, onSnapshot, collection, query, where, getDocs, orderBy, limit, updateDoc, Timestamp, startAfter, endBefore, limitToLast } from "firebase/firestore";
 import TenantLayout from "../components/TenantLayout";
-import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools, FaBullhorn, FaPhone, FaLine, FaCopy, FaComments, FaQrcode, FaBolt, FaTint, FaCheckCircle, FaSpinner, FaClock, FaMoneyBillWave, FaArrowRight, FaImage, FaArrowLeft, FaFilePdf, FaPaperPlane, FaCommentDots } from "react-icons/fa";
+import { FaUser, FaHome, FaCalendarAlt, FaCreditCard, FaFileInvoice, FaBoxOpen, FaTools, FaBullhorn, FaPhone, FaLine, FaCopy, FaComments, FaQrcode, FaBolt, FaTint, FaCheckCircle, FaSpinner, FaClock, FaMoneyBillWave, FaArrowRight, FaImage, FaArrowLeft, FaFilePdf, FaPaperPlane, FaCommentDots, FaHistory, FaWifi } from "react-icons/fa";
 import ReportIssueModal from '../components/ReportIssueModal';
 import ComplaintModal from '../components/ComplaintModal';
 import AnnouncementsList from '../components/AnnouncementsList';
@@ -48,8 +48,10 @@ interface BillHistory {
   status: string;
   dueDate: string;
   paidDate?: string;
-  electricity?: number;
-  water?: number;
+  electricityTotal?: number;
+  waterTotal?: number;
+  electricityUnit?: number;
+  waterUnit?: number;
 }
 
 interface Parcel {
@@ -337,8 +339,10 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
           status: "paid",
           dueDate: data.dueDate?.toDate().toLocaleDateString('th-TH') || "-",
           paidDate: data.paidAt?.toDate().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) || "-",
-          electricity: data.electricity || 0,
-          water: data.water || 0,
+          electricityTotal: data.electricityTotal || 0,
+          waterTotal: data.waterTotal || 0,
+          electricityUnit: data.electricityUnit || 0,
+          waterUnit: data.waterUnit || 0,
         };
       });
       
@@ -581,6 +585,31 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
 
         {/* Main Grid */}
         <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={6}>
+          {/* Key Information */}
+          <Card borderRadius="xl" boxShadow="lg" bg="white">
+            <CardHeader>
+              <Heading size="md" color="brand.700"><Icon as={FaBullhorn} mr={2} />ข้อมูลสำคัญ</Heading>
+            </CardHeader>
+            <CardBody>
+              <VStack spacing={4} align="stretch">
+                <Flex align="center">
+                  <Icon as={FaWifi} mr={3} color="gray.500" />
+                  <Box>
+                    <Text fontWeight="bold" color="gray.600">Wi-Fi</Text>
+                    <Text>TeeRao-Wifi / รหัส: teerao1234</Text>
+                  </Box>
+                </Flex>
+                <Flex align="center">
+                  <Icon as={FaPhone} mr={3} color="gray.500" />
+                  <Box>
+                    <Text fontWeight="bold" color="gray.600">ติดต่อฉุกเฉิน</Text>
+                    <Text>{contactInfo.phone}</Text>
+                  </Box>
+                </Flex>
+              </VStack>
+            </CardBody>
+          </Card>
+
           {/* Room Details */}
           {roomData && (
             <Card borderRadius="xl" boxShadow="lg" bg="white">
@@ -781,11 +810,15 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
               </CardHeader>
               <CardBody>
                 <VStack align="stretch" spacing={3}>
-                  {billHistory.slice(0, 3).map((bill) => (
+                  {billHistory.slice(0, 5).map((bill) => (
                     <Flex key={bill.id} justify="space-between" align="center" p={3} bg="gray.50" borderRadius="lg">
                       <Box>
                         <Text fontWeight="bold" color="gray.700">{bill.month} {bill.year}</Text>
                         <Text fontSize="sm" color="gray.500">ชำระวันที่: {bill.paidDate}</Text>
+                        <Flex fontSize="sm" color="gray.600" mt={1} gap={3}>
+                          <Flex align="center"><Icon as={FaBolt} mr={1} color="yellow.500" />{bill.electricityUnit} หน่วย</Flex>
+                          <Flex align="center"><Icon as={FaTint} mr={1} color="blue.400" />{bill.waterUnit} หน่วย</Flex>
+                        </Flex>
                       </Box>
                       <Text fontWeight="bold" color="green.600">{bill.totalAmount.toLocaleString()} บาท</Text>
                     </Flex>

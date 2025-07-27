@@ -40,7 +40,7 @@ const theme = extendTheme({
   styles: {
     global: {
       body: {
-        bg: "linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%)",
+        bgGradient: "linear(to-br, brand.50, brand.200)",
         color: "gray.800",
         fontFamily: "'Kanit', 'Sarabun', 'Prompt', 'Noto Sans Thai', 'Inter', sans-serif",
       },
