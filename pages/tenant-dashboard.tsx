@@ -120,7 +120,7 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
   const [issuePage, setIssuePage] = useState(1);
   const [lastIssueVisible, setLastIssueVisible] = useState<any>(null);
   const [firstIssueVisible, setFirstIssueVisible] = useState<any>(null);
-  const ISSUES_PER_PAGE = 2;
+  const ISSUES_PER_PAGE = 3;
   const [selectedIssueImageUrls, setSelectedIssueImageUrls] = useState<string[]>([]);
   const { isOpen: isIssueImageModalOpen, onOpen: onIssueImageModalOpen, onClose: onIssueImageModalClose } = useDisclosure();
   const [currentIssueImageIndex, setCurrentIssueImageIndex] = useState(0);
@@ -492,7 +492,12 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
           </Flex>
         </Flex>
 
-        {/* Section 2: Billing Hub */}
+        {/* Announcements Section */}
+        <Box mb={6}>
+          <AnnouncementsList currentUser={currentUser} />
+        </Box>
+
+        {/* Billing Hub */}
         {roomData ? (
           <Card 
             mb={6} 
@@ -574,42 +579,195 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
           </Card>
         )}
 
-        {/* Section 3: Main Grid */}
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} alignItems="flex-start">
-          {/* Left Column */}
-          <VStack spacing={6} align="stretch">
-            {/* Room Details */}
-            {roomData && (
-              <Card borderRadius="xl" boxShadow="lg" bg="white">
-                <CardHeader>
-                  <Heading size="md" color="brand.700"><Icon as={FaHome} mr={2} />ข้อมูลห้องพักและสัญญา</Heading>
-                </CardHeader>
-                <CardBody>
-                  <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
-                    <Box><Text fontWeight="bold" color="gray.500">หมายเลขห้อง</Text><Text fontSize="lg">{roomData.id}</Text></Box>
-                    <Box><Text fontWeight="bold" color="gray.500">ขนาด</Text><Text fontSize="lg">{roomData.area} ตร.ม.</Text></Box>
-                    <Box><Text fontWeight="bold" color="gray.500">ค่าเช่า</Text><Text fontSize="lg">{roomData.rent.toLocaleString()} บาท/เดือน</Text></Box>
-                    <Box><Text fontWeight="bold" color="gray.500">ค่าบริการ</Text><Text fontSize="lg">{roomData.service.toLocaleString()} บาท/เดือน</Text></Box>
-                    <Box><Text fontWeight="bold" color="gray.500">สัญญาเริ่มต้น</Text><Text fontSize="lg">{roomData.contractStart}</Text></Box>
-                    <Box><Text fontWeight="bold" color="gray.500">สัญญาหมดอายุ</Text><Text fontSize="lg">{roomData.contractEnd}</Text></Box>
-                    <Box><Text fontWeight="bold" color="gray.500">เงินมัดจำ</Text><Text fontSize="lg">{roomData.depositAmount?.toLocaleString()} บาท</Text></Box>
-                  </SimpleGrid>
-                  {roomData.assessmentFormUrl && (
-                    <Button 
-                      mt={4} 
-                      colorScheme="purple" 
-                      variant="outline"
-                      leftIcon={<FaFilePdf />}
-                      onClick={onAssessmentModalOpen}
-                    >
-                      ดูใบประเมินอุปกรณ์
-                    </Button>
-                  )}
-                </CardBody>
-              </Card>
-            )}
-            {/* Recent Payment History */}
-            {billHistory.length > 0 && (
+        {/* Main Grid */}
+        <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={6}>
+          {/* Room Details */}
+          {roomData && (
+            <Card borderRadius="xl" boxShadow="lg" bg="white">
+              <CardHeader>
+                <Heading size="md" color="brand.700"><Icon as={FaHome} mr={2} />ข้อมูลห้องพักและสัญญา</Heading>
+              </CardHeader>
+              <CardBody>
+                <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
+                  <Box><Text fontWeight="bold" color="gray.500">หมายเลขห้อง</Text><Text fontSize="lg">{roomData.id}</Text></Box>
+                  <Box><Text fontWeight="bold" color="gray.500">ขนาด</Text><Text fontSize="lg">{roomData.area} ตร.ม.</Text></Box>
+                  <Box><Text fontWeight="bold" color="gray.500">ค่าเช่า</Text><Text fontSize="lg">{roomData.rent.toLocaleString()} บาท/เดือน</Text></Box>
+                  <Box><Text fontWeight="bold" color="gray.500">ค่าบริการ</Text><Text fontSize="lg">{roomData.service.toLocaleString()} บาท/เดือน</Text></Box>
+                  <Box><Text fontWeight="bold" color="gray.500">สัญญาเริ่มต้น</Text><Text fontSize="lg">{roomData.contractStart}</Text></Box>
+                  <Box><Text fontWeight="bold" color="gray.500">สัญญาหมดอายุ</Text><Text fontSize="lg">{roomData.contractEnd}</Text></Box>
+                  <Box><Text fontWeight="bold" color="gray.500">เงินมัดจำ</Text><Text fontSize="lg">{roomData.depositAmount?.toLocaleString()} บาท</Text></Box>
+                </SimpleGrid>
+                {roomData.assessmentFormUrl && (
+                  <Button
+                    mt={4}
+                    colorScheme="purple"
+                    variant="outline"
+                    leftIcon={<FaFilePdf />}
+                    onClick={onAssessmentModalOpen}
+                  >
+                    ดูใบประเมินอุปกรณ์
+                  </Button>
+                )}
+              </CardBody>
+            </Card>
+          )}
+
+          {/* Parcels */}
+          <Card borderRadius="xl" boxShadow="lg" bg="white">
+            <CardHeader>
+              <Flex>
+                <Heading size="md" color="brand.700"><Icon as={FaBoxOpen} mr={2} />พัสดุ</Heading>
+                {undeliveredParcels.length > 0 && <Badge colorScheme="blue" ml={3}>{undeliveredParcels.length} รายการ</Badge>}
+              </Flex>
+            </CardHeader>
+            <CardBody>
+              {undeliveredParcels.length > 0 ? (
+                <VStack align="stretch" spacing={4}>
+                  {undeliveredParcels.map((parcel) => (
+                    <Flex key={parcel.id} p={3} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50" align="center">
+                      {parcel.imageUrl && (
+                        <Image src={parcel.imageUrl} alt="Parcel" boxSize="60px" objectFit="cover" borderRadius="md" mr={4} cursor="pointer" onClick={() => handleImageClick(parcel.imageUrl!)} />
+                      )}
+                      <VStack align="flex-start" spacing={0} flex={1}>
+                        <Text fontWeight="bold">จาก: {parcel.sender}</Text>
+                        <Text fontSize="sm" color="gray.600">มาถึงวันที่: {parcel.receivedDate.toDate().toLocaleDateString('th-TH')}</Text>
+                      </VStack>
+                      <Badge colorScheme={parcel.status === 'received' ? 'green' : 'orange'}>
+                        {parcel.status === 'received' ? 'รอรับ' : 'รอจัดส่ง'}
+                      </Badge>
+                    </Flex>
+                  ))}
+                </VStack>
+              ) : (
+                <Text color="gray.500">ไม่มีพัสดุที่ยังไม่ได้รับ</Text>
+              )}
+            </CardBody>
+          </Card>
+
+          {/* Issue History */}
+          {roomData && (
+            <Card borderRadius="xl" boxShadow="lg" bg="white">
+              <CardHeader>
+                <Flex justify="space-between" align="center">
+                  <Heading size="md" color="brand.700"><Icon as={FaTools} mr={2} />ประวัติการแจ้งปัญหา</Heading>
+                  <Text fontSize="sm" color="gray.500">หน้า {issuePage}</Text>
+                </Flex>
+              </CardHeader>
+              <CardBody>
+                {issueHistory.length > 0 ? (
+                  <VStack align="stretch" spacing={3}>
+                    {issueHistory.map((issue) => (
+                      <Box key={issue.id} bg="gray.50" borderRadius="md" p={4}>
+                        <Flex align="center" gap={4}>
+                          <Box flex="1" onClick={() => toggleIssueExpansion(issue.id)} cursor="pointer">
+                            <Text color="gray.800" fontWeight="bold">{issue.description}</Text>
+                            <Text color="gray.500" fontSize="sm">แจ้งเมื่อ: {issue.reportedAt.toDate().toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
+                          </Box>
+                          {issue.imageUrls && issue.imageUrls.length > 0 && (
+                            <Button
+                              leftIcon={<Icon as={FaImage} />}
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation(); // Prevent card from toggling
+                                setSelectedIssueImageUrls(issue.imageUrls!);
+                                setCurrentIssueImageIndex(0);
+                                onIssueImageModalOpen();
+                              }}
+                            >
+                              {issue.imageUrls.length}
+                            </Button>
+                          )}
+                          <Badge colorScheme={issue.status === 'resolved' ? 'green' : issue.status === 'in_progress' ? 'blue' : 'yellow'}>
+                            {issue.status === 'pending' && 'รอดำเนินการ'}
+                            {issue.status === 'in_progress' && 'กำลังซ่อม'}
+                            {issue.status === 'resolved' && 'เสร็จสิ้น'}
+                          </Badge>
+                        </Flex>
+                        <Collapse in={expandedIssues.has(issue.id)} animateOpacity>
+                          <VStack align="stretch" spacing={3} pt={3} mt={3} borderTopWidth="1px" borderColor="gray.200">
+                            {issue.updates && issue.updates.length > 0 ? (
+                              <VStack align="stretch" spacing={2} pl={4} borderLeftWidth="2px" borderColor="gray.200">
+                                {issue.updates.sort((a, b) => b.updatedAt.toMillis() - a.updatedAt.toMillis()).map((update, index) => (
+                                  <Box key={index}>
+                                    <Text fontSize="sm" fontWeight="medium">{update.notes}</Text>
+                                    <Text fontSize="xs" color="gray.500">
+                                      โดย {update.updatedBy} - {new Date(update.updatedAt.seconds * 1000).toLocaleString('th-TH')}
+                                    </Text>
+                                  </Box>
+                                ))}
+                              </VStack>
+                            ) : (
+                              <Text fontSize="sm" color="gray.500">ยังไม่มีการอัปเดต</Text>
+                            )}
+
+                            {issue.status === 'pending' && (new Date().getTime() - issue.reportedAt.toDate().getTime()) > 3 * 24 * 60 * 60 * 1000 && (
+                              <Tooltip
+                                label={issue.lastFollowUpAt ? `ติดตามล่าสุดเมื่อ ${new Date(issue.lastFollowUpAt.seconds * 1000).toLocaleString('th-TH')}` : 'แจ้งเตือนเจ้าหน้าที่'}
+                                hasArrow
+                              >
+                                <Button
+                                  size="sm"
+                                  colorScheme="blue"
+                                  variant="outline"
+                                  leftIcon={<FaPaperPlane />}
+                                  onClick={() => handleFollowUp(issue.id)}
+                                  isLoading={followUpLoading[issue.id]}
+                                  isDisabled={followUpLoading[issue.id] || (issue.lastFollowUpAt && (new Date().getTime() - issue.lastFollowUpAt.toDate().getTime()) < 24 * 60 * 60 * 1000)}
+                                >
+                                  ติดตามเรื่อง
+                                </Button>
+                              </Tooltip>
+                            )}
+                          </VStack>
+                        </Collapse>
+                      </Box>
+                    ))}
+                  </VStack>
+                ) : (
+                  <Text color="gray.500">ยังไม่มีประวัติการแจ้งปัญหา</Text>
+                )}
+              </CardBody>
+              <Flex justify="center" align="center" p={4} borderTopWidth="1px" borderColor="gray.100">
+                <Button onClick={() => fetchIssueHistory('prev')} isDisabled={issuePage <= 1} size="sm" leftIcon={<FaArrowLeft />}>ก่อนหน้า</Button>
+                <Spacer />
+                <Button onClick={() => fetchIssueHistory('next')} isDisabled={issueHistory.length < ISSUES_PER_PAGE} size="sm" rightIcon={<FaArrowRight />}>ถัดไป</Button>
+              </Flex>
+            </Card>
+          )}
+
+          {/* Complaints History */}
+          <Card borderRadius="xl" boxShadow="lg" bg="white">
+            <CardHeader>
+              <Heading size="md" color="brand.700"><Icon as={FaCommentDots} mr={2} />ประวัติการแจ้งเรื่องทั่วไป</Heading>
+            </CardHeader>
+            <CardBody>
+              {complaintHistory.length > 0 ? (
+                <VStack align="stretch" spacing={3}>
+                  {complaintHistory.map((complaint) => (
+                    <Box key={complaint.id} bg="gray.50" borderRadius="md" p={4}>
+                      <Flex align="center" gap={4}>
+                        <Box flex="1">
+                          <Text color="gray.800" fontWeight="bold">{complaint.subject}</Text>
+                          <Text color="gray.500" fontSize="sm">แจ้งเมื่อ: {complaint.createdAt?.toDate().toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
+                        </Box>
+                        <Badge colorScheme={complaint.status === 'resolved' ? 'green' : complaint.status === 'in_progress' ? 'blue' : 'yellow'}>
+                          {complaint.status === 'new' && 'เรื่องใหม่'}
+                          {complaint.status === 'in_progress' && 'กำลังดำเนินการ'}
+                          {complaint.status === 'resolved' && 'แก้ไขแล้ว'}
+                        </Badge>
+                      </Flex>
+                    </Box>
+                  ))}
+                </VStack>
+              ) : (
+                <Text color="gray.500">ยังไม่มีประวัติการแจ้งเรื่องทั่วไป</Text>
+              )}
+            </CardBody>
+          </Card>
+
+          {/* Recent Payment History */}
+          {billHistory.length > 0 && (
             <Card borderRadius="xl" boxShadow="lg" bg="white">
               <CardHeader>
                 <Flex justify="space-between" align="center">
@@ -635,168 +793,7 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
                 </VStack>
               </CardBody>
             </Card>
-            )}
-          </VStack>
-
-          {/* Right Column */}
-          <VStack spacing={6} align="stretch">
-            {/* Announcements */}
-            <AnnouncementsList currentUser={currentUser} />
-
-            {/* Complaints History */}
-            <Card borderRadius="xl" boxShadow="lg" bg="white">
-              <CardHeader>
-                <Heading size="md" color="brand.700"><Icon as={FaCommentDots} mr={2} />ประวัติการแจ้งเรื่องทั่วไป</Heading>
-              </CardHeader>
-              <CardBody>
-                {complaintHistory.length > 0 ? (
-                  <VStack align="stretch" spacing={3}>
-                    {complaintHistory.map((complaint) => (
-                      <Box key={complaint.id} bg="gray.50" borderRadius="md" p={4}>
-                        <Flex align="center" gap={4}>
-                          <Box flex="1">
-                            <Text color="gray.800" fontWeight="bold">{complaint.subject}</Text>
-                            <Text color="gray.500" fontSize="sm">แจ้งเมื่อ: {complaint.createdAt?.toDate().toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
-                          </Box>
-                          <Badge colorScheme={complaint.status === 'resolved' ? 'green' : complaint.status === 'in_progress' ? 'blue' : 'yellow'}>
-                            {complaint.status === 'new' && 'เรื่องใหม่'}
-                            {complaint.status === 'in_progress' && 'กำลังดำเนินการ'}
-                            {complaint.status === 'resolved' && 'แก้ไขแล้ว'}
-                          </Badge>
-                        </Flex>
-                      </Box>
-                    ))}
-                  </VStack>
-                ) : (
-                  <Text color="gray.500">ยังไม่มีประวัติการแจ้งเรื่องทั่วไป</Text>
-                )}
-              </CardBody>
-            </Card>
-
-            {/* Parcels */}
-            <Card borderRadius="xl" boxShadow="lg" bg="white">
-              <CardHeader>
-                <Flex>
-                  <Heading size="md" color="brand.700"><Icon as={FaBoxOpen} mr={2} />พัสดุ</Heading>
-                  {undeliveredParcels.length > 0 && <Badge colorScheme="blue" ml={3}>{undeliveredParcels.length} รายการ</Badge>}
-                </Flex>
-              </CardHeader>
-              <CardBody>
-                {undeliveredParcels.length > 0 ? (
-                  <VStack align="stretch" spacing={4}>
-                    {undeliveredParcels.map((parcel) => (
-                      <Flex key={parcel.id} p={3} borderWidth="1px" borderRadius="lg" borderColor="gray.200" bg="gray.50" align="center">
-                        {parcel.imageUrl && (
-                          <Image src={parcel.imageUrl} alt="Parcel" boxSize="60px" objectFit="cover" borderRadius="md" mr={4} cursor="pointer" onClick={() => handleImageClick(parcel.imageUrl!)} />
-                        )}
-                        <VStack align="flex-start" spacing={0} flex={1}>
-                          <Text fontWeight="bold">จาก: {parcel.sender}</Text>
-                          <Text fontSize="sm" color="gray.600">มาถึงวันที่: {parcel.receivedDate.toDate().toLocaleDateString('th-TH')}</Text>
-                        </VStack>
-                        <Badge colorScheme={parcel.status === 'received' ? 'green' : 'orange'}>
-                          {parcel.status === 'received' ? 'รอรับ' : 'รอจัดส่ง'}
-                        </Badge>
-                      </Flex>
-                    ))}
-                  </VStack>
-                ) : (
-                  <Text color="gray.500">ไม่มีพัสดุที่ยังไม่ได้รับ</Text>
-                )}
-              </CardBody>
-            </Card>
-
-            {/* Issue History */}
-            {roomData && (
-              <Card borderRadius="xl" boxShadow="lg" bg="white">
-                <CardHeader>
-                  <Flex justify="space-between" align="center">
-                    <Heading size="md" color="brand.700"><Icon as={FaTools} mr={2} />ประวัติการแจ้งปัญหา</Heading>
-                    <Text fontSize="sm" color="gray.500">หน้า {issuePage}</Text>
-                  </Flex>
-                </CardHeader>
-                <CardBody>
-                  {issueHistory.length > 0 ? (
-                    <VStack align="stretch" spacing={3}>
-                      {issueHistory.map((issue) => ( 
-                        <Box key={issue.id} bg="gray.50" borderRadius="md" p={4}>
-                          <Flex align="center" gap={4}>
-                            <Box flex="1" onClick={() => toggleIssueExpansion(issue.id)} cursor="pointer">
-                              <Text color="gray.800" fontWeight="bold">{issue.description}</Text>
-                              <Text color="gray.500" fontSize="sm">แจ้งเมื่อ: {issue.reportedAt.toDate().toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
-                            </Box>
-                            {issue.imageUrls && issue.imageUrls.length > 0 && (
-                              <Button 
-                                leftIcon={<Icon as={FaImage} />} 
-                                size="sm" 
-                                variant="outline" 
-                                onClick={(e) => {
-                                  e.stopPropagation(); // Prevent card from toggling
-                                  setSelectedIssueImageUrls(issue.imageUrls!);
-                                  setCurrentIssueImageIndex(0);
-                                  onIssueImageModalOpen();
-                                }}
-                              >
-                                {issue.imageUrls.length}
-                              </Button>
-                            )}
-                            <Badge colorScheme={issue.status === 'resolved' ? 'green' : issue.status === 'in_progress' ? 'blue' : 'yellow'}>
-                              {issue.status === 'pending' && 'รอดำเนินการ'}
-                              {issue.status === 'in_progress' && 'กำลังซ่อม'}
-                              {issue.status === 'resolved' && 'เสร็จสิ้น'}
-                            </Badge>
-                          </Flex>
-                          <Collapse in={expandedIssues.has(issue.id)} animateOpacity>
-                              <VStack align="stretch" spacing={3} pt={3} mt={3} borderTopWidth="1px" borderColor="gray.200">
-                                {issue.updates && issue.updates.length > 0 ? (
-                                  <VStack align="stretch" spacing={2} pl={4} borderLeftWidth="2px" borderColor="gray.200">
-                                    {issue.updates.sort((a, b) => b.updatedAt.toMillis() - a.updatedAt.toMillis()).map((update, index) => (
-                                      <Box key={index}>
-                                        <Text fontSize="sm" fontWeight="medium">{update.notes}</Text>
-                                        <Text fontSize="xs" color="gray.500">
-                                          โดย {update.updatedBy} - {new Date(update.updatedAt.seconds * 1000).toLocaleString('th-TH')}
-                                        </Text>
-                                      </Box>
-                                    ))}
-                                  </VStack>
-                                ) : (
-                                  <Text fontSize="sm" color="gray.500">ยังไม่มีการอัปเดต</Text>
-                                )}
-
-                                {issue.status === 'pending' && (new Date().getTime() - issue.reportedAt.toDate().getTime()) > 3 * 24 * 60 * 60 * 1000 && (
-                                  <Tooltip 
-                                    label={issue.lastFollowUpAt ? `ติดตามล่าสุดเมื่อ ${new Date(issue.lastFollowUpAt.seconds * 1000).toLocaleString('th-TH')}` : 'แจ้งเตือนเจ้าหน้าที่'}
-                                    hasArrow
-                                  >
-                                    <Button 
-                                      size="sm" 
-                                      colorScheme="blue" 
-                                      variant="outline"
-                                      leftIcon={<FaPaperPlane />}
-                                      onClick={() => handleFollowUp(issue.id)}
-                                      isLoading={followUpLoading[issue.id]}
-                                      isDisabled={followUpLoading[issue.id] || (issue.lastFollowUpAt && (new Date().getTime() - issue.lastFollowUpAt.toDate().getTime()) < 24 * 60 * 60 * 1000)}
-                                    >
-                                      ติดตามเรื่อง
-                                    </Button>
-                                  </Tooltip>
-                                )}
-                              </VStack>
-                            </Collapse>
-                        </Box>
-                      ))}
-                    </VStack>
-                  ) : (
-                    <Text color="gray.500">ยังไม่มีประวัติการแจ้งปัญหา</Text>
-                  )}
-                </CardBody>
-                <Flex justify="center" align="center" p={4} borderTopWidth="1px" borderColor="gray.100">
-                    <Button onClick={() => fetchIssueHistory('prev')} isDisabled={issuePage <= 1} size="sm" leftIcon={<FaArrowLeft />}>ก่อนหน้า</Button>
-                    <Spacer />
-                    <Button onClick={() => fetchIssueHistory('next')} isDisabled={issueHistory.length < ISSUES_PER_PAGE} size="sm" rightIcon={<FaArrowRight />}>ถัดไป</Button>
-                </Flex>
-              </Card>
-            )}
-          </VStack>
+          )}
         </SimpleGrid>
 
         {/* Section 4: Contact Channels */}
