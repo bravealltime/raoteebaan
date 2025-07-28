@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Button, Input, VStack, SimpleGrid, HStack, CloseButton, Box, InputGroup, FormControl, FormErrorMessage, Spinner, InputRightElement } from "@chakra-ui/react";
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Button, Input, VStack, SimpleGrid, HStack, CloseButton, Box, InputGroup, FormControl, FormErrorMessage, Spinner, InputRightElement, Select } from "@chakra-ui/react";
 import { FaTint, FaBolt, FaCalendarAlt, FaPlus, FaHome } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { doc, getDoc } from "firebase/firestore";
@@ -24,6 +24,10 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
   const [roomIdErrorMessage, setRoomIdErrorMessage] = useState("");
   const [tenantName, setTenantName] = useState("");
   const [tenantEmail, setTenantEmail] = useState("");
+  const [emergencyContact, setEmergencyContact] = useState("");
+  const [contractStartDate, setContractStartDate] = useState<Date | null>(null);
+  const [contractEndDate, setContractEndDate] = useState<Date | null>(null);
+  const [contractDuration, setContractDuration] = useState<number | string>("");
   const [rent, setRent] = useState(0);
   const [area, setArea] = useState(0);
   const [recordDate, setRecordDate] = useState<Date | null>(null);
@@ -81,6 +85,16 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
     };
   }, [roomId]);
 
+  useEffect(() => {
+    if (contractStartDate && contractDuration) {
+      const newEndDate = new Date(contractStartDate);
+      newEndDate.setMonth(newEndDate.getMonth() + Number(contractDuration));
+      setContractEndDate(newEndDate);
+    } else {
+      setContractEndDate(null);
+    }
+  }, [contractStartDate, contractDuration]);
+
   const handleRoomIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     const numericValue = value.replace(/[^0-9]/g, '');
@@ -108,6 +122,9 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
       tenantEmail,
       ownerId,
       area,
+      emergencyContact,
+      contractStartDate: contractStartDate ? contractStartDate.toISOString() : null,
+      contractEndDate: contractEndDate ? contractEndDate.toISOString() : null,
       ...(isVacant ? {} : {
         waterCurrent,
         waterPrev,
@@ -202,6 +219,39 @@ export default function AddRoomModal({ isOpen, onClose, onAdd, lastWaterMeter, l
                     <Box fontSize="xs" color="gray.400" mt={1}>ระบบจะสร้างบัญชีและส่งรหัสผ่านให้ผู้เช่าทางอีเมลนี้</Box>
                   </Box>
                 )}
+                <Box mb={2}>
+                  <Input mt={1} size="md" placeholder="เบอร์ติดต่อฉุกเฉิน" value={emergencyContact} onChange={e => setEmergencyContact(e.target.value)} bg="gray.50" color="gray.800" borderRadius="lg" borderColor="blue.100" _focus={{ borderColor: 'blue.400' }} type="tel" />
+                  <Box fontSize="xs" color="gray.400" mt={1}>สำหรับติดต่อกรณีฉุกเฉิน</Box>
+                </Box>
+                <SimpleGrid columns={3} gap={2}>
+                  <Box>
+                    <Input size="md" mt={1} placeholder="วันเริ่มสัญญา" value={contractStartDate ? contractStartDate.toISOString().split('T')[0] : ''} onChange={e => setContractStartDate(e.target.value ? new Date(e.target.value) : null)} bg="gray.50" color="gray.800" borderRadius="lg" borderColor="blue.100" _focus={{ borderColor: 'blue.400' }} type="date" />
+                    <Box fontSize="xs" color="gray.400" mt={1}>วันเริ่มสัญญา</Box>
+                  </Box>
+                  <Box>
+                    <Select
+                      size="md"
+                      mt={1}
+                      placeholder="เลือกระยะเวลา"
+                      value={contractDuration}
+                      onChange={e => setContractDuration(e.target.value)}
+                      bg="gray.50"
+                      color="gray.800"
+                      borderRadius="lg"
+                      borderColor="blue.100"
+                      _focus={{ borderColor: 'blue.400' }}
+                    >
+                      <option value={6}>6 เดือน</option>
+                      <option value={12}>12 เดือน</option>
+                      <option value={24}>24 เดือน</option>
+                    </Select>
+                    <Box fontSize="xs" color="gray.400" mt={1}>ระยะเวลาสัญญา</Box>
+                  </Box>
+                  <Box>
+                    <Input size="md" mt={1} placeholder="วันสิ้นสุดสัญญา" value={contractEndDate ? contractEndDate.toISOString().split('T')[0] : ''} isReadOnly bg="gray.100" color="gray.800" borderRadius="lg" borderColor="blue.100" _focus={{ borderColor: 'blue.400' }} type="date" />
+                    <Box fontSize="xs" color="gray.400" mt={1}>จะคำนวณอัตโนมัติ</Box>
+                  </Box>
+                </SimpleGrid>
                 <SimpleGrid columns={2} gap={2} mt={1}>
                   <Box>
                     <Input size="md" placeholder="ค่าเช่า *" value={rent} type="number" onChange={e => setRent(Number(e.target.value))} bg="gray.50" color="gray.800" borderRadius="lg" borderColor="blue.100" _focus={{ borderColor: 'blue.400' }} />

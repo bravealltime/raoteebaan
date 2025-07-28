@@ -60,6 +60,8 @@ interface RoomData {
   ownerId?: string;
   startDate?: string;
   endDate?: string;
+  contractStartDate?: string;
+  contractEndDate?: string;
   emergencyContact?: string;
   createNewTenant?: boolean; // Flag to indicate new tenant creation
 }
@@ -79,6 +81,7 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, us
 
   const [room, setRoom] = useState<RoomData>(initialRoom);
   const [createNewTenant, setCreateNewTenant] = useState(false);
+  const [contractDuration, setContractDuration] = useState<number | string>("");
   const toast = useToast();
   const cancelRef = React.useRef<HTMLButtonElement>(null);
   const [isResetAlertOpen, setIsResetAlertOpen] = useState(false);
@@ -88,6 +91,16 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, us
     setRoom(JSON.parse(JSON.stringify(initialRoom)));
     setCreateNewTenant(false); // Default to selecting existing tenant
   }, [initialRoom, isOpen]);
+
+  useEffect(() => {
+    if (room.contractStartDate && contractDuration) {
+      const newEndDate = new Date(room.contractStartDate);
+      newEndDate.setMonth(newEndDate.getMonth() + Number(contractDuration));
+      setRoom(prev => ({ ...prev, contractEndDate: newEndDate.toISOString().split('T')[0] }));
+    } else {
+      setRoom(prev => ({ ...prev, contractEndDate: '' }));
+    }
+  }, [room.contractStartDate, contractDuration]);
 
   const handleTenantChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedTenantId = e.target.value;
@@ -285,47 +298,28 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, us
                       </Select>
                     </FormControl>
                     <FormControl>
+                      <FormLabel fontSize="sm">เบอร์โทร ฉุกเฉิน</FormLabel>
+                      <Input placeholder="เช่น 081-234-5678" value={room.emergencyContact || ''} onChange={e => handleInputChange('emergencyContact', e.target.value)} />
+                    </FormControl>
+                    <FormControl>
                       <FormLabel fontSize="sm">วันเริ่มสัญญา</FormLabel>
-                      <Input type="date" value={room.startDate || ''} onChange={(e) => {
-                        const newStartDate = e.target.value;
-                        handleInputChange('startDate', newStartDate);
-                        if (room.contractLength) {
-                          const endDate = new Date(newStartDate);
-                          endDate.setMonth(endDate.getMonth() + room.contractLength);
-                          handleInputChange('endDate', endDate.toISOString().substring(0, 10));
-                        }
-                      }} />
+                      <Input type="date" value={room.contractStartDate || ''} onChange={e => handleInputChange('contractStartDate', e.target.value)} />
                     </FormControl>
                     <FormControl>
                       <FormLabel fontSize="sm">ระยะเวลาสัญญา</FormLabel>
-                      <Select placeholder="-- เลือกระยะเวลา --" onChange={(e) => {
-                        const length = parseInt(e.target.value, 10);
-                        if (isNaN(length)) {
-                            handleInputChange('endDate', '');
-                            return;
-                        }
-                        if (!room.startDate) {
-                            toast({ title: "กรุณาเลือกวันเริ่มสัญญาก่อน", status: "warning" });
-                            e.target.value = '';
-                            return;
-                        }
-                        handleInputChange('contractLength', length);
-                        const endDate = new Date(room.startDate);
-                        endDate.setMonth(endDate.getMonth() + length);
-                        handleInputChange('endDate', endDate.toISOString().substring(0, 10));
-                      }}>
-                        <option value="3">3 เดือน</option>
-                        <option value="6">6 เดือน</option>
-                        <option value="12">12 เดือน</option>
+                      <Select
+                        placeholder="เลือกระยะเวลา"
+                        value={contractDuration}
+                        onChange={e => setContractDuration(e.target.value)}
+                      >
+                        <option value={6}>6 เดือน</option>
+                        <option value={12}>12 เดือน</option>
+                        <option value={24}>24 เดือน</option>
                       </Select>
                     </FormControl>
                     <FormControl>
                       <FormLabel fontSize="sm">วันสิ้นสุดสัญญา</FormLabel>
-                      <Input type="date" value={room.endDate || ''} isReadOnly disabled />
-                    </FormControl>
-                    <FormControl>
-                      <FormLabel fontSize="sm">เบอร์โทร ฉุกเฉิน</FormLabel>
-                      <Input placeholder="เช่น 081-234-5678" value={room.emergencyContact || ''} onChange={e => handleInputChange('emergencyContact', e.target.value)} />
+                      <Input type="date" value={room.contractEndDate || ''} isReadOnly bg="gray.100" />
                     </FormControl>
                   </SimpleGrid>
                 </Box>

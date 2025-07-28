@@ -1,4 +1,4 @@
-import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Tooltip, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox, Image, Table, Thead, Tbody, Tr, Th, Td, FormControl, FormLabel, InputGroup, InputRightElement, CloseButton, VStack, HStack, Wrap, WrapItem, Spacer, Container, Icon } from "@chakra-ui/react";
+import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Tooltip, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Select, Checkbox, Image, Table, Thead, Tbody, Tr, Th, Td, FormControl, FormLabel, InputGroup, InputRightElement, CloseButton, VStack, HStack, Wrap, WrapItem, Spacer, Container, Icon, Divider, Avatar } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent, useCallback } from "react";
 import { db, auth } from "../lib/firebase";
 import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, addDoc, updateDoc, writeBatch, Timestamp } from "firebase/firestore";
@@ -7,7 +7,7 @@ import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
 import AppHeader from "../components/AppHeader";
 import { motion } from "framer-motion";
-import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaTrash, FaSearch } from "react-icons/fa";
+import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaTrash, FaSearch, FaUserCircle, FaRulerCombined, FaPhoneAlt, FaCalendarCheck, FaCalendarTimes } from "react-icons/fa";
 import { saveAs } from "file-saver";
 import Papa from "papaparse";
 import EditRoomModal from "../components/EditRoomModal";
@@ -37,6 +37,9 @@ interface Room {
   tenantId?: string | null;
   tenantEmail?: string | null;
   ownerId?: string;
+  emergencyContact?: string;
+  contractStartDate?: string;
+  contractEndDate?: string;
 }
 
 // ... (the rest of the imports)
@@ -102,6 +105,20 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
   const [selectedRoomForSlip, setSelectedRoomForSlip] = useState<Room | null>(null);
   const [isSlipViewModalOpen, setIsSlipViewModalOpen] = useState(false);
   const [currentSlipUrl, setCurrentSlipUrl] = useState<string | null>(null);
+  const [selectedRoomForDetails, setSelectedRoomForDetails] = useState<Room | null>(null);
+  const [selectedRoomSlipUrl, setSelectedRoomSlipUrl] = useState<string | null>(null);
+  const { isOpen: isDetailsOpen, onOpen: onDetailsOpen, onClose: onDetailsClose } = useDisclosure();
+
+  const handleViewDetails = async (room: Room) => {
+    setSelectedRoomForDetails(room);
+    const bill = roomBills[room.id];
+    if (bill && bill.slipUrl) {
+      setSelectedRoomSlipUrl(bill.slipUrl);
+    } else {
+      setSelectedRoomSlipUrl(null);
+    }
+    onDetailsOpen();
+  };
 
   
 
@@ -142,6 +159,9 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
           tenantId: d.tenantId || null,
           tenantEmail: d.tenantEmail || null,
           ownerId: d.ownerId,
+          emergencyContact: d.emergencyContact || "",
+          contractStartDate: d.contractStartDate || "",
+          contractEndDate: d.contractEndDate || "",
         };
       });
 
@@ -1388,15 +1408,13 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
                   return (
                     <motion.div variants={itemVariants} key={room.id}>
                       <RoomCard
-                        {...room}
+                        id={room.id}
                         tenantName={room.tenantName}
-                        tenantEmail={room.tenantEmail}
+                        latestTotal={room.latestTotal}
+                        billStatus={room.billStatus as any}
+                        isOccupied={room.status === 'occupied'}
                         role={role}
-                        currentMonthTotal={currentMonthTotal}
-                        electricity={electricity}
-                        water={water}
-                        rent={rent}
-                        service={service}
+                        onViewDetails={() => handleViewDetails(room)}
                         onDelete={() => handleDelete(room.id)}
                         onViewBill={() => handleViewBill(room.id)}
                         onAddData={() => handleAddData(room.id)}
@@ -1488,6 +1506,80 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <Modal isOpen={isDetailsOpen} onClose={onDetailsClose} isCentered size="xl">
+        <ModalOverlay backdropFilter='blur(3px)' />
+        <ModalContent borderRadius="2xl" overflow="hidden">
+          <ModalHeader 
+            bg="purple.50" 
+            color="purple.800" 
+            px={6} 
+            py={4}
+            borderBottomWidth="1px"
+            borderColor="purple.100"
+          >
+            <HStack>
+              <Icon as={FaUserCircle} w={8} h={8} />
+              <Box>
+                <Heading size="md">รายละเอียดห้อง {selectedRoomForDetails?.id}</Heading>
+                <Text fontSize="sm" color="purple.600">ข้อมูลผู้เช่าและสัญญา</Text>
+              </Box>
+            </HStack>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody px={6} py={5}>
+            {selectedRoomForDetails && (
+              <VStack spacing={5} align="stretch">
+                <Center>
+                  <VStack spacing={2}>
+                    <Avatar size="xl" name={selectedRoomForDetails.tenantName} bg="purple.100" color="purple.700" />
+                    <Text fontWeight="bold" fontSize="2xl" color="gray.800">{selectedRoomForDetails.tenantName || 'ไม่มีผู้เช่า'}</Text>
+                  </VStack>
+                </Center>
+                <Divider />
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacingX={10} spacingY={4}>
+                  <HStack>
+                    <Icon as={FaRulerCombined} color="gray.400" />
+                    <Text><strong>ขนาดห้อง:</strong> {selectedRoomForDetails.area} ตร.ม.</Text>
+                  </HStack>
+                  <HStack>
+                    <Icon as={FaPhoneAlt} color="gray.400" />
+                    <Text><strong>เบอร์ติดต่อฉุกเฉิน:</strong> {selectedRoomForDetails.emergencyContact || '-'}</Text>
+                  </HStack>
+                  <HStack>
+                    <Icon as={FaCalendarCheck} color="gray.400" />
+                    <Text><strong>วันเริ่มสัญญา:</strong> {selectedRoomForDetails.contractStartDate ? new Date(selectedRoomForDetails.contractStartDate).toLocaleDateString('th-TH') : '-'}</Text>
+                  </HStack>
+                  <HStack>
+                    <Icon as={FaCalendarTimes} color="gray.400" />
+                    <Text><strong>วันสิ้นสุดสัญญา:</strong> {selectedRoomForDetails.contractEndDate ? new Date(selectedRoomForDetails.contractEndDate).toLocaleDateString('th-TH') : '-'}</Text>
+                  </HStack>
+                </SimpleGrid>
+                {selectedRoomSlipUrl && (
+                  <>
+                    <Divider />
+                    <Box textAlign="center">
+                      <Text fontWeight="bold" mb={2}>หลักฐานการชำระเงินล่าสุด</Text>
+                      <Image src={selectedRoomSlipUrl} alt="Proof of payment" maxH="300px" objectFit="contain" />
+                    </Box>
+                  </>
+                )}
+                <Divider />
+                <Box textAlign="center" bg="gray.50" p={4} borderRadius="lg">
+                  <Text fontSize="md" color="gray.600">ยอดค่าใช้จ่ายรวมล่าสุด</Text>
+                  <Text fontWeight="extrabold" fontSize="4xl" color="purple.600">
+                    ฿{selectedRoomForDetails.latestTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })}
+                  </Text>
+                </Box>
+              </VStack>
+            )}
+          </ModalBody>
+          <ModalFooter bg="gray.50" borderTopWidth="1px" borderColor="gray.100">
+            <Button colorScheme="purple" variant="outline" onClick={onDetailsClose} w="full">
+              ปิด
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
       <MeterReadingModal 
         isOpen={isMeterReadingModalOpen}
         onClose={() => setIsMeterReadingModalOpen(false)}

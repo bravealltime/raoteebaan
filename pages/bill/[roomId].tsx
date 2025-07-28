@@ -9,9 +9,8 @@ import { FaFileInvoice, FaArrowLeft, FaDownload, FaUpload, FaEye, FaTrash, FaChe
 import Script from "next/script";
 import TenantLayout from "../../components/TenantLayout";
 import MainLayout from "../../components/MainLayout";
-import ReactDOMServer from "react-dom/server";
 
-export default function BillDetail() {
+export default function BillDetail({ currentUser }: { currentUser: any }) {
   const router = useRouter();
   const toast = useToast();
   const { roomId } = router.query;
@@ -26,34 +25,16 @@ export default function BillDetail() {
   const [currentProofImageUrl, setCurrentProofImageUrl] = useState<string | null>(null);
   const [isConfirmAlertOpen, setIsConfirmAlertOpen] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const [currentUser, setCurrentUser] = useState<any | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [fullUserData, setFullUserData] = useState<any | null>(null);
 
   // Hardcode promptpay for now (replace with real data if available)
   const promptpay = "1209701702030";
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUser(user);
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if (snap.exists()) {
-          const userData = snap.data();
-          setUserRole(userData.role);
-          setFullUserData(userData);
-        }
-      }
-    });
-    return () => unsub();
-  }, []);
+    if (!roomId || !currentUser) return;
 
-  useEffect(() => {
-    if (!roomId) return;
     const fetchBill = async () => {
       setLoading(true);
       try {
-        
         const q = query(
           collection(db, "bills"),
           where("roomId", "==", String(roomId)),
@@ -61,125 +42,133 @@ export default function BillDetail() {
           limit(1)
         );
         const snap = await getDocs(q);
-        
-        let roomData: any = null;
-        const roomSnap = await getDoc(doc(db, "rooms", String(roomId)));
-        if (roomSnap.exists()) {
-          roomData = roomSnap.data();
-        }
 
-        if (!snap.empty) {
-          const d = snap.docs[0].data();
-          
-          const toDate = (firebaseDate: any): Date | null => {
-            if (!firebaseDate) return null;
-            if (firebaseDate.seconds) return new Date(firebaseDate.seconds * 1000);
-            if (typeof firebaseDate === 'string') return new Date(firebaseDate);
-            return null;
-          };
-
-          const billDate = toDate(d.date);
-          const dueDate = toDate(d.dueDate);
-
-          if (!billDate || !dueDate) {
-            setBill(null);
-            return;
-          }
-
-          const latestRent = roomData?.rent || d.rent || 0;
-          const latestService = roomData?.service || d.service || 0;
-          const latestExtraServices = roomData?.extraServices || d.extraServices || [];
-
-          const elecLabel = `ค่าไฟฟ้า (${d.electricityUnit} หน่วย x ${d.electricityRate} บ.)`;
-          const waterLabel = `ค่าน้ำ (${d.waterUnit} หน่วย x ${d.waterRate} บ.)`;
-
-          const items = [
-            { label: elecLabel, value: d.electricityTotal || 0 },
-            { label: waterLabel, value: d.waterTotal || 0 },
-            { label: "ค่าเช่า", value: latestRent },
-            { label: "ค่าบริการ", value: latestService },
-            ...(Array.isArray(latestExtraServices)
-              ? latestExtraServices.map((svc: any) => ({ label: svc.label || "ค่าบริการเสริม", value: svc.value || 0 }))
-              : [])
-          ].filter(item => item.value > 0);
-          
-          const total = items.reduce((sum, i) => sum + Number(i.value), 0);
-
-          const calculateOverdueDays = (due: Date) => {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            due.setHours(0, 0, 0, 0);
-            if (today > due) {
-              const diffTime = Math.abs(today.getTime() - due.getTime());
-              return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            }
-            return 0;
-          };
-
-          const overdueDays = calculateOverdueDays(dueDate);
-          
-          const formatDate = (dateObj: Date) => dateObj.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
-
-          const finalBill = {
-            id: snap.docs[0].id,
-            date: formatDate(billDate),
-            dueDate: formatDate(dueDate),
-            room: d.roomId,
-            tenant: d.tenantName || roomData?.tenantName || "-",
-            total: total + (d.broughtForward || 0), // Add broughtForward to total
-            items,
-            promptpay: promptpay,
-            rent: latestRent,
-            extraServices: latestExtraServices,
-            area: roomData?.area || 0,
-            status: roomData?.status || "vacant",
-            overdueDays: overdueDays,
-            billStatus: d.status || "unpaid",
-            proofUrl: d.proofUrl || null,
-            meterImageUrl: d.meterImageUrl || null,
-            electricityImageUrl: d.electricityImageUrl || null,
-            waterImageUrl: d.waterImageUrl || null,
-            broughtForward: d.broughtForward || 0, // Add this line
-            ownerId: roomData?.ownerId, // Add ownerId
-            tenantId: roomData?.tenantId, // Add tenantId
-          };
-
-          setBill(finalBill);
-          setProofUrl(d.proofUrl || null);
-        } else {
+        if (snap.empty) {
+          toast({ title: "ไม่พบข้อมูลบิล", status: "error" });
           setBill(null);
+          setLoading(false);
+          router.back();
+          return;
         }
+
+        const billData = snap.docs[0].data();
+        const roomSnap = await getDoc(doc(db, "rooms", String(roomId)));
+        const roomData = roomSnap.exists() ? roomSnap.data() : {};
+
+        // Permission Check
+        const { role, uid } = currentUser;
+        const ownerId = roomData?.ownerId;
+        const tenantId = roomData?.tenantId;
+
+        if (role !== 'admin' && role !== 'owner' && role !== 'user') {
+            toast({ title: "ไม่มีสิทธิ์เข้าถึง", status: "error" });
+            router.replace('/login');
+            return;
+        }
+
+        if (role === 'owner' && ownerId !== uid) {
+          toast({ title: "ไม่มีสิทธิ์เข้าถึง", description: "คุณไม่ใช่เจ้าของห้องนี้", status: "error" });
+          router.replace('/');
+          return;
+        }
+
+        if (role === 'user' && tenantId !== uid) {
+          toast({ title: "ไม่มีสิทธิ์เข้าถึง", description: "นี่ไม่ใช่บิลของคุณ", status: "error" });
+          router.replace('/tenant-dashboard');
+          return;
+        }
+        
+        const toDate = (firebaseDate: any): Date | null => {
+          if (!firebaseDate) return null;
+          if (firebaseDate.seconds) return new Date(firebaseDate.seconds * 1000);
+          if (typeof firebaseDate === 'string') return new Date(firebaseDate);
+          return null;
+        };
+
+        const billDate = toDate(billData.date);
+        const dueDate = toDate(billData.dueDate);
+
+        if (!billDate || !dueDate) {
+          setBill(null);
+          setLoading(false);
+          return;
+        }
+
+        const latestRent = roomData?.rent || billData.rent || 0;
+        const latestService = roomData?.service || billData.service || 0;
+        const latestExtraServices = roomData?.extraServices || billData.extraServices || [];
+
+        const elecLabel = `ค่าไฟฟ้า (${billData.electricityUnit} หน่วย x ${billData.electricityRate} บ.)`;
+        const waterLabel = `ค่าน้ำ (${billData.waterUnit} หน่วย x ${billData.waterRate} บ.)`;
+
+        const items = [
+          { label: elecLabel, value: billData.electricityTotal || 0 },
+          { label: waterLabel, value: billData.waterTotal || 0 },
+          { label: "ค่าเช่า", value: latestRent },
+          { label: "ค่าบริการ", value: latestService },
+          ...(Array.isArray(latestExtraServices)
+            ? latestExtraServices.map((svc: any) => ({ label: svc.label || "ค่าบริการเสริม", value: svc.value || 0 }))
+            : [])
+        ].filter(item => item.value > 0);
+        
+        const total = items.reduce((sum, i) => sum + Number(i.value), 0);
+
+        const calculateOverdueDays = (due: Date) => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          due.setHours(0, 0, 0, 0);
+          if (today > due) {
+            const diffTime = Math.abs(today.getTime() - due.getTime());
+            return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          }
+          return 0;
+        };
+
+        const overdueDays = calculateOverdueDays(dueDate);
+        
+        const formatDate = (dateObj: Date) => dateObj.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+        const finalBill = {
+          id: snap.docs[0].id,
+          date: formatDate(billDate),
+          dueDate: formatDate(dueDate),
+          room: billData.roomId,
+          tenant: billData.tenantName || roomData?.tenantName || "-",
+          total: total + (billData.broughtForward || 0),
+          items,
+          promptpay: promptpay,
+          rent: latestRent,
+          extraServices: latestExtraServices,
+          area: roomData?.area || 0,
+          status: roomData?.status || "vacant",
+          overdueDays: overdueDays,
+          billStatus: billData.status || "unpaid",
+          proofUrl: billData.proofUrl || null,
+          meterImageUrl: billData.meterImageUrl || null,
+          electricityImageUrl: billData.electricityImageUrl || null,
+          waterImageUrl: billData.waterImageUrl || null,
+          broughtForward: billData.broughtForward || 0,
+          ownerId: roomData?.ownerId,
+          tenantId: roomData?.tenantId,
+          paidAt: billData.paidAt || null,
+        };
+
+        setBill(finalBill);
+        setProofUrl(billData.proofUrl || null);
+
       } catch (err) {
+        console.error("Error fetching bill:", err);
+        toast({ title: "เกิดข้อผิดพลาดในการโหลดบิล", status: "error" });
         setBill(null);
       } finally {
         setLoading(false);
       }
     };
+
     fetchBill();
-  }, [roomId]);
+  }, [roomId, currentUser, router, toast]);
 
-  useEffect(() => {
-    if (!fullUserData || !bill) return; // Wait for all data to be loaded
-
-    const { role, uid } = fullUserData;
-    const roomOwnerId = bill.ownerId; // Assuming bill object has ownerId
-    const tenantId = bill.tenantId; // Assuming bill object has tenantId
-
-    if (role === 'admin') {
-      return; // Admin can access everything
-    }
-
-    if (role === 'owner' && roomOwnerId !== uid) {
-      toast({ title: "ไม่มีสิทธิ์เข้าถึง", description: "คุณไม่ใช่เจ้าของห้องนี้", status: "error" });
-      router.replace('/');
-    }
-
-    if (role === 'user' && tenantId !== uid) {
-      toast({ title: "ไม่มีสิทธิ์เข้าถึง", description: "นี่ไม่ใช่บิลของคุณ", status: "error" });
-      router.replace('/tenant-dashboard');
-    }
-
-  }, [fullUserData, bill, router, toast]);
+  
 
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).ThaiQRCode && bill?.promptpay && bill?.total) {
@@ -225,31 +214,65 @@ export default function BillDetail() {
 
   // ย้ายและเปลี่ยนเป็น function declaration
   function renderPDFContent(qrOverride?: string | null) {
+    const isPaid = bill.billStatus === 'paid';
+    const a4Width = "794px";
+    const a4Height = "1122px";
+
     return (
-      <Box bg="white" borderRadius="xl" p={10} m={0} boxShadow="md" minH="1122px" minW="794px" maxW="794px" style={{ fontFamily: 'Kanit, sans-serif' }}>
+      <Box 
+        bg="white" 
+        borderRadius="xl" 
+        p={10} 
+        m={0} 
+        boxShadow="md" 
+        minH={a4Height} 
+        minW={a4Width} 
+        maxW={a4Width} 
+        style={{ fontFamily: 'Kanit, sans-serif' }}
+      >
         <VStack spacing={6} align="stretch" w="full">
+          {/* Header */}
           <HStack justify="space-between" align="center" mb={2}>
             <HStack spacing={3} align="center">
-              <Icon as={FaFileInvoice} w={10} h={10} color="blue.500" />
-              <Heading size="xl" color="blue.700" letterSpacing="wide">ใบแจ้งหนี้</Heading>
+              <Icon as={FaFileInvoice} w={10} h={10} color={isPaid ? "green.500" : "blue.500"} />
+              <Heading size="xl" color={isPaid ? "green.700" : "blue.700"} letterSpacing="wide">
+                {isPaid ? 'ใบเสร็จรับเงิน' : 'ใบแจ้งหนี้'}
+              </Heading>
             </HStack>
-            <Badge colorScheme={bill.billStatus === 'paid' ? 'green' : bill.billStatus === 'pending' ? 'yellow' : 'red'} fontSize="lg" px={6} py={2} borderRadius="full">
-              {bill.billStatus === 'paid' ? 'ชำระแล้ว' : bill.billStatus === 'pending' ? 'รอตรวจสอบ' : 'ค้างชำระ'}
+            <Badge 
+              colorScheme={isPaid ? 'green' : (bill.billStatus === 'pending' ? 'yellow' : 'red')} 
+              fontSize="lg" 
+              px={6} 
+              py={2} 
+              borderRadius="full"
+            >
+              {isPaid ? 'ชำระแล้ว' : (bill.billStatus === 'pending' ? 'รอตรวจสอบ' : 'ค้างชำระ')}
             </Badge>
           </HStack>
+          
           <Divider />
+
+          {/* Bill Details */}
           <SimpleGrid columns={2} spacing={6} mt={2}>
             <VStack align="start" spacing={1} fontSize="md">
               <Text><b>ห้อง:</b> {bill.room}</Text>
               <Text><b>ผู้เช่า:</b> {bill.tenant}</Text>
-              <Text><b>วันที่ออกบิล:</b> {bill.date}</Text>
+              <Text><b>วันที่ออกเอกสาร:</b> {bill.date}</Text>
             </VStack>
             <VStack align="end" spacing={1} fontSize="md">
-              <Text><b>เลขที่บิล:</b> {bill.id}</Text>
-              <Text><b>วันครบกำหนด:</b> <span style={{ color: '#e53e3e', fontWeight: 600 }}>{bill.dueDate}</span></Text>
+              <Text><b>เลขที่เอกสาร:</b> {bill.id}</Text>
+              {!isPaid && (
+                <Text><b>วันครบกำหนด:</b> <span style={{ color: '#e53e3e', fontWeight: 600 }}>{bill.dueDate}</span></Text>
+              )}
+              {isPaid && bill.paidAt && (
+                <Text><b>วันที่ชำระ:</b> {new Date(bill.paidAt.seconds * 1000).toLocaleDateString('th-TH')}</Text>
+              )}
             </VStack>
           </SimpleGrid>
+
           <Divider mt={4} />
+
+          {/* Items Table */}
           <Box mt={4}>
             <Table variant="simple" size="md" w="full" borderWidth={1} borderColor="#e2e8f0">
               <Thead bg="#f1f5f9">
@@ -267,26 +290,39 @@ export default function BillDetail() {
                 ))}
                 <Tr>
                   <Td fontWeight="bold" fontSize="lg" borderColor="#e2e8f0">ยอดรวมสุทธิ</Td>
-                  <Td fontWeight="bold" fontSize="lg" borderColor="#e2e8f0" isNumeric color="blue.700">{bill.total.toLocaleString()}</Td>
+                  <Td fontWeight="bold" fontSize="lg" borderColor="#e2e8f0" isNumeric color={isPaid ? "green.700" : "blue.700"}>
+                    {bill.total.toLocaleString()}
+                  </Td>
                 </Tr>
               </Tbody>
             </Table>
           </Box>
+
           <Divider mt={4} />
+
+          {/* Footer */}
           <HStack align="flex-end" justify="space-between" mt={8}>
             <VStack align="start" spacing={2}>
-              <Text fontSize="md" color="gray.600">* กรุณาชำระเงินภายในวันครบกำหนด มิฉะนั้นจะมีค่าปรับตามเงื่อนไข</Text>
-              {bill.overdueDays > 0 && (
-                <Text fontSize="md" color="red.500">เลยกำหนด {bill.overdueDays} วัน</Text>
+              {isPaid ? (
+                <Text fontSize="md" color="green.600">ขอขอบคุณที่ใช้บริการ</Text>
+              ) : (
+                <>
+                  <Text fontSize="md" color="gray.600">* กรุณาชำระเงินภายในวันครบกำหนด มิฉะนั้นจะมีค่าปรับตามเงื่อนไข</Text>
+                  {bill.overdueDays > 0 && (
+                    <Text fontSize="md" color="red.500">เลยกำหนด {bill.overdueDays} วัน</Text>
+                  )}
+                </>
               )}
             </VStack>
-            <VStack align="center" spacing={2}>
-              {(qrOverride || qr) && (
-                <Image src={qrOverride || qr} alt="PromptPay QR Code" boxSize="140px" borderRadius="md" border="1px solid #e2e8f0" />
-              )}
-              <Text fontSize="sm" color="gray.500">PromptPay: {bill.promptpay}</Text>
-              <Text fontSize="sm" color="gray.500">ยอดเงิน: {bill.total.toLocaleString()} บาท</Text>
-            </VStack>
+            {!isPaid && (
+              <VStack align="center" spacing={2}>
+                {(qrOverride || qr) && (
+                  <Image src={qrOverride || qr} alt="PromptPay QR Code" boxSize="140px" borderRadius="md" border="1px solid #e2e8f0" />
+                )}
+                <Text fontSize="sm" color="gray.500">PromptPay: {bill.promptpay}</Text>
+                <Text fontSize="sm" color="gray.500">ยอดเงิน: {bill.total.toLocaleString()} บาท</Text>
+              </VStack>
+            )}
           </HStack>
         </VStack>
       </Box>
@@ -294,33 +330,31 @@ export default function BillDetail() {
   }
 
   const handleExportPDF = async () => {
-    if (!bill) return;
+    if (!bill || !pdfRef.current) {
+        toast({
+            title: "Error",
+            description: "Bill data is not available for PDF export.",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+        });
+        return;
+    }
+
     const html2pdf = (await import('html2pdf.js')).default;
-    // สร้าง element ซ่อนสำหรับ PDF
-    const container = document.createElement('div');
-    container.style.position = 'fixed';
-    container.style.left = '-9999px';
-    document.body.appendChild(container);
-    // generate QR sync ทันที
-    const qrForPDF = generatePromptPayQR(bill.promptpay, bill.total);
-    // ใช้ ReactDOMServer เพื่อ render เป็น HTML string
-    import('react-dom/server').then(({ renderToString }) => {
-      container.innerHTML = renderToString(renderPDFContent(qrForPDF));
-      setTimeout(() => {
-        html2pdf()
-          .set({
-            margin: 0,
-            filename: `invoice_${bill.room}_${bill.date}.pdf`,
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: "pt", format: "a4", orientation: "portrait" },
-          })
-          .from(container)
-          .save()
-          .then(() => {
-            document.body.removeChild(container);
-          });
-      }, 200); // รอ DOM update เล็กน้อย
-    });
+    const element = pdfRef.current;
+
+    const isPaid = bill.billStatus === 'paid';
+    const filename = isPaid 
+      ? `receipt_${bill.room}_${bill.date}.pdf` 
+      : `invoice_${bill.room}_${bill.date}.pdf`;
+
+    html2pdf().from(element).set({
+        margin: 0,
+        filename: filename,
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
+    }).save();
   };
 
   const handleUploadProof = async () => {
@@ -353,7 +387,7 @@ export default function BillDetail() {
         duration: 3000,
         isClosable: true,
       });
-      if (userRole === 'user') {
+      if (currentUser.role === 'user') {
         router.push("/tenant-dashboard");
       } else {
         router.push("/dashboard");
@@ -399,7 +433,7 @@ export default function BillDetail() {
         duration: 3000,
         isClosable: true,
       });
-      if (userRole === 'user') {
+      if (currentUser.role === 'user') {
         router.push("/tenant-dashboard");
       } else {
         router.push("/dashboard");
@@ -461,7 +495,7 @@ export default function BillDetail() {
     }
   };
 
-  if (loading) return <Flex minH="100vh" align="center" justify="center"><Spinner size="xl" /></Flex>;
+  if (loading || !currentUser) return <Flex minH="100vh" align="center" justify="center"><Spinner size="xl" /></Flex>;
   if (!bill) return <Box p={8}><Text>ไม่พบข้อมูลบิล</Text></Box>;
 
   const renderContent = () => (
@@ -653,17 +687,33 @@ export default function BillDetail() {
 
   return (
     <>
+      <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>
+        <div ref={pdfRef}>
+            {bill && renderPDFContent(qr)}
+        </div>
+      </div>
       <Script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.5.0/qrcode.min.js" strategy="afterInteractive" />
       <Script src="/scripts/promptpay.js" strategy="afterInteractive" />
-      {userRole === 'user' ? (
+      {currentUser.role === 'user' ? (
         <TenantLayout currentUser={currentUser}>
           {renderContent()}
         </TenantLayout>
       ) : (
-        <MainLayout role={userRole} currentUser={currentUser}>
+        <MainLayout role={currentUser.role} currentUser={currentUser}>
           {renderContent()}
         </MainLayout>
       )}
+
+      <Modal isOpen={isProofModalOpen} onClose={onProofModalClose} isCentered size="2xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>หลักฐานการชำระเงิน</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            {currentProofImageUrl && <Image src={currentProofImageUrl} alt="Proof of Payment" w="full" />}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </>
   );
 }

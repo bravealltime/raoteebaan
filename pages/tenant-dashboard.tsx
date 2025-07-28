@@ -565,8 +565,8 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
                    <Icon as={FaCheckCircle} boxSize={12} color="green.500" mb={3} />
                    <Heading size="md" color="green.700">ยอดล่าสุดชำระเรียบร้อยแล้ว</Heading>
                    <Text color="gray.500" mt={1}>ไม่มีบิลค้างชำระในขณะนี้</Text>
-                   <Button mt={6} colorScheme="brand" variant="outline" onClick={() => router.push(`/history/${roomData.id}`)}>
-                     ดูประวัติการชำระเงิน
+                   <Button mt={6} colorScheme="brand" variant="solid" onClick={() => router.push(`/bill/${roomData.id}`)}>
+                     ดูบิลล่าสุด
                    </Button>
                 </Center>
               )}
