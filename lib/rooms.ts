@@ -17,6 +17,10 @@ interface Room {
   latestTotal: number;
   billStatus: "paid" | "unpaid" | "pending";
   overdueDays: number;
+  startDate?: string;
+  endDate?: string;
+  emergencyContact?: string;
+  contractLength?: number;
   extraServices?: Array<{
     label: string;
     value: number;
@@ -59,5 +63,9 @@ export async function resetRoom(roomId: string) {
     water: 0,
     latestTotal: 0,
     extraServices: [],
+    startDate: null,
+    endDate: null,
+    emergencyContact: null,
+    contractLength: null,
   });
 } 
