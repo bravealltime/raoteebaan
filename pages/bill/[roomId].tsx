@@ -1,6 +1,6 @@
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
-import { Container, Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogCloseButton, SimpleGrid, Badge, Divider, Center, IconButton } from "@chakra-ui/react";
+import { Container, Box, Heading, Text, Flex, Spinner, Table, Thead, Tbody, Tr, Th, Td, Button, Icon, VStack, Image, HStack, useToast, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, useDisclosure, AlertDialog, AlertDialogOverlay, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, AlertDialogCloseButton, SimpleGrid, Badge, Divider, Center, IconButton } from "@chakra-ui/react";
 import { db, auth } from "../../lib/firebase";
 import { collection, query, where, orderBy, limit, getDocs, doc, getDoc, updateDoc } from "firebase/firestore";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
@@ -214,6 +214,7 @@ export default function BillDetail({ currentUser }: { currentUser: any }) {
 
   // ย้ายและเปลี่ยนเป็น function declaration
   function renderPDFContent(qrOverride?: string | null) {
+    if (!bill) return null;
     const isPaid = bill.billStatus === 'paid';
     const a4Width = "794px";
     const a4Height = "1122px";
@@ -575,7 +576,7 @@ export default function BillDetail({ currentUser }: { currentUser: any }) {
                   </Center>
                   <Text textAlign="center" color="gray.600">สแกน QR Code เพื่อชำระเงินผ่าน PromptPay</Text>
                   <Divider />
-                  {userRole === "user" && (
+                  {currentUser.role === "user" && (
                     !proofUrl ? (
                       <VStack spacing={4}>
                         <input
