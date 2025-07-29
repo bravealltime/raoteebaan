@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import {
   Box,
@@ -6,7 +5,6 @@ import {
   VStack,
   HStack,
   Input,
-  Button,
   Text,
   Avatar,
   Spinner,
@@ -25,7 +23,7 @@ import {
 import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, doc, setDoc, writeBatch } from 'firebase/firestore';
 import { getDatabase, ref as dbRef, onValue } from 'firebase/database';
 import { db } from '../lib/firebase';
-import { FaPaperPlane, FaImage, FaArrowLeft } from 'react-icons/fa';
+import { FaPaperPlane, FaImage, FaArrowLeft, FaTimes } from 'react-icons/fa';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Conversation, User, Message } from '../types/chat';
 
@@ -33,24 +31,18 @@ interface ChatWindowProps {
   conversation: Conversation;
   currentUser: User | null;
   onClose: () => void;
+  onCloseWidget: () => void;
   containerHeight?: number;
-  height?: string | number;
-  bg?: string;
   borderRadius?: string | number;
-  boxShadow?: string;
-  p?: number;
 }
 
 const ChatWindow = ({
   conversation,
   currentUser,
   onClose,
+  onCloseWidget,
   containerHeight,
-  height = '100%',
-  bg = 'gray.900',
-  borderRadius = 20,
-  boxShadow = '2xl',
-  p = 0,
+  borderRadius,
 }: ChatWindowProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -168,46 +160,42 @@ const ChatWindow = ({
   };
 
   if (!otherParticipant) {
-    return <Spinner />;
+    return <Flex h="100%" justify="center" align="center"><Spinner /></Flex>;
   }
 
   return (
-    <Flex direction="column" h={containerHeight || height} bg="white" borderRadius={borderRadius} boxShadow={boxShadow} overflow="hidden" p={p}>
+    <Flex direction="column" h={containerHeight || '100%'} bg="white" borderRadius={borderRadius} boxShadow="lg" overflow="hidden">
       {/* Header */}
-      <HStack p={4} bg="brand.500" borderBottom="1px solid gray.200">
-        <Avatar src={otherParticipant?.photoURL} size="sm" />
-        <Box>
-          <Text color="white" fontWeight="bold" fontSize="md">{otherParticipant?.name}</Text>
-          <HStack spacing={1}>
+      <HStack p={3} bg="blue.500" color="white" borderTopRadius={borderRadius as string | number}>
+        <IconButton aria-label="Back to list" icon={<FaArrowLeft />} onClick={onClose} variant="ghost" color="white" _hover={{bg: 'blue.600'}} />
+        <Avatar src={otherParticipant?.photoURL} size="sm" name={otherParticipant.name} />
+        <VStack align="start" spacing={0} ml={2}>
+          <Text fontWeight="bold" fontSize="md">{otherParticipant?.name}</Text>
+          <HStack spacing={1.5} align="center">
             <Circle size="8px" bg={isOnline ? "green.300" : "gray.400"} />
-            <Text color="white" fontSize="xs">{isOnline ? "Online" : "Offline"}</Text>
+            <Text fontSize="xs" color="gray.200">{isOnline ? "Online" : "Offline"}</Text>
           </HStack>
-        </Box>
+        </VStack>
         <Box flex={1} />
-        <IconButton aria-label="Close chat" icon={<FaArrowLeft />} onClick={onClose} variant="ghost" color="white" />
+        <IconButton aria-label="Close chat" icon={<FaTimes />} onClick={onCloseWidget} variant="ghost" color="white" _hover={{bg: 'blue.600'}} />
       </HStack>
       {/* Messages */}
-      <VStack flex={1} px={3} py={2} spacing={1.5} overflowY="auto" bg="gray.50" align="stretch"
-        css={
-          {
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'gray.200 gray.50',
-            '&::-webkit-scrollbar': { width: '6px' },
-            '&::-webkit-scrollbar-thumb': { background: 'gray.200', borderRadius: '8px' }
-          }
-        }>
+      <VStack flex={1} px={4} py={3} spacing={2} overflowY="auto" bg="gray.50" align="stretch"
+        css={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#E2E8F0 #F7FAFC',
+          '&::-webkit-scrollbar': { width: '6px' },
+          '&::-webkit-scrollbar-thumb': { background: '#E2E8F0', borderRadius: '8px' }
+        }}>
         {messages.map((msg) => (
           <Flex key={msg.id} w="100%" justify={msg.senderId === currentUser?.uid ? 'flex-end' : 'flex-start'}>
             <Box
-              bg={msg.senderId === currentUser?.uid ? 'brand.500' : 'gray.100'}
+              bg={msg.senderId === currentUser?.uid ? 'blue.500' : 'gray.100'}
               color={msg.senderId === currentUser?.uid ? 'white' : 'gray.800'}
               px={4}
               py={2}
-              borderRadius="2xl"
+              borderRadius="xl"
               maxW="80%"
-              fontSize="16px"
-              mb={1.5}
-              boxShadow={msg.senderId === currentUser?.uid ? 'md' : undefined}
             >
               {msg.text && <Text>{msg.text}</Text>}
               {msg.imageUrl && (
@@ -226,7 +214,7 @@ const ChatWindow = ({
         <div ref={messagesEndRef} />
       </VStack>
       {/* Input */}
-      <Box p={3} bg="white" borderTop="1px solid gray.200">
+      <Box p={3} bg="white" borderTop="1px solid" borderColor="gray.100">
         <HStack spacing={2}>
           <IconButton
             aria-label="Upload Image"
@@ -234,31 +222,28 @@ const ChatWindow = ({
             onClick={() => imageInputRef.current?.click()}
             isLoading={isImageUploading}
             variant="ghost"
-            color="brand.500"
+            color="gray.500"
           />
           <InputGroup>
             <Input
-              placeholder="Message..."
+              placeholder="Type a message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               borderRadius="full"
-              fontSize="16px"
-              py={3}
-              px={5}
-              bg="gray.50"
-              color="gray.800"
-              border="1px solid gray.200"
-              boxShadow="xs"
-              _placeholder={{ color: 'gray.500' }}
+              bg="gray.100"
+              border="none"
+              _focus={{ bg: 'gray.200' }}
             />
-            <InputRightElement top="50%" transform="translateY(-50%)">
+            <InputRightElement>
               <IconButton
                 aria-label="Send Message"
                 icon={<FaPaperPlane />}
                 onClick={() => handleSendMessage()}
-                colorScheme="brand"
+                colorScheme="blue"
                 isRound
+                size="sm"
+                isDisabled={!newMessage.trim() && !isImageUploading}
               />
             </InputRightElement>
           </InputGroup>
@@ -271,12 +256,12 @@ const ChatWindow = ({
           />
         </HStack>
       </Box>
-      <Modal isOpen={isImageModalOpen} onClose={closeImageModal} size="xl">
+      <Modal isOpen={isImageModalOpen} onClose={closeImageModal} size="xl" isCentered>
         <ModalOverlay />
         <ModalContent>
           <ModalCloseButton />
           <ModalBody p={0}>
-            {selectedImage && <Image src={selectedImage} objectFit="contain" w="full" h="full" />}
+            {selectedImage && <Image src={selectedImage} w="full" />}
           </ModalBody>
         </ModalContent>
       </Modal>

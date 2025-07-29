@@ -1,43 +1,24 @@
-
-import { VStack, HStack, Avatar, Text, Box, Circle, Badge } from '@chakra-ui/react';
+import { VStack, HStack, Avatar, Text, Box, Circle, Heading, IconButton } from '@chakra-ui/react';
+import { FaTimes } from 'react-icons/fa';
 import { Conversation, User } from '../types/chat';
 
 interface ChatListProps {
   conversations: Conversation[];
   currentUser: User | null;
   onSelectConversation: (conversation: Conversation) => void;
+  onCloseWidget: () => void;
   onlineStatus?: Record<string, any>;
   selectedConversationId?: string | null;
   containerHeight?: number;
-  bg?: string;
-  borderRadius?: string | number;
-  boxShadow?: string;
-  avatarSize?: string;
-  fontSizeName?: string;
-  fontSizeMsg?: string;
-  spacing?: number;
-  px?: number;
-  py?: number;
-  mb?: number;
 }
 
 const ChatList = ({
   conversations,
   currentUser,
   onSelectConversation,
+  onCloseWidget,
   onlineStatus = {},
   selectedConversationId,
-  containerHeight,
-  bg = "transparent",
-  borderRadius = 0,
-  boxShadow = "none",
-  avatarSize = "40px",
-  fontSizeName = "17px",
-  fontSizeMsg = "15px",
-  spacing = 2,
-  px = 0,
-  py = 0,
-  mb = 2,
 }: ChatListProps) => {
   const getOtherParticipant = (conversation: Conversation) => {
     if (!conversation || !currentUser) {
@@ -47,91 +28,102 @@ const ChatList = ({
   };
 
   return (
-    <VStack
-      as="nav"
-      spacing={0}
-      align="stretch"
-      p={0}
-      bg="gray.50"
-      borderRadius={24}
-      boxShadow="2xl"
-      maxH={containerHeight}
-      overflowY={containerHeight ? "auto" : undefined}
-      css={{
-        scrollbarWidth: 'thin',
-        scrollbarColor: 'gray.200 white',
-        '&::-webkit-scrollbar': { width: '6px' },
-        '&::-webkit-scrollbar-thumb': { background: 'gray.200', borderRadius: '8px' }
-      }}
-    >
-      {conversations.map((convo) => {
-        const otherUser = getOtherParticipant(convo);
-        const isOnline = otherUser ? onlineStatus[otherUser.uid]?.state === 'online' : false;
-        const isUnread = convo.lastMessage && convo.lastMessage.senderId !== currentUser?.uid && !convo.lastMessage.isRead;
-        const isSelected = convo.id === selectedConversationId;
+    <VStack h="100%" spacing={0} bg="white" borderRadius="24px" overflow="hidden">
+      {/* Header */}
+      <HStack
+        w="100%"
+        p={4}
+        justifyContent="space-between"
+        alignItems="center"
+        borderBottom="1px solid"
+        borderColor="gray.100"
+      >
+        <Heading size="md" color="gray.700">Messages</Heading>
+        <IconButton
+          aria-label="Close chat"
+          icon={<FaTimes />}
+          onClick={onCloseWidget}
+          variant="ghost"
+          color="gray.500"
+          size="sm"
+          _hover={{ bg: 'gray.100' }}
+        />
+      </HStack>
 
-        return (
-          <HStack
-            key={convo.id}
-            w="100%"
-            px={3}
-            py={3}
-            mb={2}
-            borderRadius={borderRadius || 18}
-            boxShadow="none"
-            cursor="pointer"
-            bg={isSelected ? "brand.100" : "white"}
-            border={isSelected ? "2px solid brand.400" : "none"}
-            _hover={{ bg: "gray.50" }}
-            onClick={() => onSelectConversation(convo)}
-            alignItems="center"
-            spacing={spacing || 3}
-            transition="all 0.15s"
-          >
-            <Box position="relative">
-              <Avatar
-                size="lg"
-                name={otherUser?.name}
-                src={otherUser?.photoURL}
-                boxSize={avatarSize}
-                bg={otherUser?.photoURL ? undefined : "gray.200"}
-                color="gray.800"
-                fontWeight="bold"
-                fontSize="xl"
-              />
-              <Circle
-                size="10px"
-                bg={isOnline ? "green.300" : "gray.300"}
-                border="2px solid white"
-                position="absolute"
-                bottom={0}
-                right={0}
-              />
+      {/* List */}
+      <VStack
+        flex="1"
+        w="100%"
+        spacing={0}
+        align="stretch"
+        p={2}
+        overflowY="auto"
+        css={{
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'gray.200 white',
+          '&::-webkit-scrollbar': { width: '6px' },
+          '&::-webkit-scrollbar-thumb': { background: 'gray.200', borderRadius: '8px' }
+        }}
+      >
+        {conversations.map((convo) => {
+          const otherUser = getOtherParticipant(convo);
+          const isOnline = otherUser ? onlineStatus[otherUser.uid]?.state === 'online' : false;
+          const isUnread = convo.lastMessage && convo.lastMessage.senderId !== currentUser?.uid && !convo.lastMessage.isRead;
+          const isSelected = convo.id === selectedConversationId;
+
+          return (
+            <HStack
+              key={convo.id}
+              w="100%"
+              px={3}
+              py={3}
+              mb={1}
+              borderRadius={12}
+              cursor="pointer"
+              bg={isSelected ? "blue.50" : "transparent"}
+              _hover={{ bg: "gray.50" }}
+              onClick={() => onSelectConversation(convo)}
+              alignItems="center"
+              spacing={3}
+              transition="background 0.2s"
+            >
+              <Box position="relative">
+                <Avatar
+                  size="md"
+                  name={otherUser?.name}
+                  src={otherUser?.photoURL}
+                />
+                {isOnline && (
+                  <Circle
+                    size="12px"
+                    bg="green.400"
+                    border="2px solid white"
+                    position="absolute"
+                    bottom="-1px"
+                    right="-1px"
+                  />
+                )}
+              </Box>
+              <VStack align="start" spacing={0} flex={1} minW={0}>
+                <Text fontWeight="bold" fontSize="md" color="gray.800" noOfLines={1}>
+                  {otherUser?.name}
+                </Text>
+                <Text fontSize="sm" color={isUnread ? "gray.800" : "gray.500"} fontWeight={isUnread ? "bold" : "normal"} noOfLines={1}>
+                  {convo.lastMessage?.text || '...'}
+                </Text>
+              </VStack>
               {isUnread && (
                 <Circle
-                  size="9px"
-                  bg="brand.400"
-                  position="absolute"
-                  top={-2}
-                  right={-2}
-                  border="2px solid #fff"
+                  size="10px"
+                  bg="blue.500"
                 />
               )}
-            </Box>
-            <VStack align="start" spacing={0} flex={1} minW={0}>
-              <Text fontWeight="bold" fontSize={fontSizeName} color="gray.800" noOfLines={1}>
-                {otherUser?.name}
-              </Text>
-              <Text fontSize={fontSizeMsg} color="gray.600" mt={2} noOfLines={1}>
-                {convo.lastMessage?.text || 'No messages yet'}
-              </Text>
-            </VStack>
-          </HStack>
-        );
-      })}
+            </HStack>
+          );
+        })}
+      </VStack>
     </VStack>
   );
 };
 
 export default ChatList;
-

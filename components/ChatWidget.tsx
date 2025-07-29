@@ -232,28 +232,22 @@ const ChatWidget = () => {
           overflow="hidden"
           backdropFilter="blur(6px)"
         >
-          {/* ปุ่มปิดกล่อง */}
-          <Box display="flex" alignItems="center" justifyContent="flex-end" p={2} borderBottom="1px solid gray.200">
-            <Box as="button" onClick={() => {
-              if (selectedConversation) setSelectedConversation(null);
-              else setIsOpen(false);
-            }} color="white" fontSize="2xl" _hover={{ color: 'brand.700' }}>
-              ×
-            </Box>
-          </Box>
           {selectedConversation ? (
             <ChatWindow
               conversation={selectedConversation}
               currentUser={currentUser}
               onClose={() => setSelectedConversation(null)}
-              containerHeight={480}
+              onCloseWidget={() => setIsOpen(false)}
+              containerHeight={560}
+              borderRadius="24px"
             />
           ) : (
             <ChatList
               conversations={conversations}
               currentUser={currentUser}
               onSelectConversation={setSelectedConversation}
-              containerHeight={480}
+              onCloseWidget={() => setIsOpen(false)}
+              containerHeight={560}
             />
           )}
         </Box>
@@ -278,15 +272,11 @@ const ChatWidget = () => {
       <Box
         width="100%"
         height="100%"
-        bg="white"
-        boxShadow="2xl"
-        borderRadius="28px"
         display="flex"
         flexDirection="row"
         alignItems="center"
         gap={4}
         overflow="auto"
-        backdropFilter="blur(6px)"
         cursor="pointer"
         onClick={() => setIsOpen(true)}
       >
