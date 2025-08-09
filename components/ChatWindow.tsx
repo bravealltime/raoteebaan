@@ -221,7 +221,7 @@ const ChatWindow = ({
           '&::-webkit-scrollbar-thumb': { background: '#E2E8F0', borderRadius: '8px' }
         }}>
         {messages.map((msg) => (
-          <Flex key={msg.id} w="100%" justify={msg.senderId === currentUser?.uid ? 'flex-end' : 'flex-start'}>
+          <Flex key={msg.id} w="100%" justify={msg.senderId === currentUser?.uid ? 'flex-end' : 'flex-start'} role="group">
              <HStack spacing={2} align="center" maxW="80%">
                 {msg.senderId === currentUser?.uid && (
                   <IconButton
@@ -230,6 +230,9 @@ const ChatWindow = ({
                     size="xs"
                     variant="ghost"
                     onClick={() => setReplyingTo(msg)}
+                    opacity={0}
+                    _groupHover={{ opacity: 1 }}
+                    transition="opacity 0.2s"
                   />
                 )}
                 <Box
@@ -272,6 +275,9 @@ const ChatWindow = ({
                     size="xs"
                     variant="ghost"
                     onClick={() => setReplyingTo(msg)}
+                    opacity={0}
+                    _groupHover={{ opacity: 1 }}
+                    transition="opacity 0.2s"
                   />
                 )}
               </HStack>
