@@ -11,6 +11,7 @@ interface ChatListProps {
   onlineStatus?: Record<string, any>;
   selectedConversationId?: string | null;
   containerHeight?: number;
+  showCloseButton?: boolean;
 }
 
 const ChatList = ({
@@ -21,6 +22,7 @@ const ChatList = ({
   onCloseWidget,
   onlineStatus = {},
   selectedConversationId,
+  showCloseButton = true,
 }: ChatListProps) => {
   const getOtherParticipant = (conversation: Conversation) => {
     if (!conversation || !currentUser) {
@@ -33,13 +35,15 @@ const ChatList = ({
     <VStack h="100%" spacing={0} bg="white" borderRadius="24px" overflow="hidden">
       <Flex w="100%" p={4} justify="space-between" align="center" borderBottom="1px solid" borderColor="gray.100">
         <Heading size="md" color="gray.700">Messages</Heading>
-        <IconButton
-          aria-label="Close widget"
-          icon={<FaTimes />}
-          size="sm"
-          variant="ghost"
-          onClick={onCloseWidget}
-        />
+        {showCloseButton && (
+          <IconButton
+            aria-label="Close widget"
+            icon={<FaTimes />}
+            size="sm"
+            variant="ghost"
+            onClick={onCloseWidget}
+          />
+        )}
       </Flex>
       
 

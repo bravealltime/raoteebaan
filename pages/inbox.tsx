@@ -264,6 +264,7 @@ const Inbox = () => {
                   onDeleteConversation={handleDeleteConversation}
                   onlineStatus={onlineStatus}
                   onCloseWidget={() => {}}
+                  showCloseButton={false}
                 />
               </Box>
             </Flex>
@@ -320,6 +321,7 @@ const Inbox = () => {
                 onDeleteConversation={handleDeleteConversation}
                 onlineStatus={onlineStatus}
                 onCloseWidget={() => {}}
+                showCloseButton={false}
               />
             </Box>
           </Flex>

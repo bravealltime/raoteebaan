@@ -249,6 +249,7 @@ const ChatWidget = () => {
               onDeleteConversation={() => {}}
               onCloseWidget={() => setIsOpen(false)}
               containerHeight={560}
+              showCloseButton={true}
             />
           )}
         </Box>
