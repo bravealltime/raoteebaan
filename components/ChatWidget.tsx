@@ -250,6 +250,8 @@ const ChatWidget = () => {
               onCloseWidget={() => setIsOpen(false)}
               containerHeight={560}
               showCloseButton={true}
+              showNewChatButton={false}
+              showTitle={true}
             />
           )}
         </Box>

@@ -237,36 +237,18 @@ const Inbox = () => {
             />
           ) : (
             <Flex direction="column" h="100%">
-              <Flex
-                justify="space-between"
-                align="center"
-                p={4}
-                borderBottom="1px solid"
-                borderColor="gray.200"
-              >
-
-                {(role === 'admin' || role === 'owner') && (
-                  <Button
-                    size="sm"
-                    leftIcon={<FaPlus />}
-                    onClick={onOpen}
-                    colorScheme="blue"
-                  >
-                    New Chat
-                  </Button>
-                )}
-              </Flex>
-              <Box flex="1" overflowY="auto">
-                <ChatList
-                  conversations={conversations}
-                  currentUser={currentUser}
-                  onSelectConversation={setSelectedConversation}
-                  onDeleteConversation={handleDeleteConversation}
-                  onlineStatus={onlineStatus}
-                  onCloseWidget={() => {}}
-                  showCloseButton={false}
-                />
-              </Box>
+              <ChatList
+                conversations={conversations}
+                currentUser={currentUser}
+                onSelectConversation={setSelectedConversation}
+                onDeleteConversation={handleDeleteConversation}
+                onlineStatus={onlineStatus}
+                onCloseWidget={() => {}}
+                showCloseButton={false}
+                showNewChatButton={role === 'admin' || role === 'owner'}
+                onNewChat={onOpen}
+                showTitle={true}
+              />
             </Flex>
           )}
         </Box>
@@ -292,38 +274,19 @@ const Inbox = () => {
       >
         <GridItem bg="white" borderRadius="lg" boxShadow="sm" overflow="hidden">
            <Flex direction="column" h="100%">
-            <Flex
-              justify="space-between"
-              align="center"
-              p={4}
-              borderBottom="1px solid"
-              borderColor="gray.200"
-              flexShrink={0}
-            >
-              
-              {(role === 'admin' || role === 'owner') && (
-                <Button
-                  size="sm"
-                  leftIcon={<FaPlus />}
-                  onClick={onOpen}
-                  colorScheme="blue"
-                >
-                  New Chat
-                </Button>
-              )}
-            </Flex>
-            <Box flex="1" overflowY="auto">
-              <ChatList
-                conversations={conversations}
-                currentUser={currentUser}
-                onSelectConversation={setSelectedConversation}
-                selectedConversationId={selectedConversation?.id}
-                onDeleteConversation={handleDeleteConversation}
-                onlineStatus={onlineStatus}
-                onCloseWidget={() => {}}
-                showCloseButton={false}
-              />
-            </Box>
+            <ChatList
+              conversations={conversations}
+              currentUser={currentUser}
+              onSelectConversation={setSelectedConversation}
+              selectedConversationId={selectedConversation?.id}
+              onDeleteConversation={handleDeleteConversation}
+              onlineStatus={onlineStatus}
+              onCloseWidget={() => {}}
+              showCloseButton={false}
+              showNewChatButton={role === 'admin' || role === 'owner'}
+              onNewChat={onOpen}
+              showTitle={true}
+            />
           </Flex>
         </GridItem>
         <GridItem bg="white" borderRadius="lg" boxShadow="sm" overflow="hidden">

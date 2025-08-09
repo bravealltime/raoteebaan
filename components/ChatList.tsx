@@ -1,28 +1,34 @@
-import { VStack, HStack, Avatar, Text, Box, Circle, Heading, IconButton, Tooltip, Flex } from '@chakra-ui/react';
-import { FaTrash, FaTimes } from 'react-icons/fa';
+import { VStack, HStack, Avatar, Text, Box, Circle, Heading, IconButton, Tooltip, Flex, Button } from '@chakra-ui/react';
+import { FaTrash, FaTimes, FaPlus } from 'react-icons/fa';
 import { Conversation, User } from '../types/chat';
 
 interface ChatListProps {
   conversations: Conversation[];
   currentUser: User | null;
   onSelectConversation: (conversation: Conversation) => void;
-  onDeleteConversation: (conversationId: string) => void; // Add this line
+  onDeleteConversation: (conversationId: string) => void;
   onCloseWidget: () => void;
   onlineStatus?: Record<string, any>;
   selectedConversationId?: string | null;
   containerHeight?: number;
   showCloseButton?: boolean;
+  showNewChatButton?: boolean;
+  onNewChat?: () => void;
+  showTitle?: boolean;
 }
 
 const ChatList = ({
   conversations,
   currentUser,
   onSelectConversation,
-  onDeleteConversation, // Add this line
+  onDeleteConversation,
   onCloseWidget,
   onlineStatus = {},
   selectedConversationId,
   showCloseButton = true,
+  showNewChatButton = false,
+  onNewChat,
+  showTitle = true,
 }: ChatListProps) => {
   const getOtherParticipant = (conversation: Conversation) => {
     if (!conversation || !currentUser) {
@@ -34,7 +40,17 @@ const ChatList = ({
   return (
     <VStack h="100%" spacing={0} bg="white" borderRadius="24px" overflow="hidden">
       <Flex w="100%" p={4} justify="space-between" align="center" borderBottom="1px solid" borderColor="gray.100">
-        <Heading size="md" color="gray.700">Messages</Heading>
+        {showTitle && <Heading size="md" color="gray.700">Messages</Heading>}
+        {showNewChatButton && onNewChat && (
+          <Button
+            size="sm"
+            leftIcon={<FaPlus />}
+            onClick={onNewChat}
+            colorScheme="blue"
+          >
+            New Chat
+          </Button>
+        )}
         {showCloseButton && (
           <IconButton
             aria-label="Close widget"
@@ -45,6 +61,7 @@ const ChatList = ({
           />
         )}
       </Flex>
+      
       
 
       {/* List */}
