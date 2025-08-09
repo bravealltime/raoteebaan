@@ -796,7 +796,7 @@ export default function OwnerDashboard({ currentUser, role }: OwnerDashboardProp
 
           {/* New layout for Charts, Announcements, and Complaints */}
           <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} alignItems="start">
-            {/* Left Column: Charts and Add Announcement */}
+            {/* Left Column: Charts and Complaints */}
             <VStack spacing={6} align="stretch">
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
                 <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
@@ -809,17 +809,17 @@ export default function OwnerDashboard({ currentUser, role }: OwnerDashboardProp
                 </Box>
               </SimpleGrid>
               <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
-                <AddAnnouncementCard currentUser={currentUser} />
+                <ComplaintsList currentUser={currentUser} role={role as 'admin' | 'owner'} />
               </Box>
             </VStack>
 
-            {/* Right Column: Announcements List and Complaints List */}
+            {/* Right Column: Announcements */}
             <VStack spacing={6} align="stretch">
               <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
-                <AnnouncementsList currentUser={currentUser} />
+                <AddAnnouncementCard currentUser={currentUser} />
               </Box>
               <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
-                <ComplaintsList currentUser={currentUser} role={role as 'admin' | 'owner'} />
+                <AnnouncementsList currentUser={currentUser} />
               </Box>
             </VStack>
           </SimpleGrid>
@@ -937,30 +937,4 @@ export default function OwnerDashboard({ currentUser, role }: OwnerDashboardProp
   );
 }
 
-const SummaryCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; colorScheme?: string; suffix?: string; }> = ({ icon, label, value, colorScheme = "gray", suffix }) => (
-    <Box p={5} bg="white" borderRadius="xl" boxShadow="md" transition="all 0.2s" _hover={{ transform: "translateY(-4px)", boxShadow: "lg" }}>
-        <Flex align="center">
-            <Flex
-                justify="center"
-                align="center"
-                w={12}
-                h={12}
-                borderRadius="lg"
-                bg={`${colorScheme}.100`}
-            >
-                <Icon as={icon} w={6} h={6} color={`${colorScheme}.600`} />
-            </Flex>
-            <Box ml={4}>
-                <Text color="gray.500" fontSize="sm" fontWeight="medium" noOfLines={1}>
-                    {label}
-                </Text>
-                <HStack>
-                  <Text fontWeight="bold" fontSize="2xl" color="gray.800">
-                      {value}
-                  </Text>
-                  {suffix && <Text fontSize="md" color="gray.600" alignSelf="flex-end">{suffix}</Text>}
-                </HStack>
-            </Box>
-        </Flex>
-    </Box>
-);
+import SummaryCard from "../components/dashboard/SummaryCard";

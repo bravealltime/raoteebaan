@@ -1,5 +1,5 @@
-import { Box, Heading, useTheme } from "@chakra-ui/react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Box, Heading, useTheme, Text } from "@chakra-ui/react";
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ComplaintChartProps {
   data: {
@@ -13,28 +13,47 @@ const ComplaintChart = ({ data }: ComplaintChartProps) => {
   const theme = useTheme();
 
   const chartData = [
-    {
-      name: 'สถานะเรื่องร้องเรียน',
-      'เรื่องใหม่': data.new,
-      'กำลังดำเนินการ': data.in_progress,
-      'แก้ไขแล้ว': data.resolved,
-    },
+    { name: 'เรื่องใหม่', value: data.new, color: theme.colors.blue[500] },
+    { name: 'กำลังดำเนินการ', value: data.in_progress, color: theme.colors.orange[500] },
+    { name: 'แก้ไขแล้ว', value: data.resolved, color: theme.colors.green[500] },
   ];
+
+  const RADIAN = Math.PI / 180;
+  const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central">
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
 
   return (
     <Box bg="white" p={6} borderRadius="lg" boxShadow="md">
-      <Heading size="md" mb={6} color="gray.700">สรุปเรื่องร้องเรียน</Heading>
+      <Heading size="lg" mb={6} color="gray.700">สรุปเรื่องร้องเรียน</Heading>
       <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={chartData}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="เรื่องใหม่" fill={theme.colors.blue[500]} />
-          <Bar dataKey="กำลังดำเนินการ" fill={theme.colors.orange[500]} />
-          <Bar dataKey="แก้ไขแล้ว" fill={theme.colors.green[500]} />
-        </BarChart>
+        <PieChart>
+          <Pie
+            data={chartData}
+            cx="50%"
+            cy="50%"
+            labelLine={false}
+            label={renderCustomizedLabel}
+            outerRadius={100}
+            fill="#8884d8"
+            dataKey="value"
+            nameKey="name"
+          >
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} />
+            ))}
+          </Pie>
+          <Tooltip wrapperStyle={{ fontSize: '16px' }} />
+          <Legend wrapperStyle={{ fontSize: '16px' }} />
+        </PieChart>
       </ResponsiveContainer>
     </Box>
   );
