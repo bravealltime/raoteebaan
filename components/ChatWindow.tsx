@@ -19,11 +19,12 @@ import {
   ModalBody,
   ModalCloseButton,
   Circle,
+  Icon,
 } from '@chakra-ui/react';
 import { collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, doc, setDoc, writeBatch } from 'firebase/firestore';
 import { getDatabase, ref as dbRef, onValue } from 'firebase/database';
 import { db } from '../lib/firebase';
-import { FaPaperPlane, FaImage, FaArrowLeft, FaTimes } from 'react-icons/fa';
+import { FaPaperPlane, FaImage, FaArrowLeft, FaTimes, FaReply } from 'react-icons/fa';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Conversation, User, Message } from '../types/chat';
 
@@ -53,6 +54,7 @@ const ChatWindow = ({
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
 
   const otherParticipant = conversation.participants.find(p => p.uid !== currentUser?.uid);
 
@@ -102,13 +104,22 @@ const ChatWindow = ({
   const handleSendMessage = async (imageUrl?: string) => {
     if ((!newMessage.trim() && !imageUrl) || !currentUser) return;
 
-    const messageData = {
+    const messageData: any = {
       text: newMessage,
       senderId: currentUser.uid,
       timestamp: serverTimestamp(),
       isRead: false,
       imageUrl: imageUrl || null,
     };
+
+    if (replyingTo) {
+      messageData.replyTo = {
+        id: replyingTo.id,
+        text: replyingTo.text,
+        senderId: replyingTo.senderId,
+        imageUrl: replyingTo.imageUrl,
+      };
+    }
 
     await addDoc(collection(db, 'conversations', conversation.id, 'messages'), messageData);
 
@@ -118,6 +129,7 @@ const ChatWindow = ({
     }, { merge: true });
 
     setNewMessage('');
+    setReplyingTo(null);
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -159,6 +171,27 @@ const ChatWindow = ({
     setIsImageModalOpen(false);
   };
 
+  const ReplyToBox = ({ message, onCancel }: { message: Message, onCancel: () => void }) => {
+    const senderName = message.senderId === currentUser?.uid ? 'You' : otherParticipant?.name;
+    return (
+      <Box bg="gray.200" p={2} borderRadius="md" mb={2} position="relative">
+        <IconButton
+          icon={<FaTimes />}
+          size="xs"
+          aria-label="Cancel reply"
+          onClick={onCancel}
+          position="absolute"
+          top={1}
+          right={1}
+          variant="ghost"
+        />
+        <Text fontSize="sm" fontWeight="bold">Replying to {senderName}</Text>
+        {message.text && <Text fontSize="xs" isTruncated>{message.text}</Text>}
+        {message.imageUrl && <Image src={message.imageUrl} maxW="50px" borderRadius="sm" />}
+      </Box>
+    );
+  };
+
   if (!otherParticipant) {
     return <Flex h="100%" justify="center" align="center"><Spinner /></Flex>;
   }
@@ -189,32 +222,66 @@ const ChatWindow = ({
         }}>
         {messages.map((msg) => (
           <Flex key={msg.id} w="100%" justify={msg.senderId === currentUser?.uid ? 'flex-end' : 'flex-start'}>
-            <Box
-              bg={msg.senderId === currentUser?.uid ? 'blue.500' : 'gray.100'}
-              color={msg.senderId === currentUser?.uid ? 'white' : 'gray.800'}
-              px={4}
-              py={2}
-              borderRadius="xl"
-              maxW="80%"
-            >
-              {msg.text && <Text>{msg.text}</Text>}
-              {msg.imageUrl && (
-                <Image
-                  src={msg.imageUrl}
-                  borderRadius="md"
-                  mt={msg.text ? 2 : 0}
-                  maxW="200px"
-                  cursor="pointer"
-                  onClick={() => openImageModal(msg.imageUrl!)}
-                />
-              )}
-            </Box>
+             <HStack spacing={2} align="center" maxW="80%">
+                {msg.senderId === currentUser?.uid && (
+                  <IconButton
+                    aria-label="Reply to message"
+                    icon={<FaReply />}
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => setReplyingTo(msg)}
+                  />
+                )}
+                <Box
+                  bg={msg.senderId === currentUser?.uid ? 'blue.500' : 'gray.100'}
+                  color={msg.senderId === currentUser?.uid ? 'white' : 'gray.800'}
+                  px={4}
+                  py={2}
+                  borderRadius="xl"
+                >
+                  {msg.replyTo && (
+                    <Box
+                      bg={msg.senderId === currentUser?.uid ? 'blue.400' : 'gray.200'}
+                      p={2}
+                      borderRadius="md"
+                      mb={2}
+                    >
+                      <Text fontSize="xs" fontWeight="bold">
+                        Reply to {msg.replyTo.senderId === currentUser?.uid ? 'You' : otherParticipant?.name}
+                      </Text>
+                      {msg.replyTo.text && <Text fontSize="xs" isTruncated>{msg.replyTo.text}</Text>}
+                      {msg.replyTo.imageUrl && <Image src={msg.replyTo.imageUrl} maxW="40px" mt={1} borderRadius="sm" />}
+                    </Box>
+                  )}
+                  {msg.text && <Text>{msg.text}</Text>}
+                  {msg.imageUrl && (
+                    <Image
+                      src={msg.imageUrl}
+                      borderRadius="md"
+                      mt={msg.text ? 2 : 0}
+                      maxW="200px"
+                      cursor="pointer"
+                      onClick={() => openImageModal(msg.imageUrl!)}
+                    />
+                  )}
+                </Box>
+                {msg.senderId !== currentUser?.uid && (
+                  <IconButton
+                    aria-label="Reply to message"
+                    icon={<FaReply />}
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => setReplyingTo(msg)}
+                  />
+                )}
+              </HStack>
           </Flex>
         ))}
         <div ref={messagesEndRef} />
       </VStack>
       {/* Input */}
       <Box p={3} bg="white" borderTop="1px solid" borderColor="gray.100">
+        {replyingTo && <ReplyToBox message={replyingTo} onCancel={() => setReplyingTo(null)} />}
         <HStack spacing={2}>
           <IconButton
             aria-label="Upload Image"

@@ -244,7 +244,7 @@ const Inbox = () => {
                 borderBottom="1px solid"
                 borderColor="gray.200"
               >
-                <Heading size="md">Messages</Heading>
+
                 {(role === 'admin' || role === 'owner') && (
                   <Button
                     size="sm"
@@ -252,7 +252,7 @@ const Inbox = () => {
                     onClick={onOpen}
                     colorScheme="blue"
                   >
-                    New Conversation
+                    New Chat
                   </Button>
                 )}
               </Flex>
@@ -299,7 +299,7 @@ const Inbox = () => {
               borderColor="gray.200"
               flexShrink={0}
             >
-              <Heading size="md">Messages</Heading>
+              
               {(role === 'admin' || role === 'owner') && (
                 <Button
                   size="sm"
@@ -307,7 +307,7 @@ const Inbox = () => {
                   onClick={onOpen}
                   colorScheme="blue"
                 >
-                  New
+                  New Chat
                 </Button>
               )}
             </Flex>

@@ -27,4 +27,10 @@ export interface Message {
   timestamp: Timestamp;
   isRead?: boolean;
   receiverId?: string;
+  replyTo?: {
+    id:string;
+    text?: string;
+    senderId: string;
+    imageUrl?: string;
+  }
 }

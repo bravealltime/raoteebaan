@@ -1,4 +1,4 @@
-import { VStack, HStack, Avatar, Text, Box, Circle, Heading, IconButton, Tooltip } from '@chakra-ui/react';
+import { VStack, HStack, Avatar, Text, Box, Circle, Heading, IconButton, Tooltip, Flex } from '@chakra-ui/react';
 import { FaTrash, FaTimes } from 'react-icons/fa';
 import { Conversation, User } from '../types/chat';
 
@@ -31,26 +31,17 @@ const ChatList = ({
 
   return (
     <VStack h="100%" spacing={0} bg="white" borderRadius="24px" overflow="hidden">
-      {/* Header */}
-      <HStack
-        w="100%"
-        p={4}
-        justifyContent="space-between"
-        alignItems="center"
-        borderBottom="1px solid"
-        borderColor="gray.100"
-      >
+      <Flex w="100%" p={4} justify="space-between" align="center" borderBottom="1px solid" borderColor="gray.100">
         <Heading size="md" color="gray.700">Messages</Heading>
         <IconButton
-          aria-label="Close chat"
+          aria-label="Close widget"
           icon={<FaTimes />}
-          onClick={onCloseWidget}
-          variant="ghost"
-          color="gray.500"
           size="sm"
-          _hover={{ bg: 'gray.100' }}
+          variant="ghost"
+          onClick={onCloseWidget}
         />
-      </HStack>
+      </Flex>
+      
 
       {/* List */}
       <VStack

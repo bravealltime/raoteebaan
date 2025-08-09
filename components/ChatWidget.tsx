@@ -153,7 +153,7 @@ const ChatWidget = () => {
   if (loading) {
     return (
       <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
-        bgGradient="linear(135deg, brand.500 0%, brand.600 100%)"
+        bgGradient="linear(135deg, blue.500 0%, blue.600 100%)"
         minH={{ base: "70vh", sm: "500px" }}
         borderRadius="2xl"
         boxShadow="2xl"
@@ -189,7 +189,7 @@ const ChatWidget = () => {
   if (!currentUser) {
     return (
       <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
-        bgGradient="linear(135deg, brand.500 0%, brand.600 100%)"
+        bgGradient="linear(135deg, blue.500 0%, blue.600 100%)"
         minH={{ base: "70vh", sm: "500px" }}
         borderRadius="2xl"
         boxShadow="2xl"
@@ -210,7 +210,7 @@ const ChatWidget = () => {
   if (isOpen) {
     return (
       <Box position="fixed" bottom={{ base: 10, md: 6 }} right={0} zIndex="1600" p={2}
-        bgGradient="linear(135deg, brand.500 0%, brand.600 100%)"
+        bgGradient="linear(135deg, blue.500 0%, blue.600 100%)"
         width={{ base: "98vw", sm: "400px" }}
         maxW="400px"
         height={{ base: "560px", sm: "560px" }}
@@ -283,11 +283,11 @@ const ChatWidget = () => {
       >
         {/* ไอคอน + badge */}
         <Box position="relative" mr={1}>
-          <FaComments color="brand.500" size={22} />
+          <FaComments color="blue.500" size={22} />
           {unreadCount > 0 && (
             <Circle
               size="18px"
-              bg="brand.500"
+              bg="blue.500"
               color="white"
               fontSize="xs"
               fontWeight="bold"
@@ -307,7 +307,7 @@ const ChatWidget = () => {
         {/* โปรไฟล์ + วงแหวน */}
         <Box
           ml="auto"
-          border="3px solid brand.500"
+          border="3px solid blue.500"
           borderRadius="full"
           p="1px"
           display="flex"
