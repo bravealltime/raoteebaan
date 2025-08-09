@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Flex,
@@ -14,6 +14,12 @@ import {
   VStack,
   Icon,
   useBreakpointValue,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
 } from '@chakra-ui/react';
 import { onAuthStateChanged } from 'firebase/auth';
 import {
@@ -26,6 +32,7 @@ import {
   setDoc,
   serverTimestamp,
   orderBy,
+  deleteDoc,
 } from 'firebase/firestore';
 import { db, auth } from '../lib/firebase';
 import { getDatabase, ref as dbRef, onValue } from 'firebase/database';
@@ -43,9 +50,12 @@ const Inbox = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [loading, setLoading] = useState(true);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isDeleteAlertOpen, onOpen: onDeleteAlertOpen, onClose: onDeleteAlertClose } = useDisclosure();
+  const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const toast = useToast();
   const isDesktop = useBreakpointValue({ base: false, lg: true });
   const [onlineStatus, setOnlineStatus] = useState<Record<string, any>>({});
+  const cancelRef = React.useRef(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -172,6 +182,39 @@ const Inbox = () => {
     }
   }, [currentUser, conversations, onClose, toast]);
 
+  const handleDeleteConversation = (conversationId: string) => {
+    setConversationToDelete(conversationId);
+    onDeleteAlertOpen();
+  };
+
+  const confirmDelete = async () => {
+    if (conversationToDelete) {
+      try {
+        await deleteDoc(doc(db, 'conversations', conversationToDelete));
+        toast({
+          title: 'Conversation Deleted',
+          status: 'success',
+          duration: 3000,
+          isClosable: true,
+        });
+        if (selectedConversation?.id === conversationToDelete) {
+          setSelectedConversation(null);
+        }
+      } catch (error) {
+        console.error('Error deleting conversation:', error);
+        toast({
+          title: 'Error',
+          description: 'Could not delete the conversation.',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+      setConversationToDelete(null);
+      onDeleteAlertClose();
+    }
+  };
+
   if (loading) {
     return (
       <MainLayout role={role} currentUser={currentUser} showSidebar={role !== 'user'}>
@@ -190,6 +233,7 @@ const Inbox = () => {
               conversation={selectedConversation}
               currentUser={currentUser}
               onClose={() => setSelectedConversation(null)}
+              onCloseWidget={() => {}}
             />
           ) : (
             <Flex direction="column" h="100%">
@@ -217,7 +261,9 @@ const Inbox = () => {
                   conversations={conversations}
                   currentUser={currentUser}
                   onSelectConversation={setSelectedConversation}
+                  onDeleteConversation={handleDeleteConversation}
                   onlineStatus={onlineStatus}
+                  onCloseWidget={() => {}}
                 />
               </Box>
             </Flex>
@@ -271,7 +317,9 @@ const Inbox = () => {
                 currentUser={currentUser}
                 onSelectConversation={setSelectedConversation}
                 selectedConversationId={selectedConversation?.id}
+                onDeleteConversation={handleDeleteConversation}
                 onlineStatus={onlineStatus}
+                onCloseWidget={() => {}}
               />
             </Box>
           </Flex>
@@ -282,6 +330,7 @@ const Inbox = () => {
               conversation={selectedConversation}
               currentUser={currentUser}
               onClose={() => setSelectedConversation(null)} // This will be hidden on desktop
+              onCloseWidget={() => {}}
             />
           ) : (
             <Center h="100%">
@@ -300,6 +349,33 @@ const Inbox = () => {
         currentUser={currentUser}
         onSelectUser={handleSelectUser}
       />
+
+      <AlertDialog
+        isOpen={isDeleteAlertOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onDeleteAlertClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Delete Conversation
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Are you sure? You can't undo this action afterwards.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onDeleteAlertClose}>
+                Cancel
+              </Button>
+              <Button colorScheme="red" onClick={confirmDelete} ml={3}>
+                Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </MainLayout>
   );
 };

@@ -1,11 +1,12 @@
-import { VStack, HStack, Avatar, Text, Box, Circle, Heading, IconButton } from '@chakra-ui/react';
-import { FaTimes } from 'react-icons/fa';
+import { VStack, HStack, Avatar, Text, Box, Circle, Heading, IconButton, Tooltip } from '@chakra-ui/react';
+import { FaTrash, FaTimes } from 'react-icons/fa';
 import { Conversation, User } from '../types/chat';
 
 interface ChatListProps {
   conversations: Conversation[];
   currentUser: User | null;
   onSelectConversation: (conversation: Conversation) => void;
+  onDeleteConversation: (conversationId: string) => void; // Add this line
   onCloseWidget: () => void;
   onlineStatus?: Record<string, any>;
   selectedConversationId?: string | null;
@@ -16,6 +17,7 @@ const ChatList = ({
   conversations,
   currentUser,
   onSelectConversation,
+  onDeleteConversation, // Add this line
   onCloseWidget,
   onlineStatus = {},
   selectedConversationId,
@@ -112,6 +114,20 @@ const ChatList = ({
                   {convo.lastMessage?.text || '...'}
                 </Text>
               </VStack>
+              <Tooltip label="Delete Conversation" placement="top" fontSize="sm">
+                <IconButton
+                  aria-label="Delete chat"
+                  icon={<FaTrash />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteConversation(convo.id);
+                  }}
+                  variant="ghost"
+                  color="gray.400"
+                  size="sm"
+                  _hover={{ bg: 'red.50', color: 'red.500' }}
+                />
+              </Tooltip>
               {isUnread && (
                 <Circle
                   size="10px"

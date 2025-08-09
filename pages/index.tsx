@@ -12,7 +12,7 @@ import { saveAs } from "file-saver";
 import Papa from "papaparse";
 import EditRoomModal from "../components/EditRoomModal";
 import jsPDF from "jspdf";
-import "../Kanit-Regular-normal.js"; // Import the font file
+
 import Link from "next/link";
 import { onAuthStateChanged } from "firebase/auth";
 import Sidebar from "../components/Sidebar";

@@ -246,6 +246,7 @@ const ChatWidget = () => {
               conversations={conversations}
               currentUser={currentUser}
               onSelectConversation={setSelectedConversation}
+              onDeleteConversation={() => {}}
               onCloseWidget={() => setIsOpen(false)}
               containerHeight={560}
             />
