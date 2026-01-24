@@ -7,7 +7,7 @@ import AddRoomModal from "../components/AddRoomModal";
 import { useRouter } from "next/router";
 import AppHeader from "../components/AppHeader";
 import { motion } from "framer-motion";
-import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaTrash, FaSearch, FaUserCircle, FaRulerCombined, FaPhoneAlt, FaCalendarCheck, FaCalendarTimes } from "react-icons/fa";
+import { FaFilter, FaHome, FaInbox, FaBox, FaUserFriends, FaPlus, FaFileCsv, FaUpload, FaBolt, FaDownload, FaFilePdf, FaTrash, FaSearch, FaUserCircle, FaRulerCombined, FaPhoneAlt, FaCalendarCheck, FaCalendarTimes, FaRecycle } from "react-icons/fa";
 import { saveAs } from "file-saver";
 import Papa from "papaparse";
 import EditRoomModal from "../components/EditRoomModal";
@@ -57,6 +57,8 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
   const toast = useToast();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isCleanRoomsAlertOpen, setIsCleanRoomsAlertOpen] = useState(false);
+  const cancelCleanRoomsRef = useRef<HTMLButtonElement>(null);
 
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
@@ -307,6 +309,53 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
       toast({ title: "เพิ่มห้องใหม่ไม่สำเร็จ", description: e.message, status: "error" });
     }
     setIsAddRoomOpen(false);
+  };
+
+  const handleBatchCleanVacantRooms = () => {
+    setIsCleanRoomsAlertOpen(true);
+  };
+
+  const confirmCleanVacantRooms = async () => {
+    setIsCleanRoomsAlertOpen(false);
+
+    setLoading(true);
+    try {
+      const batch = writeBatch(db);
+      const vacantRooms = rooms.filter(r => r.status === 'vacant');
+      let count = 0;
+
+      vacantRooms.forEach(room => {
+        const roomRef = doc(db, "rooms", room.id);
+        batch.update(roomRef, {
+          billStatus: "paid", // Green status
+          overdueDays: 0,
+          electricity: 0,
+          water: 0,
+          latestTotal: 0,
+          tenantName: "",
+          tenantId: null,
+          tenantEmail: null,
+          contractStartDate: null,
+          contractEndDate: null,
+          emergencyContact: null,
+          extraServices: []
+        });
+        count++;
+      });
+
+      if (count > 0) {
+        await batch.commit();
+        await fetchData();
+        toast({ title: `ล้างข้อมูลห้องว่างสำเร็จ ${count} ห้อง`, status: "success" });
+      } else {
+        toast({ title: "ไม่พบห้องว่างที่ต้องดำเนินการ", status: "info" });
+      }
+    } catch (error: any) {
+      console.error("Batch clean error:", error);
+      toast({ title: "เกิดข้อผิดพลาด", description: error.message, status: "error" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleViewBill = (id: string) => {
@@ -1356,6 +1405,16 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
             {(role === 'admin' || role === 'owner') && (
               <Flex direction={{ base: "column", sm: "row" }} gap={3} align={{ base: "stretch", sm: "center" }}>
                 <Button
+                  leftIcon={<Icon as={FaRecycle} />}
+                  colorScheme="orange"
+                  variant="outline"
+                  onClick={handleBatchCleanVacantRooms}
+                  mr={2}
+                  isLoading={loading}
+                >
+                  ล้างข้อมูลห้องว่าง
+                </Button>
+                <Button
                   leftIcon={<FaPlus />}
                   colorScheme="purple"
                   onClick={() => setIsAddRoomOpen(true)}
@@ -1494,31 +1553,35 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
         </Box>
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <Flex justify="center" align="center" pt={2} flexShrink={0}>
-            <HStack spacing={2}>
-              <Button onClick={() => handlePageChange(1)} isDisabled={currentPage === 1} variant="outline" size="sm">หน้าแรก</Button>
-              <Button onClick={() => handlePageChange(currentPage - 1)} isDisabled={currentPage === 1} variant="outline" size="sm">ก่อนหน้า</Button>
-              <Text fontSize="sm" fontWeight="bold">หน้า {currentPage} จาก {totalPages}</Text>
-              <Button onClick={() => handlePageChange(currentPage + 1)} isDisabled={currentPage === totalPages} variant="outline" size="sm">ถัดไป</Button>
-              <Button onClick={() => handlePageChange(totalPages)} isDisabled={currentPage === totalPages} variant="outline" size="sm">หน้าสุดท้าย</Button>
-            </HStack>
-          </Flex>
-        )}
-      </Flex>
+        {
+          totalPages > 1 && (
+            <Flex justify="center" align="center" pt={2} flexShrink={0}>
+              <HStack spacing={2}>
+                <Button onClick={() => handlePageChange(1)} isDisabled={currentPage === 1} variant="outline" size="sm">หน้าแรก</Button>
+                <Button onClick={() => handlePageChange(currentPage - 1)} isDisabled={currentPage === 1} variant="outline" size="sm">ก่อนหน้า</Button>
+                <Text fontSize="sm" fontWeight="bold">หน้า {currentPage} จาก {totalPages}</Text>
+                <Button onClick={() => handlePageChange(currentPage + 1)} isDisabled={currentPage === totalPages} variant="outline" size="sm">ถัดไป</Button>
+                <Button onClick={() => handlePageChange(totalPages)} isDisabled={currentPage === totalPages} variant="outline" size="sm">หน้าสุดท้าย</Button>
+              </HStack>
+            </Flex>
+          )
+        }
+      </Flex >
 
       {/* All Modals */}
-      {selectedRoomForSlip && (
-        <UploadSlipModal
-          isOpen={isUploadSlipModalOpen}
-          onClose={() => setIsUploadSlipModalOpen(false)}
-          onConfirm={handleConfirmUploadSlip}
-          roomName={selectedRoomForSlip.id}
-          ownerId={selectedRoomForSlip.ownerId || ''}
-          isCentered
-          size={{ base: "full", md: "xl" }}
-        />
-      )}
+      {
+        selectedRoomForSlip && (
+          <UploadSlipModal
+            isOpen={isUploadSlipModalOpen}
+            onClose={() => setIsUploadSlipModalOpen(false)}
+            onConfirm={handleConfirmUploadSlip}
+            roomName={selectedRoomForSlip.id}
+            ownerId={selectedRoomForSlip.ownerId || ''}
+            isCentered
+            size={{ base: "full", md: "xl" }}
+          />
+        )
+      }
       <Modal isOpen={isSlipViewModalOpen} onClose={() => setIsSlipViewModalOpen(false)} size={{ base: "full", md: "xl" }} isCentered>
         <ModalOverlay />
         <ModalContent>
@@ -1774,7 +1837,38 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
           </ModalFooter>
         </ModalContent>
       </Modal>
-    </MainLayout>
+
+      <AlertDialog
+        isOpen={isCleanRoomsAlertOpen}
+        leastDestructiveRef={cancelCleanRoomsRef}
+        onClose={() => setIsCleanRoomsAlertOpen(false)}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent borderRadius="2xl">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="orange.600">
+              <Icon as={FaRecycle} mr={2} /> ยืนยันการล้างข้อมูลห้องว่างทั้งหมด
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              คุณแน่ใจหรือไม่ที่จะล้างข้อมูลห้องว่างทั้งหมด?
+              ระบบจะทำการรีเซ็ตยอดค้างชำระเป็น 0, ปรับสถานะเป็นปกติ และเคลียร์ข้อมูลที่ตกค้างในห้องที่ไม่มีคนอยู่ทุกห้องทันที
+              <Text mt={4} color="red.500" fontWeight="bold" fontSize="sm">
+                * การดำเนินการนี้ไม่สามารถย้อนกลับได้
+              </Text>
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelCleanRoomsRef} onClick={() => setIsCleanRoomsAlertOpen(false)} variant="ghost">
+                ยกเลิก
+              </Button>
+              <Button colorScheme="orange" onClick={confirmCleanVacantRooms} ml={3} px={6} borderRadius="xl">
+                ล้างข้อมูลตอนนี้
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+    </MainLayout >
   );
 }
 

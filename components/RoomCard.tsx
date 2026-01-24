@@ -54,7 +54,7 @@ export default function RoomCard({
     pending: { label: "รอตรวจสอบ", color: "orange.500", bg: "orange.50" },
   };
 
-  const currentStatus = statusInfo[billStatus] || statusInfo.paid;
+  const currentStatus = (!isOccupied || latestTotal === 0) ? statusInfo.paid : (statusInfo[billStatus] || statusInfo.paid);
 
   return (
     <Box
@@ -107,7 +107,7 @@ export default function RoomCard({
           color="blue.600"
         />
         <Text fontWeight="semibold" fontSize="xl" color="gray.800" textAlign="center" noOfLines={1}>
-          {isOccupied ? tenantName : "-"}
+          {isOccupied ? tenantName : `ห้องว่าง ${id}`}
         </Text>
         <Text fontSize="md" color="gray.500">
           {isOccupied ? "ผู้เช่าปัจจุบัน" : "ไม่มีผู้เช่า"}

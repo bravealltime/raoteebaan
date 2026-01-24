@@ -124,6 +124,12 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, us
         tenantName: "",
         tenantEmail: "",
         status: "vacant",
+        contractStartDate: "",
+        contractEndDate: "",
+        emergencyContact: "",
+        billStatus: "paid",
+        overdueDays: 0,
+        extraServices: [],
       }));
     }
   };
@@ -164,29 +170,26 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, us
 
   const onResetAlertClose = () => setIsResetAlertOpen(false);
 
-  const handleResetRoom = async () => {
-    try {
-      await resetRoom(room.id);
-      toast({
-        title: "รีเซ็ตห้องสำเร็จ",
-        description: `ห้อง ${room.id} ถูกรีเซ็ตเป็นห้องว่างแล้ว`,
-        status: "success",
-        duration: 5000,
-        isClosable: true,
-      });
-      onClose(); // Close modal after successful reset
-    } catch (error) {
-      console.error("Error resetting room:", error);
-      toast({
-        title: "เกิดข้อผิดพลาดในการรีเซ็ตห้อง",
-        description: "ไม่สามารถรีเซ็ตห้องได้ กรุณาลองใหม่อีกครั้ง",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    } finally {
-      setIsResetAlertOpen(false);
-    }
+  const handleResetRoom = () => {
+    const clearedRoom: RoomData = {
+      ...room,
+      tenantId: null,
+      tenantName: "",
+      tenantEmail: "",
+      status: "vacant",
+      contractStartDate: "",
+      contractEndDate: "",
+      emergencyContact: "",
+      billStatus: "paid",
+      overdueDays: 0,
+      extraServices: [],
+      latestTotal: 0,
+      electricity: 0,
+      water: 0,
+    };
+    onSave(clearedRoom);
+    setIsResetAlertOpen(false);
+    onClose();
   };
 
   // ... other handlers like handleAddService, handleSendResetPassword etc. remain the same
