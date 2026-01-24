@@ -21,6 +21,7 @@ interface AnnouncementsListProps {
     uid: string;
     role: string;
   } | null;
+  marquee?: boolean;
 }
 
 const RoleIcon = ({ role }: { role: string }) => {
@@ -36,7 +37,7 @@ const RoleIcon = ({ role }: { role: string }) => {
   }
 }
 
-export default function AnnouncementsList({ currentUser }: AnnouncementsListProps) {
+export default function AnnouncementsList({ currentUser, marquee = false }: AnnouncementsListProps) {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const toast = useToast();
@@ -44,7 +45,7 @@ export default function AnnouncementsList({ currentUser }: AnnouncementsListProp
   const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, 'announcements'), orderBy('createdAt', 'asc'));
+    const q = query(collection(db, 'announcements'), orderBy('createdAt', 'desc'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const announcementsData: Announcement[] = [];
@@ -98,6 +99,11 @@ export default function AnnouncementsList({ currentUser }: AnnouncementsListProp
     );
   }
 
+  // Duplicate list for seamless loop if marquee
+  const displayAnnouncements = marquee && announcements.length > 0
+    ? [...announcements, ...announcements]
+    : announcements;
+
   return (
     <Card borderRadius="xl" boxShadow="lg" bg="white" overflow="hidden">
       <CardHeader>
@@ -111,6 +117,49 @@ export default function AnnouncementsList({ currentUser }: AnnouncementsListProp
           <Center p={4}>
             <Text color="gray.500">ยังไม่มีประกาศในขณะนี้</Text>
           </Center>
+        ) : marquee ? (
+          <Box w="full" overflow="hidden" py={4} bg="gray.50">
+            <motion.div
+              style={{ display: 'flex', gap: '16px', width: 'max-content' }}
+              animate={{ x: ["0%", "-50%"] }}
+              transition={{
+                repeat: Infinity,
+                ease: "linear",
+                duration: announcements.length * 10 || 20, // Adjust speed based on content count
+              }}
+            >
+              {displayAnnouncements.map((item, idx) => (
+                <Box
+                  key={`${item.id}-${idx}`}
+                  minW="320px"
+                  maxW="320px"
+                  p={4}
+                  bg="white"
+                  borderRadius="lg"
+                  position="relative"
+                  boxShadow="sm"
+                  borderWidth="1px"
+                  borderColor="gray.200"
+                >
+                  <Flex align="center" mb={2}>
+                    <RoleIcon role={item.authorRole} />
+                    <Text fontWeight="bold" color="brand.800" ml={2} noOfLines={1} title={item.title}>
+                      {item.title}
+                    </Text>
+                  </Flex>
+                  <Text color="gray.600" fontSize="sm" noOfLines={3} mb={3} h="60px" overflow="hidden">
+                    {item.content}
+                  </Text>
+                  <Flex justify="space-between" align="center">
+                    <Text fontSize="xs" color="gray.500" noOfLines={1}>โดย: {item.authorName}</Text>
+                    <Text fontSize="xs" color="gray.400" ml={2} whiteSpace="nowrap">
+                      {item.createdAt?.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}
+                    </Text>
+                  </Flex>
+                </Box>
+              ))}
+            </motion.div>
+          </Box>
         ) : (
           <Box w="full" maxH="400px" overflowY="auto" p={2}>
             <VStack spacing={4} align="stretch">

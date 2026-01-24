@@ -2,23 +2,23 @@
 import { useEffect, useState } from 'react';
 import { db } from '../lib/firebase';
 import { collection, query, where, onSnapshot, orderBy, doc, updateDoc, getDocs } from 'firebase/firestore';
-import { 
-    Box, 
-    Heading, 
-    VStack, 
-    HStack, 
-    Text, 
-    Badge, 
-    Menu, 
-    MenuButton, 
-    MenuList, 
-    MenuItem, 
-    Button, 
-    Icon, 
-    useToast, 
-    Spinner, 
-    Center, 
-    Flex, 
+import {
+    Box,
+    Heading,
+    VStack,
+    HStack,
+    Text,
+    Badge,
+    Menu,
+    MenuButton,
+    MenuList,
+    MenuItem,
+    Button,
+    Icon,
+    useToast,
+    Spinner,
+    Center,
+    Flex,
     Spacer,
     SimpleGrid
 } from '@chakra-ui/react';
@@ -76,7 +76,8 @@ const ComplaintsList = ({ currentUser, role }: ComplaintsListProps) => {
                 const roomIds = roomsSnapshot.docs.map(doc => doc.id);
 
                 if (roomIds.length > 0) {
-                    complaintsQuery = query(baseQuery, where('roomId', 'in', roomIds), orderBy('createdAt', 'desc'));
+                    // Remove orderBy to avoid index error, do client-side sort instead
+                    complaintsQuery = query(baseQuery, where('roomId', 'in', roomIds));
                 } else {
                     // No rooms, so no complaints to fetch
                     setComplaints([]);
@@ -89,6 +90,14 @@ const ComplaintsList = ({ currentUser, role }: ComplaintsListProps) => {
                         id: doc.id,
                         ...doc.data(),
                     })) as Complaint[];
+
+                    // Client-side sorting
+                    complaintsData.sort((a, b) => {
+                        const dateA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+                        const dateB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+                        return dateB - dateA;
+                    });
+
                     setComplaints(complaintsData);
                     setLoading(false);
                 }, (error) => {

@@ -77,9 +77,9 @@ interface EditRoomModalProps {
 }
 
 export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, users, isCentered, size }: EditRoomModalProps) {
-  if (!initialRoom) return null;
+  // Fix: Removed early return to prevent React Hook violation
 
-  const [room, setRoom] = useState<RoomData>(initialRoom);
+  const [room, setRoom] = useState<RoomData>(initialRoom || {} as RoomData);
   const [createNewTenant, setCreateNewTenant] = useState(false);
   const [contractDuration, setContractDuration] = useState<number | string>("");
   const toast = useToast();
@@ -88,7 +88,9 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, us
 
   useEffect(() => {
     // When modal opens or initialRoom changes, reset state
-    setRoom(JSON.parse(JSON.stringify(initialRoom)));
+    if (initialRoom) {
+      setRoom(JSON.parse(JSON.stringify(initialRoom)));
+    }
     setCreateNewTenant(false); // Default to selecting existing tenant
   }, [initialRoom, isOpen]);
 
@@ -140,8 +142,8 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, us
   const handleSave = () => {
     const finalRoomData = { ...room, createNewTenant };
     if (createNewTenant && (!finalRoomData.tenantName || !finalRoomData.tenantEmail)) {
-        toast({ title: "ข้อมูลไม่ครบถ้วน", description: "กรุณากรอกชื่อและอีเมลสำหรับผู้เช่าใหม่", status: "warning" });
-        return;
+      toast({ title: "ข้อมูลไม่ครบถ้วน", description: "กรุณากรอกชื่อและอีเมลสำหรับผู้เช่าใหม่", status: "warning" });
+      return;
     }
     onSave(finalRoomData);
     onClose();
@@ -250,6 +252,8 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, us
       });
     }
   };
+
+  if (!initialRoom || !room?.id) return null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered={isCentered} size={size}>
@@ -393,7 +397,7 @@ export default function EditRoomModal({ isOpen, onClose, onSave, initialRoom, us
                     </FormControl>
                   </VStack>
                 </Box>
-                
+
                 <Box>
                   <Text fontWeight="bold" color="blue.500" mb={2}>บริการเสริม</Text>
                   <VStack spacing={3} align="stretch" bg="gray.50" p={4} borderRadius="lg">

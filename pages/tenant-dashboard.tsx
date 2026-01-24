@@ -55,12 +55,12 @@ interface BillHistory {
 }
 
 interface Parcel {
-    id: string;
-    recipient: string;
-    sender: string;
-    status: "pending" | "received" | "delivered";
-    receivedDate: Timestamp;
-    imageUrl?: string;
+  id: string;
+  recipient: string;
+  sender: string;
+  status: "pending" | "received" | "delivered";
+  receivedDate: Timestamp;
+  imageUrl?: string;
 }
 
 interface Issue {
@@ -97,7 +97,7 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
   const router = useRouter();
   const toast = useToast();
   const [scriptsReady, setScriptsReady] = useState(false);
-  
+
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [billHistory, setBillHistory] = useState<BillHistory[]>([]);
   const [undeliveredParcels, setUndeliveredParcels] = useState<Parcel[]>([]);
@@ -107,7 +107,7 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
     line: "@teeraoniti",
     lineUrl: "https://line.me/R/ti/p/@teeraoniti"
   });
-  
+
   const { isOpen: isAlertOpen, onOpen: onAlertOpen, onClose: onAlertClose } = useDisclosure();
   const { isOpen: isImageModalOpen, onOpen: onImageModalOpen, onClose: onImageModalClose } = useDisclosure();
   const { isOpen: isReportModalOpen, onOpen: onReportModalOpen, onClose: onReportModalClose } = useDisclosure();
@@ -142,7 +142,7 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
     });
   };
 
-  
+
 
   useEffect(() => {
     if (currentUser && currentUser.uid) {
@@ -258,20 +258,20 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
 
     let q;
     const baseQuery = [
-        collection(db, "issues"), 
-        where("roomId", "==", roomData.id), 
-        orderBy("reportedAt", "desc")
+      collection(db, "issues"),
+      where("roomId", "==", roomData.id),
+      orderBy("reportedAt", "desc")
     ];
 
     if (direction === 'first') {
-        q = query(collection(db, "issues"), where("roomId", "==", roomData.id), orderBy("reportedAt", "desc"), limit(ISSUES_PER_PAGE));
-        setIssuePage(1);
+      q = query(collection(db, "issues"), where("roomId", "==", roomData.id), orderBy("reportedAt", "desc"), limit(ISSUES_PER_PAGE));
+      setIssuePage(1);
     } else if (direction === 'next' && lastIssueVisible) {
-        q = query(collection(db, "issues"), where("roomId", "==", roomData.id), orderBy("reportedAt", "desc"), startAfter(lastIssueVisible), limit(ISSUES_PER_PAGE));
+      q = query(collection(db, "issues"), where("roomId", "==", roomData.id), orderBy("reportedAt", "desc"), startAfter(lastIssueVisible), limit(ISSUES_PER_PAGE));
     } else if (direction === 'prev' && firstIssueVisible) {
-        q = query(collection(db, "issues"), where("roomId", "==", roomData.id), orderBy("reportedAt", "desc"), endBefore(firstIssueVisible), limitToLast(ISSUES_PER_PAGE));
+      q = query(collection(db, "issues"), where("roomId", "==", roomData.id), orderBy("reportedAt", "desc"), endBefore(firstIssueVisible), limitToLast(ISSUES_PER_PAGE));
     } else {
-        return; // No more pages or invalid direction
+      return; // No more pages or invalid direction
     }
 
     const snapshot = await getDocs(q);
@@ -290,19 +290,19 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
     });
 
     if (issues.length > 0) {
-        setIssueHistory(issues);
-        setFirstIssueVisible(snapshot.docs[0]);
-        setLastIssueVisible(snapshot.docs[snapshot.docs.length - 1]);
-        if (direction === 'next') setIssuePage(p => p + 1);
-        if (direction === 'prev') setIssuePage(p => p - 1);
+      setIssueHistory(issues);
+      setFirstIssueVisible(snapshot.docs[0]);
+      setLastIssueVisible(snapshot.docs[snapshot.docs.length - 1]);
+      if (direction === 'next') setIssuePage(p => p + 1);
+      if (direction === 'prev') setIssuePage(p => p - 1);
     } else {
-        if (direction === 'first') {
-            setIssueHistory([]);
-        }
-        if (direction === 'next') {
-            setLastIssueVisible(null);
-        }
-        toast({ title: "ไม่มีข้อมูลเพิ่มเติม", status: "info", duration: 2000 });
+      if (direction === 'first') {
+        setIssueHistory([]);
+      }
+      if (direction === 'next') {
+        setLastIssueVisible(null);
+      }
+      toast({ title: "ไม่มีข้อมูลเพิ่มเติม", status: "info", duration: 2000 });
     }
   };
 
@@ -327,7 +327,7 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
         orderBy("paidAt", "desc"),
         limit(12)
       );
-      
+
       const snapshot = await getDocs(billsQuery);
       const bills = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -345,7 +345,7 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
           waterUnit: data.waterUnit || 0,
         };
       });
-      
+
       setBillHistory(bills as BillHistory[]);
     } catch (error) {
       console.error("Error fetching bill history:", error);
@@ -361,21 +361,21 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
 
   const fetchUndeliveredParcels = (roomId: string) => {
     const parcelsQuery = query(
-        collection(db, "parcels"),
-        where("roomId", "==", roomId),
-        where("status", "!=", "delivered"),
-        orderBy("status"),
-        orderBy("receivedDate", "desc")
+      collection(db, "parcels"),
+      where("roomId", "==", roomId),
+      where("status", "!=", "delivered"),
+      orderBy("status"),
+      orderBy("receivedDate", "desc")
     );
 
     const unsubscribe = onSnapshot(parcelsQuery, (snapshot) => {
-        const parcelsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Parcel);
-        setUndeliveredParcels(parcelsData);
+      const parcelsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Parcel);
+      setUndeliveredParcels(parcelsData);
     }, (error) => {
-        console.error("Error fetching parcels:", error);
-        toast({
-            title: "เกิดข้อผิดพลาด",
-            description: "ไม่สามารถโหลดข้อมูลพัสดุได้",
+      console.error("Error fetching parcels:", error);
+      toast({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถโหลดข้อมูลพัสดุได้",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -408,7 +408,7 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
         isClosable: true,
       });
       // Optionally, refresh the specific issue data
-      fetchIssueHistory('first'); 
+      fetchIssueHistory('first');
 
     } catch (error: any) {
       toast({
@@ -468,10 +468,10 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
   return (
     <TenantLayout currentUser={currentUser} isProfileOpen={isProfileOpen} onProfileOpen={onProfileOpen} onProfileClose={onProfileClose}>
       <Script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.5.0/qrcode.min.js" strategy="lazyOnload" />
-      <Script 
-        src="/scripts/promptpay.js" 
-        strategy="lazyOnload" 
-        onLoad={() => setScriptsReady(true)} 
+      <Script
+        src="/scripts/promptpay.js"
+        strategy="lazyOnload"
+        onLoad={() => setScriptsReady(true)}
       />
       <Box p={{ base: 4, md: 6 }} bg="gray.50" minH="100vh">
         {/* Section 1: Header */}
@@ -498,15 +498,15 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
 
         {/* Announcements Section */}
         <Box mb={6}>
-          <AnnouncementsList currentUser={currentUser} />
+          <AnnouncementsList currentUser={currentUser} marquee />
         </Box>
 
         {/* Billing Hub */}
         {roomData ? (
-          <Card 
-            mb={6} 
-            borderRadius="xl" 
-            boxShadow="xl" 
+          <Card
+            mb={6}
+            borderRadius="xl"
+            boxShadow="xl"
             p={{ base: 4, md: 6 }}
             bg={roomData.billStatus === 'unpaid' ? "red.50" : "white"}
             borderWidth="1px"
@@ -537,10 +537,10 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
                         เกินกำหนดชำระ {roomData.overdueDays} วัน
                       </Text>
                     )}
-                    <Button 
+                    <Button
                       mt={4}
-                      size="lg" 
-                      colorScheme="red" 
+                      size="lg"
+                      colorScheme="red"
                       rightIcon={<FaArrowRight />}
                       onClick={() => router.push(`/bill/${roomData.id}`)}
                     >
@@ -554,7 +554,7 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
                         <Text color="gray.600" fontSize="sm">สแกนเพื่อชำระเงิน</Text>
                         <Flex align="center" gap={2} mt={2}>
                           <Text color="gray.700" fontSize="md">{promptpayNumber}</Text>
-                          <Tooltip label="คัดลอกพร้อมเพย์" hasArrow><IconButton aria-label="คัดลอกพร้อมเพย์" icon={<FaCopy />} colorScheme="gray" size="xs" isRound onClick={() => {navigator.clipboard.writeText(promptpayNumber)}} /></Tooltip>
+                          <Tooltip label="คัดลอกพร้อมเพย์" hasArrow><IconButton aria-label="คัดลอกพร้อมเพย์" icon={<FaCopy />} colorScheme="gray" size="xs" isRound onClick={() => { navigator.clipboard.writeText(promptpayNumber) }} /></Tooltip>
                         </Flex>
                       </VStack>
                     ) : <Spinner />}
@@ -562,12 +562,12 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
                 </SimpleGrid>
               ) : (
                 <Center flexDirection="column" p={4}>
-                   <Icon as={FaCheckCircle} boxSize={12} color="green.500" mb={3} />
-                   <Heading size="md" color="green.700">ยอดล่าสุดชำระเรียบร้อยแล้ว</Heading>
-                   <Text color="gray.500" mt={1}>ไม่มีบิลค้างชำระในขณะนี้</Text>
-                   <Button mt={6} colorScheme="brand" variant="solid" onClick={() => router.push(`/bill/${roomData.id}`)}>
-                     ดูบิลล่าสุด
-                   </Button>
+                  <Icon as={FaCheckCircle} boxSize={12} color="green.500" mb={3} />
+                  <Heading size="md" color="green.700">ยอดล่าสุดชำระเรียบร้อยแล้ว</Heading>
+                  <Text color="gray.500" mt={1}>ไม่มีบิลค้างชำระในขณะนี้</Text>
+                  <Button mt={6} colorScheme="brand" variant="solid" onClick={() => router.push(`/bill/${roomData.id}`)}>
+                    ดูบิลล่าสุด
+                  </Button>
                 </Center>
               )}
             </CardBody>
@@ -917,8 +917,8 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
                   isRound
                 />
               )}
-              <Image 
-                src={selectedIssueImageUrls[currentIssueImageIndex] || ""} 
+              <Image
+                src={selectedIssueImageUrls[currentIssueImageIndex] || ""}
                 alt={`Issue Image ${currentIssueImageIndex + 1}`}
                 maxH="70vh"
                 maxW="full"
@@ -943,20 +943,20 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
       </Modal>
 
       {roomData && currentUser && (
-        <ReportIssueModal 
-          isOpen={isReportModalOpen} 
-          onClose={onReportModalClose} 
-          roomId={roomData.id} 
+        <ReportIssueModal
+          isOpen={isReportModalOpen}
+          onClose={onReportModalClose}
+          roomId={roomData.id}
           tenantId={currentUser.uid}
           tenantName={currentUser.name}
         />
       )}
 
       {roomData && currentUser && (
-        <ComplaintModal 
-          isOpen={isComplaintModalOpen} 
-          onClose={onComplaintModalClose} 
-          roomId={roomData.id} 
+        <ComplaintModal
+          isOpen={isComplaintModalOpen}
+          onClose={onComplaintModalClose}
+          roomId={roomData.id}
           tenantId={currentUser.uid}
           tenantName={currentUser.name}
         />
@@ -970,7 +970,7 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
           <ModalBody>
             {roomData?.assessmentFormUrl ? (
               <AspectRatio ratio={210 / 297}>
-                <iframe 
+                <iframe
                   src={`https://docs.google.com/gview?url=${encodeURIComponent(roomData.assessmentFormUrl)}&embedded=true`}
                   style={{ border: 'none' }}
                 />
