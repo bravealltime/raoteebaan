@@ -61,9 +61,9 @@ export default function BillDetail({ currentUser }: { currentUser: any }) {
         const tenantId = roomData?.tenantId;
 
         if (role !== 'admin' && role !== 'owner' && role !== 'user') {
-            toast({ title: "ไม่มีสิทธิ์เข้าถึง", status: "error" });
-            router.replace('/login');
-            return;
+          toast({ title: "ไม่มีสิทธิ์เข้าถึง", status: "error" });
+          router.replace('/login');
+          return;
         }
 
         if (role === 'owner' && ownerId !== uid) {
@@ -77,7 +77,7 @@ export default function BillDetail({ currentUser }: { currentUser: any }) {
           router.replace('/tenant-dashboard');
           return;
         }
-        
+
         const toDate = (firebaseDate: any): Date | null => {
           if (!firebaseDate) return null;
           if (firebaseDate.seconds) return new Date(firebaseDate.seconds * 1000);
@@ -110,7 +110,7 @@ export default function BillDetail({ currentUser }: { currentUser: any }) {
             ? latestExtraServices.map((svc: any) => ({ label: svc.label || "ค่าบริการเสริม", value: svc.value || 0 }))
             : [])
         ].filter(item => item.value > 0);
-        
+
         const total = items.reduce((sum, i) => sum + Number(i.value), 0);
 
         const calculateOverdueDays = (due: Date) => {
@@ -125,7 +125,7 @@ export default function BillDetail({ currentUser }: { currentUser: any }) {
         };
 
         const overdueDays = calculateOverdueDays(dueDate);
-        
+
         const formatDate = (dateObj: Date) => dateObj.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
         const finalBill = {
@@ -168,7 +168,7 @@ export default function BillDetail({ currentUser }: { currentUser: any }) {
     fetchBill();
   }, [roomId, currentUser, router, toast]);
 
-  
+
 
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).ThaiQRCode && bill?.promptpay && bill?.total) {
@@ -194,9 +194,9 @@ export default function BillDetail({ currentUser }: { currentUser: any }) {
     };
 
     checkAndGenerateQR();
-    
+
     const timer = setTimeout(checkAndGenerateQR, 1000);
-    
+
     return () => clearTimeout(timer);
   }, [bill?.promptpay, bill?.total, qr]);
 
@@ -212,155 +212,260 @@ export default function BillDetail({ currentUser }: { currentUser: any }) {
     return null;
   }
 
-  // ย้ายและเปลี่ยนเป็น function declaration
-  function renderPDFContent(qrOverride?: string | null) {
-    if (!bill) return null;
-    const isPaid = bill.billStatus === 'paid';
-    const a4Width = "794px";
-    const a4Height = "1122px";
 
-    return (
-      <Box 
-        bg="white" 
-        borderRadius="xl" 
-        p={10} 
-        m={0} 
-        boxShadow="md" 
-        minH={a4Height} 
-        minW={a4Width} 
-        maxW={a4Width} 
-        style={{ fontFamily: 'Kanit, sans-serif' }}
-      >
-        <VStack spacing={6} align="stretch" w="full">
-          {/* Header */}
-          <HStack justify="space-between" align="center" mb={2}>
-            <HStack spacing={3} align="center">
-              <Icon as={FaFileInvoice} w={10} h={10} color={isPaid ? "green.500" : "blue.500"} />
-              <Heading size="xl" color={isPaid ? "green.700" : "blue.700"} letterSpacing="wide">
-                {isPaid ? 'ใบเสร็จรับเงิน' : 'ใบแจ้งหนี้'}
-              </Heading>
-            </HStack>
-            <Badge 
-              colorScheme={isPaid ? 'green' : (bill.billStatus === 'pending' ? 'yellow' : 'red')} 
-              fontSize="lg" 
-              px={6} 
-              py={2} 
-              borderRadius="full"
-            >
-              {isPaid ? 'ชำระแล้ว' : (bill.billStatus === 'pending' ? 'รอตรวจสอบ' : 'ค้างชำระ')}
-            </Badge>
-          </HStack>
-          
-          <Divider />
 
-          {/* Bill Details */}
-          <SimpleGrid columns={2} spacing={6} mt={2}>
-            <VStack align="start" spacing={1} fontSize="md">
-              <Text><b>ห้อง:</b> {bill.room}</Text>
-              <Text><b>ผู้เช่า:</b> {bill.tenant}</Text>
-              <Text><b>วันที่ออกเอกสาร:</b> {bill.date}</Text>
-            </VStack>
-            <VStack align="end" spacing={1} fontSize="md">
-              <Text><b>เลขที่เอกสาร:</b> {bill.id}</Text>
-              {!isPaid && (
-                <Text><b>วันครบกำหนด:</b> <span style={{ color: '#e53e3e', fontWeight: 600 }}>{bill.dueDate}</span></Text>
-              )}
-              {isPaid && bill.paidAt && (
-                <Text><b>วันที่ชำระ:</b> {new Date(bill.paidAt.seconds * 1000).toLocaleDateString('th-TH')}</Text>
-              )}
-            </VStack>
-          </SimpleGrid>
-
-          <Divider mt={4} />
-
-          {/* Items Table */}
-          <Box mt={4}>
-            <Table variant="simple" size="md" w="full" borderWidth={1} borderColor="#e2e8f0">
-              <Thead bg="#f1f5f9">
-                <Tr>
-                  <Th fontSize="md" color="gray.700" borderColor="#e2e8f0">รายการ</Th>
-                  <Th fontSize="md" color="gray.700" borderColor="#e2e8f0" isNumeric>จำนวนเงิน (บาท)</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {bill.items.map((item: any, idx: number) => (
-                  <Tr key={idx}>
-                    <Td borderColor="#e2e8f0">{item.label}</Td>
-                    <Td borderColor="#e2e8f0" isNumeric>{item.value.toLocaleString()}</Td>
-                  </Tr>
-                ))}
-                <Tr>
-                  <Td fontWeight="bold" fontSize="lg" borderColor="#e2e8f0">ยอดรวมสุทธิ</Td>
-                  <Td fontWeight="bold" fontSize="lg" borderColor="#e2e8f0" isNumeric color={isPaid ? "green.700" : "blue.700"}>
-                    {bill.total.toLocaleString()}
-                  </Td>
-                </Tr>
-              </Tbody>
-            </Table>
-          </Box>
-
-          <Divider mt={4} />
-
-          {/* Footer */}
-          <HStack align="flex-end" justify="space-between" mt={8}>
-            <VStack align="start" spacing={2}>
-              {isPaid ? (
-                <Text fontSize="md" color="green.600">ขอขอบคุณที่ใช้บริการ</Text>
-              ) : (
-                <>
-                  <Text fontSize="md" color="gray.600">* กรุณาชำระเงินภายในวันครบกำหนด มิฉะนั้นจะมีค่าปรับตามเงื่อนไข</Text>
-                  {bill.overdueDays > 0 && (
-                    <Text fontSize="md" color="red.500">เลยกำหนด {bill.overdueDays} วัน</Text>
-                  )}
-                </>
-              )}
-            </VStack>
-            {!isPaid && (
-              <VStack align="center" spacing={2}>
-                {(qrOverride || qr) && (
-                  <Image src={qrOverride || qr} alt="PromptPay QR Code" boxSize="140px" borderRadius="md" border="1px solid #e2e8f0" />
-                )}
-                <Text fontSize="sm" color="gray.500">PromptPay: {bill.promptpay}</Text>
-                <Text fontSize="sm" color="gray.500">ยอดเงิน: {bill.total.toLocaleString()} บาท</Text>
-              </VStack>
-            )}
-          </HStack>
-        </VStack>
-      </Box>
-    );
-  }
-
-  const handleExportPDF = async () => {
-    if (!bill || !pdfRef.current) {
-        toast({
-            title: "Error",
-            description: "Bill data is not available for PDF export.",
-            status: "error",
-            duration: 3000,
-            isClosable: true,
-        });
-        return;
+  const handleExportPDF = () => {
+    if (!bill) {
+      toast({ title: "ไม่พบข้อมูลบิล", status: "error" });
+      return;
     }
 
-    const html2pdf = (await import('html2pdf.js')).default;
-    const element = pdfRef.current;
-
     const isPaid = bill.billStatus === 'paid';
-    const filename = isPaid 
-      ? `receipt_${bill.room}_${bill.date}.pdf` 
-      : `invoice_${bill.room}_${bill.date}.pdf`;
+    const statusColor = isPaid ? '#22c55e' : (bill.billStatus === 'pending' ? '#eab308' : '#ef4444');
+    const statusText = isPaid ? 'ชำระแล้ว' : (bill.billStatus === 'pending' ? 'รอตรวจสอบ' : 'ค้างชำระ');
+    const noteText = isPaid ? 'ใบเสร็จรับเงินฉบับนี้สมบูรณ์เมื่อบริษัทได้รับเงินเรียบร้อยแล้ว' : 'กรุณาชำระเงินตามยอดที่ระบุภายในวันครบกำหนดชำระ';
 
-    html2pdf().from(element).set({
-        margin: 0,
-        filename: filename,
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'pt', format: 'a4', orientation: 'portrait' }
-    }).save();
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>ใบเสร็จ/ใบแจ้งหนี้ - ${bill.room}</title>
+        <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <style>
+          body {
+            font-family: 'Sarabun', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: white;
+            color: #1a202c;
+            font-size: 14px;
+          }
+          .container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid #e2e8f0;
+            padding: 40px;
+            position: relative;
+          }
+          .header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 20px;
+          }
+          .logo-section h1 {
+            margin: 0;
+            font-size: 24px;
+            color: ${isPaid ? '#15803d' : '#1d4ed8'};
+          }
+          .logo-section p {
+            margin: 5px 0 0;
+            color: #64748b;
+          }
+          .status-badge {
+            background-color: ${statusColor};
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            height: fit-content;
+          }
+          .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+          }
+          .info-box h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #334155;
+            border-bottom: 1px solid #cbd5e1;
+            padding-bottom: 5px;
+          }
+          .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+          }
+          .info-label {
+            font-weight: 500;
+            color: #64748b;
+          }
+          .info-value {
+            font-weight: 600;
+            text-align: right;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+          }
+          th {
+            background-color: #f8fafc;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #e2e8f0;
+            color: #475569;
+            font-weight: bold;
+          }
+          td {
+            padding: 12px;
+            border-bottom: 1px solid #e2e8f0;
+          }
+          .col-amount {
+            text-align: right;
+          }
+          .total-row td {
+            border-top: 2px solid #e2e8f0;
+            font-weight: bold;
+            font-size: 18px;
+            color: #0f172a;
+            background-color: #f8fafc;
+          }
+          .footer {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+          }
+          .payment-info {
+            font-size: 12px;
+            color: #64748b;
+            max-width: 60%;
+          }
+          .signature-section {
+            text-align: center;
+            width: 200px;
+          }
+          .signature-line {
+            border-bottom: 1px solid #94a3b8;
+            margin: 40px 0 10px;
+          }
+          @media print {
+            body { padding: 0; }
+            .container { border: none; padding: 0; }
+            -webkit-print-color-adjust: exact;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo-section">
+              <h1>${isPaid ? 'ใบเสร็จรับเงิน' : 'ใบแจ้งหนี้'} (Receipt/Invoice)</h1>
+              <p>ห้องพักรายเดือน • Monthly Room Rental</p>
+            </div>
+            <div class="status-badge">
+              ${statusText}
+            </div>
+          </div>
+
+          <div class="info-grid">
+            <div class="info-box">
+              <h3>ข้อมูลผู้เช่า (Tenant)</h3>
+              <div class="info-row">
+                <span class="info-label">ห้องเลขที่:</span>
+                <span class="info-value">${bill.room}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">ชื่อผู้เช่า:</span>
+                <span class="info-value">${bill.tenant}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">ขนาดห้อง:</span>
+                <span class="info-value">${bill.area} ตร.ม.</span>
+              </div>
+            </div>
+            <div class="info-box">
+              <h3>ข้อมูลเอกสาร (Document)</h3>
+              <div class="info-row">
+                <span class="info-label">เลขที่เอกสาร:</span>
+                <span class="info-value">${bill.id.substring(0, 8).toUpperCase()}...</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">วันที่ออกเอกสาร:</span>
+                <span class="info-value">${bill.date}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">วันครบกำหนด:</span>
+                <span class="info-value" style="color: ${bill.overdueDays > 0 ? '#ef4444' : 'inherit'}">${bill.dueDate}</span>
+              </div>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 5%">#</th>
+                <th style="width: 65%">รายการ (Description)</th>
+                <th style="width: 30%; text-align: right;">จำนวนเงิน (Amount)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${bill.broughtForward > 0 ? `
+              <tr>
+                <td>-</td>
+                <td>ยอดยกมาจากเดือนก่อน (Brought Forward)</td>
+                <td class="col-amount">${bill.broughtForward.toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+              </tr>` : ''}
+              
+              ${bill.items.map((item: any, index: number) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${item.label}</td>
+                <td class="col-amount">${Number(item.value).toLocaleString('th-TH', { minimumFractionDigits: 2 })}</td>
+              </tr>
+              `).join('')}
+              
+              <tr class="total-row">
+                <td colspan="2" style="text-align: right;">ยอดรวมสุทธิ (Grand Total)</td>
+                <td class="col-amount">${bill.total.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="footer">
+            <div class="payment-info">
+              <p style="margin: 0; font-weight: bold;">หมายเหตุ:</p>
+              <p style="margin: 5px 0;">${noteText}</p>
+              ${!isPaid && bill.promptpay ? `<p style="margin-top: 10px;">ชำระเงินผ่าน PromptPay: <b>${bill.promptpay}</b></p>` : ''}
+            </div>
+            
+            <div class="signature-section">
+              <div class="signature-line"></div>
+              <p>ผู้รับเงิน / Collector</p>
+              <p style="font-size: 12px; color: #94a3b8;">${new Date().toLocaleDateString('th-TH')}</p>
+            </div>
+          </div>
+          
+          ${!isPaid && qr ? `
+          <div style="text-align: center; margin-top: 20px; padding: 20px; border: 1px dashed #cbd5e1; border-radius: 8px;">
+            <p style="margin-bottom: 10px; font-weight: bold;">สแกนจ่ายด้วย PromptPay</p>
+            <img src="${qr}" style="width: 120px; height: 120px;" />
+          </div>` : ''}
+
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+    } else {
+      toast({ title: "Pop-up ถูกบล็อก", description: "กรุณาอนุญาต Pop-up เพื่อพิมพ์เอกสาร", status: "warning" });
+    }
   };
 
   const handleUploadProof = async () => {
-    if (!proofFile || !bill) return;
-
     setUploadingProof(true);
     try {
       const storage = getStorage();
@@ -519,11 +624,11 @@ export default function BillDetail({ currentUser }: { currentUser: any }) {
           </HStack>
           <Badge colorScheme={
             bill.billStatus === 'paid' ? 'green' :
-            bill.billStatus === 'pending' ? 'yellow' : 'red'
+              bill.billStatus === 'pending' ? 'yellow' : 'red'
           } p={{ base: 2, md: 3 }} borderRadius="full" fontSize={{ base: "sm", md: "md" }}>
             สถานะ: {
               bill.billStatus === 'paid' ? 'ชำระแล้ว' :
-              bill.billStatus === 'pending' ? 'รอตรวจสอบ' : 'ค้างชำระ'
+                bill.billStatus === 'pending' ? 'รอตรวจสอบ' : 'ค้างชำระ'
             }
           </Badge>
         </Flex>
@@ -688,11 +793,7 @@ export default function BillDetail({ currentUser }: { currentUser: any }) {
 
   return (
     <>
-      <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>
-        <div ref={pdfRef}>
-            {bill && renderPDFContent(qr)}
-        </div>
-      </div>
+
       <Script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.5.0/qrcode.min.js" strategy="afterInteractive" />
       <Script src="/scripts/promptpay.js" strategy="afterInteractive" />
       {currentUser.role === 'user' ? (

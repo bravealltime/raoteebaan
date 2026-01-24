@@ -1169,6 +1169,14 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
     }
   };
 
+  const handleEquipmentChange = (index: number, field: string, value: string) => {
+    setEquipmentList(prev => {
+      const updatedList = [...prev];
+      updatedList[index] = { ...updatedList[index], [field]: value };
+      return updatedList;
+    });
+  };
+
   const handleDownloadEquipmentAssessment = () => {
     if (!selectedRoomForEquipment) {
       toast({ title: "กรุณาเลือกห้อง", status: "warning" });
@@ -1662,12 +1670,13 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
           <ModalBody>
             <VStack spacing={6} align="stretch" py={4}>
               <FormControl>
-                <FormLabel>เลือกห้องที่ต้องการตรวจสอบ</FormLabel>
+                <FormLabel fontWeight="bold">เลือกห้องที่ต้องการตรวจสอบ</FormLabel>
                 <Select
                   placeholder="-- เลือกห้องพัก --"
                   value={selectedRoomForEquipment}
                   onChange={(e) => setSelectedRoomForEquipment(e.target.value)}
                   size="lg"
+                  bg="white"
                 >
                   {rooms.map(room => (
                     <option key={room.id} value={room.id}>
@@ -1678,15 +1687,76 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
               </FormControl>
 
               {selectedRoomForEquipment && (
-                <Box bg="purple.50" p={4} borderRadius="lg" border="1px dashed" borderColor="purple.200">
-                  <VStack spacing={2} align="center" color="purple.700">
-                    <Icon as={FaFilePdf} w={8} h={8} />
-                    <Text fontWeight="bold">พร้อมดาวน์โหลดใบประเมิน</Text>
-                    <Text fontSize="sm" textAlign="center">
-                      ระบบจะสร้างไฟล์ PDF สำหรับห้อง {selectedRoomForEquipment} <br />
-                      ประกอบด้วยรายการอุปกรณ์ {equipmentList.length} รายการ
-                    </Text>
-                  </VStack>
+                <Box mt={4}>
+                  <Flex justify="space-between" align="center" mb={2}>
+                    <Text fontWeight="bold" color="purple.700">รายการอุปกรณ์ (แก้ไขได้)</Text>
+                    <Text fontSize="xs" color="gray.500">ทั้งหมด {equipmentList.length} รายการ</Text>
+                  </Flex>
+                  <Box overflowX="auto" border="1px solid" borderColor="gray.200" borderRadius="md" maxH="400px" overflowY="auto">
+                    <Table size="sm" variant="striped" colorScheme="purple">
+                      <Thead bg="purple.50" position="sticky" top={0} zIndex={1}>
+                        <Tr>
+                          <Th width="5%">#</Th>
+                          <Th width="30%">รายการ</Th>
+                          <Th width="20%">สถานะ</Th>
+                          <Th width="20%">สภาพ</Th>
+                          <Th width="25%">หมายเหตุ</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {equipmentList.map((item, index) => (
+                          <Tr key={index}>
+                            <Td>{index + 1}</Td>
+                            <Td fontWeight="medium">
+                              <Input
+                                size="sm"
+                                value={item.name}
+                                onChange={(e) => handleEquipmentChange(index, 'name', e.target.value)}
+                                bg="white"
+                                border="none"
+                                _focus={{ border: "1px solid", borderColor: "purple.400" }}
+                              />
+                            </Td>
+                            <Td>
+                              <Select
+                                size="sm"
+                                value={item.status}
+                                onChange={(e) => handleEquipmentChange(index, 'status', e.target.value)}
+                                bg="white"
+                              >
+                                <option value="ครบ">ครบ</option>
+                                <option value="ไม่ครบ">ไม่ครบ</option>
+                                <option value="ไม่มี">ไม่มี</option>
+                              </Select>
+                            </Td>
+                            <Td>
+                              <Select
+                                size="sm"
+                                value={item.condition}
+                                onChange={(e) => handleEquipmentChange(index, 'condition', e.target.value)}
+                                bg="white"
+                              >
+                                <option value="ดี">ดี</option>
+                                <option value="พอใช้">พอใช้</option>
+                                <option value="ชำรุด">ชำรุด</option>
+                                <option value="ใช้งานไม่ได้">ใช้งานไม่ได้</option>
+                              </Select>
+                            </Td>
+                            <Td>
+                              <Input
+                                size="sm"
+                                value={item.notes}
+                                onChange={(e) => handleEquipmentChange(index, 'notes', e.target.value)}
+                                placeholder="-"
+                                bg="white"
+                              />
+                            </Td>
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
+                  </Box>
+                  <Text fontSize="xs" color="gray.500" mt={2}>* คุณสามารถแก้ไขข้อมูลในตารางก่อนกดดาวน์โหลด PDF</Text>
                 </Box>
               )}
             </VStack>
