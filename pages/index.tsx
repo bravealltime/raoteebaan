@@ -296,7 +296,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
         billStatus: "paid",
         tenantId: tenantId,
         tenantEmail: roomData.tenantEmail || null,
-        ownerId: currentUser.uid || undefined,
+        ownerId: currentUser?.uid || undefined,
       };
 
       await setDoc(doc(db, "rooms", sanitizedRoomId), room);
@@ -714,7 +714,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
               billStatus: status === 'vacant' ? 'vacant' : 'unpaid',
               tenantId: null,
               tenantEmail: (row as any).tenantEmail || null,
-              ownerId: currentUser.uid || undefined,
+              ownerId: currentUser?.uid || undefined,
               extraServices: [], // Removed from import
             };
 
@@ -1092,7 +1092,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
     }
   };
 
-  const handleDownloadEquipmentAssessment = () => {
+  const handleOpenEquipmentModal = () => {
     setIsEquipmentModalOpen(true);
   };
 
@@ -1169,78 +1169,117 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
     }
   };
 
-  const handleConfirmEquipmentDownload = () => {
+  const handleDownloadEquipmentAssessment = () => {
     if (!selectedRoomForEquipment) {
       toast({ title: "กรุณาเลือกห้อง", status: "warning" });
       return;
     }
-    const equipmentData = {
-      roomId: selectedRoomForEquipment,
-      date: new Date().toLocaleDateString('th-TH'),
-      tenantName: rooms.find(r => r.id === selectedRoomForEquipment)?.tenantName || "ว่าง",
-      items: equipmentList.map(item => ({
-        name: item.name,
-        status: item.status,
-        condition: item.condition,
-        notes: item.notes,
-      }))
-    };
-    const pdf = new jsPDF();
-    pdf.setFont("Kanit-Regular");
-    pdf.setFontSize(20);
-    pdf.setTextColor(75, 0, 130);
-    pdf.text("ใบประเมินอุปกรณ์ในห้องพัก", 105, 20, { align: "center" });
-    pdf.setFontSize(14);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text(`ห้อง: ${equipmentData.roomId}`, 20, 45);
-    pdf.text(`ผู้เช่า: ${equipmentData.tenantName}`, 20, 55);
-    pdf.text(`วันที่ประเมิน: ${equipmentData.date}`, 20, 65);
-    pdf.setFillColor(75, 0, 130);
-    pdf.rect(20, 80, 170, 10, "F");
-    pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(11);
-    pdf.text("ลำดับ", 25, 87);
-    pdf.text("รายการอุปกรณ์", 45, 87);
-    pdf.text("สถานะ", 95, 87);
-    pdf.text("สภาพ", 120, 87);
-    pdf.text("หมายเหตุ", 150, 87);
-    pdf.setTextColor(0, 0, 0);
-    pdf.setFontSize(10);
-    equipmentData.items.forEach((item, index) => {
-      const y = 95 + (index * 10);
-      if (y > 250) {
-        pdf.addPage();
-        return;
-      }
-      pdf.text(`${index + 1}`, 25, y);
-      pdf.text(item.name, 45, y);
-      pdf.text(item.status, 95, y);
-      pdf.text(item.condition, 120, y);
-      pdf.text(item.notes || "-", 150, y);
-    });
-    const signatureY = 220;
-    pdf.setFontSize(12);
-    pdf.setTextColor(0, 0, 0);
-    pdf.text("ลายเซ็นผู้ประเมิน:", 20, signatureY);
-    pdf.text("ลายเซ็นผู้เช่า:", 110, signatureY);
-    pdf.line(20, signatureY + 10, 80, signatureY + 10);
-    pdf.line(110, signatureY + 10, 170, signatureY + 10);
-    pdf.setFontSize(10);
-    pdf.text("(_________________)", 20, signatureY + 25);
-    pdf.text("(_________________)", 110, signatureY + 25);
-    pdf.text("วันที่: _________________", 20, signatureY + 40);
-    pdf.text("วันที่: _________________", 110, signatureY + 40);
-    pdf.setFontSize(8);
-    pdf.setTextColor(100, 100, 100);
-    pdf.text("หมายเหตุ: ใบประเมินนี้เป็นเอกสารสำหรับตรวจสอบอุปกรณ์ในห้องพัก กรุณาตรวจสอบและเซ็นยืนยัน", 20, 270);
-    const fileName = `equipment-assessment-room-${selectedRoomForEquipment}-${new Date().toISOString().split('T')[0]}.pdf`;
-    pdf.save(fileName);
-    toast({ title: "ดาวน์โหลดใบประเมินอุปกรณ์สำเร็จ!", status: "success", duration: 3000 });
+
+    const room = rooms.find(r => r.id === selectedRoomForEquipment);
+    const tenantName = room?.tenantName || "ว่าง";
+    const date = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const printContent = `
+      <html>
+        <head>
+          <title>ใบประเมินอุปกรณ์ - ห้อง ${selectedRoomForEquipment}</title>
+          <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+          <style>
+            body { font-family: 'Sarabun', sans-serif; padding: 40px; font-size: 14px; }
+            h1 { text-align: center; color: #44337a; font-size: 24px; margin-bottom: 20px; }
+            .info-box { background-color: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0; }
+            .info-row { display: flex; margin-bottom: 8px; }
+            .info-label { font-weight: bold; width: 100px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+            th, td { border: 1px solid #cbd5e0; padding: 10px; text-align: left; }
+            th { background-color: #553c9a; color: white; }
+            tr:nth-child(even) { background-color: #f7fafc; }
+            .signatures { margin-top: 60px; display: flex; justify-content: space-between; }
+            .signature-block { text-align: center; width: 40%; }
+            .signature-line { border-bottom: 1px solid #000; margin-top: 40px; margin-bottom: 10px; height: 1px; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; }
+              @page { margin: 1cm; size: A4; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>ใบประเมินอุปกรณ์ในห้องพัก</h1>
+          
+          <div class="info-box">
+            <div class="info-row">
+              <span class="info-label">ห้อง:</span>
+              <span>${selectedRoomForEquipment}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">ผู้เช่า:</span>
+              <span>${tenantName}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">วันที่:</span>
+              <span>${date}</span>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 10%">ลำดับ</th>
+                <th style="width: 30%">รายการอุปกรณ์</th>
+                <th style="width: 15%">สถานะ</th>
+                <th style="width: 15%">สภาพ</th>
+                <th style="width: 30%">หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${equipmentList.map((item, index) => `
+                <tr>
+                  <td style="text-align: center;">${index + 1}</td>
+                  <td>${item.name}</td>
+                  <td style="text-align: center;">${item.status}</td>
+                  <td style="text-align: center;">${item.condition}</td>
+                  <td>${item.notes || '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <div class="signatures">
+            <div class="signature-block">
+              <p>ลงชื่อผู้ประเมิน</p>
+              <div class="signature-line"></div>
+              <p>(_____________________________)</p>
+              <p>วันที่ ______/______/__________</p>
+            </div>
+            <div class="signature-block">
+              <p>ลงชื่อผู้เช่า</p>
+              <div class="signature-line"></div>
+              <p>(_____________________________)</p>
+              <p>วันที่ ______/______/__________</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+        // Custom close behavior: ask user or close automatically? 
+        // Better to let user close or close after print dialog
+        // printWindow.close(); 
+      }, 500);
+      toast({ title: "สร้างใบประเมินสำเร็จ", status: "success" });
+    } else {
+      toast({ title: "Pop-up ถูกบล็อก", description: "กรุณาอนุญาต Pop-up เพื่อพิมพ์เอกสาร", status: "error" });
+    }
+
     setIsEquipmentModalOpen(false);
     setSelectedRoomForEquipment("");
-    setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 300);
   };
 
   const filteredRooms = rooms.filter(room => {
@@ -1322,7 +1361,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
                   </MenuButton>
                   <MenuList>
                     <MenuItem icon={<FaUpload />} onClick={() => setIsImportOpen(true)}>นำเข้าจาก CSV</MenuItem>
-                    <MenuItem icon={<FaFilePdf />} onClick={handleDownloadEquipmentAssessment}>ใบประเมินอุปกรณ์</MenuItem>
+                    <MenuItem icon={<FaFilePdf />} onClick={handleOpenEquipmentModal}>ใบประเมินอุปกรณ์</MenuItem>
                     <MenuItem icon={<FaPlus />} onClick={handleOpenMeterModal}>เพิ่มข้อมูลมิเตอร์ทั้งหมด</MenuItem>
                     <MenuItem icon={<FaBolt />} onClick={handleNotifyAllUnpaidRooms}>แจ้งเตือนห้องค้างชำระ</MenuItem>
                   </MenuList>
@@ -1478,14 +1517,22 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
           <ModalHeader>หลักฐานการชำระเงิน</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            {currentSlipUrl && <Image src={currentSlipUrl} alt="Payment Slip" objectFit="contain" />}
+            {currentSlipUrl && (
+              <Image
+                src={currentSlipUrl}
+                fallbackSrc="https://via.placeholder.com/400?text=Expired+Image"
+                alt="Payment Slip"
+                objectFit="contain"
+                onError={(e) => console.log("Image load failed", e)}
+              />
+            )}
           </ModalBody>
           <ModalFooter>
             <Button onClick={() => setIsSlipViewModalOpen(false)}>ปิด</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
-      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} userRole={role} ownerId={currentUser.uid || undefined} isCentered size={{ base: "full", md: "2xl" }} />
+      <AddRoomModal isOpen={isAddRoomOpen} onClose={() => setIsAddRoomOpen(false)} onAdd={handleAddRoom} userRole={role} ownerId={currentUser?.uid || undefined} isCentered size={{ base: "full", md: "2xl" }} />
       <EditRoomModal
         isOpen={!!editRoom}
         initialRoom={editRoom}
@@ -1610,13 +1657,50 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
       <Modal isOpen={isEquipmentModalOpen} onClose={() => setIsEquipmentModalOpen(false)} isCentered size={{ base: "full", md: "xl" }} scrollBehavior="inside">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Equipment Assessment</ModalHeader>
+          <ModalHeader>ใบประเมินอุปกรณ์</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            {/* ... Equipment Modal Content remains the same ... */}
+            <VStack spacing={6} align="stretch" py={4}>
+              <FormControl>
+                <FormLabel>เลือกห้องที่ต้องการตรวจสอบ</FormLabel>
+                <Select
+                  placeholder="-- เลือกห้องพัก --"
+                  value={selectedRoomForEquipment}
+                  onChange={(e) => setSelectedRoomForEquipment(e.target.value)}
+                  size="lg"
+                >
+                  {rooms.map(room => (
+                    <option key={room.id} value={room.id}>
+                      ห้อง {room.id} {room.tenantName ? `- ${room.tenantName}` : '(ว่าง)'}
+                    </option>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {selectedRoomForEquipment && (
+                <Box bg="purple.50" p={4} borderRadius="lg" border="1px dashed" borderColor="purple.200">
+                  <VStack spacing={2} align="center" color="purple.700">
+                    <Icon as={FaFilePdf} w={8} h={8} />
+                    <Text fontWeight="bold">พร้อมดาวน์โหลดใบประเมิน</Text>
+                    <Text fontSize="sm" textAlign="center">
+                      ระบบจะสร้างไฟล์ PDF สำหรับห้อง {selectedRoomForEquipment} <br />
+                      ประกอบด้วยรายการอุปกรณ์ {equipmentList.length} รายการ
+                    </Text>
+                  </VStack>
+                </Box>
+              )}
+            </VStack>
           </ModalBody>
           <ModalFooter>
-            <Button onClick={() => setIsEquipmentModalOpen(false)}>Cancel</Button>
+            <Button onClick={() => setIsEquipmentModalOpen(false)} mr={3}>ยกเลิก</Button>
+            <Button
+              colorScheme="purple"
+              leftIcon={<FaDownload />}
+              isDisabled={!selectedRoomForEquipment}
+              onClick={handleDownloadEquipmentAssessment}
+            >
+              ดาวน์โหลด PDF
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
