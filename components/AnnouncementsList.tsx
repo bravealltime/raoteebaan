@@ -24,16 +24,16 @@ interface AnnouncementsListProps {
 }
 
 const RoleIcon = ({ role }: { role: string }) => {
-    switch (role) {
-        case 'admin':
-            return <Icon as={FaUserShield} color="red.500" title="Admin" />;
-        case 'owner':
-            return <Icon as={FaUserCog} color="blue.500" title="Owner" />;
-        case 'employee':
-            return <Icon as={FaUserTie} color="green.500" title="Employee" />;
-        default:
-            return null;
-    }
+  switch (role) {
+    case 'admin':
+      return <Icon as={FaUserShield} color="red.500" title="Admin" />;
+    case 'owner':
+      return <Icon as={FaUserCog} color="blue.500" title="Owner" />;
+    case 'employee':
+      return <Icon as={FaUserTie} color="green.500" title="Employee" />;
+    default:
+      return null;
+  }
 }
 
 export default function AnnouncementsList({ currentUser }: AnnouncementsListProps) {
@@ -44,7 +44,7 @@ export default function AnnouncementsList({ currentUser }: AnnouncementsListProp
   const [selectedAnnouncementId, setSelectedAnnouncementId] = useState<string | null>(null);
 
   useEffect(() => {
-        const q = query(collection(db, 'announcements'), orderBy('createdAt', 'asc'));
+    const q = query(collection(db, 'announcements'), orderBy('createdAt', 'asc'));
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
       const announcementsData: Announcement[] = [];
@@ -63,9 +63,9 @@ export default function AnnouncementsList({ currentUser }: AnnouncementsListProp
       setAnnouncements(announcementsData);
       setLoading(false);
     }, (error) => {
-        console.error("Error fetching announcements: ", error);
-        toast({ title: 'Failed to load announcements', status: 'error' });
-        setLoading(false);
+      console.error("Error fetching announcements: ", error);
+      toast({ title: 'Failed to load announcements', status: 'error' });
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -92,9 +92,9 @@ export default function AnnouncementsList({ currentUser }: AnnouncementsListProp
 
   if (loading) {
     return (
-        <Center p={10}>
-            <Spinner />
-        </Center>
+      <Center p={10}>
+        <Spinner />
+      </Center>
     );
   }
 
@@ -112,51 +112,37 @@ export default function AnnouncementsList({ currentUser }: AnnouncementsListProp
             <Text color="gray.500">ยังไม่มีประกาศในขณะนี้</Text>
           </Center>
         ) : (
-          <Box w="full" overflow="hidden" position="relative" h="130px">
-            <motion.div
-              style={{ width: 'max-content' }}
-              animate={{
-                x: ['0%', '-50%'],
-              }}
-              transition={{
-                ease: 'linear',
-                duration: announcements.length * 7, // Adjust speed here
-                repeat: Infinity,
-              }}
-            >
-              <HStack spacing={4} >
-                {[...announcements, ...announcements].map((item, index) => (
-                  <Box key={`${item.id}-${index}`} flexShrink={0} w="320px" p={2}>
-                    <Box p={4} bg="gray.50" borderRadius="lg" position="relative" h="full">
-                      <Flex align="center" mb={1}>
-                        <RoleIcon role={item.authorRole} />
-                        <Text fontWeight="bold" color="brand.800" ml={2} noOfLines={1}>{item.title}</Text>
-                      </Flex>
-                      <Text color="gray.600" fontSize="sm" noOfLines={2}>{item.content}</Text>
-                      <Flex justify="space-between" align="center" mt={2}>
-                        <Text fontSize="xs" color="gray.500">โดย: {item.authorName}</Text>
-                        <Text fontSize="xs" color="gray.400" ml="auto">
-                          {item.createdAt?.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' })}
-                        </Text>
-                      </Flex>
-                      {(currentUser?.role === 'admin' || currentUser?.uid === item.authorId) && (
-                        <IconButton
-                          aria-label="Delete announcement"
-                          icon={<FaTrash />}
-                          size="xs"
-                          colorScheme="red"
-                          variant="ghost"
-                          position="absolute"
-                          top={1}
-                          right={1}
-                          onClick={() => handleDeleteClick(item.id)}
-                        />
-                      )}
-                    </Box>
-                  </Box>
-                ))}
-              </HStack>
-            </motion.div>
+          <Box w="full" maxH="400px" overflowY="auto" p={2}>
+            <VStack spacing={4} align="stretch">
+              {announcements.map((item) => (
+                <Box key={item.id} p={4} bg="gray.50" borderRadius="lg" position="relative" boxShadow="sm">
+                  <Flex align="center" mb={1}>
+                    <RoleIcon role={item.authorRole} />
+                    <Text fontWeight="bold" color="brand.800" ml={2} noOfLines={1}>{item.title}</Text>
+                  </Flex>
+                  <Text color="gray.600" fontSize="sm" whiteSpace="pre-wrap">{item.content}</Text>
+                  <Flex justify="space-between" align="center" mt={3}>
+                    <Text fontSize="xs" color="gray.500">โดย: {item.authorName}</Text>
+                    <Text fontSize="xs" color="gray.400" ml="auto">
+                      {item.createdAt?.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                  </Flex>
+                  {(currentUser?.role === 'admin' || currentUser?.uid === item.authorId) && (
+                    <IconButton
+                      aria-label="Delete announcement"
+                      icon={<FaTrash />}
+                      size="xs"
+                      colorScheme="red"
+                      variant="ghost"
+                      position="absolute"
+                      top={2}
+                      right={2}
+                      onClick={() => handleDeleteClick(item.id)}
+                    />
+                  )}
+                </Box>
+              ))}
+            </VStack>
           </Box>
         )}
       </CardBody>

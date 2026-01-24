@@ -17,33 +17,29 @@ const NavItem = ({ href, icon, children, onCloseMobileSidebar }) => {
   const isActive = router.pathname === href || (href !== "/" && router.pathname.startsWith(href));
 
   return (
-    <Link href={href} passHref legacyBehavior>
-      <motion.a
-        whileHover={{ x: 2 }}
-        style={{ textDecoration: "none", width: "100%" }}
-        >
-        <Button
-          as="div"
-          onClick={onCloseMobileSidebar} // Close sidebar on navigation
-          leftIcon={icon}
-          colorScheme={isActive ? "blue" : "gray"}
-          variant={isActive ? "solid" : "ghost"}
-          borderRadius="md"
-          fontWeight="medium"
-          w="full"
-          justifyContent="flex-start"
-          px={4}
-          py={3}
-          bg={isActive ? "blue.500" : "transparent"}
-          color={isActive ? "white" : "gray.700"}
-          _hover={{
-            bg: isActive ? "blue.600" : "gray.100",
-            color: isActive ? "white" : "gray.800",
-          }}
-        >
-          <Text ml={2}>{children}</Text>
-        </Button>
-      </motion.a>
+    <Link href={href || "#"} style={{ textDecoration: 'none', width: '100%' }}>
+      <Flex
+        align="center"
+        onClick={onCloseMobileSidebar}
+        p="3"
+        mx="0"
+        borderRadius="md"
+        role="group"
+        cursor="pointer"
+        bg={isActive ? "blue.500" : "transparent"}
+        color={isActive ? "white" : "gray.700"}
+        _hover={{
+          bg: isActive ? "blue.600" : "gray.100",
+          color: isActive ? "white" : "gray.800",
+        }}
+      >
+        {icon && (
+          <Box as="span" mr={2}>
+            {icon}
+          </Box>
+        )}
+        <Text fontWeight="medium" ml={2}>{children}</Text>
+      </Flex>
     </Link>
   );
 };
@@ -116,7 +112,7 @@ export default function Sidebar({ role, currentUser, onCloseMobileSidebar, onPro
       h="100vh"
     >
       <Heading size="md" color="blue.600" mb={8} mt={2} alignSelf="center">{role === "admin" ? "TeeRao Admin" : "TeeRao"}</Heading>
-      
+
       <VStack spacing={2} align="stretch" flex={1}>
         {navItems.map((item) => (
           <NavItem key={item.href} href={item.href} icon={item.icon} onCloseMobileSidebar={onCloseMobileSidebar}>
@@ -137,10 +133,10 @@ export default function Sidebar({ role, currentUser, onCloseMobileSidebar, onPro
             <Text fontSize="xs" color="gray.500">{role}</Text>
           </Box>
         </Flex>
-        <Button 
-          leftIcon={<FaSignOutAlt />} 
-          onClick={onOpen} 
-          variant="ghost" 
+        <Button
+          leftIcon={<FaSignOutAlt />}
+          onClick={onOpen}
+          variant="ghost"
           colorScheme="red"
           justifyContent="flex-start"
         >
