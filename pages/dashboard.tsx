@@ -1,4 +1,4 @@
-import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Image, InputGroup, InputRightElement, Container, VStack, Icon, HStack } from "@chakra-ui/react";
+import { Box, Heading, Button, SimpleGrid, useToast, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, useDisclosure, Input, IconButton, Flex, Text, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Menu, MenuButton, MenuList, MenuItem, Center, Spinner, Image, InputGroup, InputRightElement, Container, VStack, Icon, HStack, Divider } from "@chakra-ui/react";
 import { useEffect, useState, useRef, DragEvent } from "react";
 import { db, auth } from "../lib/firebase";
 import { collection, getDocs, deleteDoc, doc, setDoc, query, where, orderBy, limit, getDoc, Query } from "firebase/firestore";
@@ -92,13 +92,13 @@ function Dashboard({ currentUser, role }: DashboardProps) {
   useEffect(() => {
     const fetchUsers = async () => {
       const querySnapshot = await getDocs(collection(db, "users"));
-      const usersData = querySnapshot.docs.map(doc => ({...doc.data(), uid: doc.id}));
+      const usersData = querySnapshot.docs.map(doc => ({ ...doc.data(), uid: doc.id }));
       setUsers(usersData);
     };
     fetchUsers();
   }, []);
 
-  
+
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -124,21 +124,21 @@ function Dashboard({ currentUser, role }: DashboardProps) {
             limit(1)
           );
           const billSnap = await getDocs(q);
-        if (!billSnap.empty) {
-          const latestBill = billSnap.docs[0].data();
-          proofUrl = latestBill.proofUrl || null;
-          latestBillId = billSnap.docs[0].id;
-          // Update billStatus from the latest bill
-          billStatus = latestBill.status || d.billStatus || "paid";
-        } else {
-          billStatus = d.billStatus || "paid";
-        }
+          if (!billSnap.empty) {
+            const latestBill = billSnap.docs[0].data();
+            proofUrl = latestBill.proofUrl || null;
+            latestBillId = billSnap.docs[0].id;
+            // Update billStatus from the latest bill
+            billStatus = latestBill.status || d.billStatus || "paid";
+          } else {
+            billStatus = d.billStatus || "paid";
+          }
 
-        
 
-        return {
-          id: doc.id,
-          status: (d.status === "vacant" || !d.tenantName || !d.tenantId) ? "vacant" : "occupied",
+
+          return {
+            id: doc.id,
+            status: (d.status === "vacant" || !d.tenantName || !d.tenantId) ? "vacant" : "occupied",
             tenantName: d.tenantName || "-",
             tenantId: d.tenantId || undefined, // Add this line
             area: d.area || 0,
@@ -308,7 +308,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
         overdueDays: 0,
         billStatus: "paid",
       };
-      
+
       await setDoc(doc(db, "rooms", room.id), room);
       setRooms(prev => [...prev, room]);
       toast({ title: "เพิ่มห้องใหม่สำเร็จ", status: "success" });
@@ -554,7 +554,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
       toast({ title: "กรุณาเลือกห้อง", status: "warning" });
       return;
     }
-    
+
     const equipmentData = {
       roomId: selectedRoomForEquipment,
       date: new Date().toLocaleDateString('th-TH'),
@@ -574,19 +574,19 @@ function Dashboard({ currentUser, role }: DashboardProps) {
     };
 
     const pdf = new jsPDF();
-    
+
     pdf.setFont("helvetica");
-    
+
     pdf.setFontSize(20);
     pdf.setTextColor(75, 0, 130);
     pdf.text("ใบประเมินอุปกรณ์ในห้องพัก", 105, 20, { align: "center" });
-    
+
     pdf.setFontSize(12);
     pdf.setTextColor(0, 0, 0);
     pdf.text(`ห้อง: ${equipmentData.roomId}`, 20, 40);
     pdf.text(`ผู้เช่า: ${equipmentData.tenantName}`, 20, 50);
     pdf.text(`วันที่ประเมิน: ${equipmentData.date}`, 20, 60);
-    
+
     pdf.setFillColor(75, 0, 130);
     pdf.rect(20, 75, 170, 10, "F");
     pdf.setTextColor(255, 255, 255);
@@ -596,7 +596,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
     pdf.text("สถานะ", 100, 82);
     pdf.text("สภาพ", 130, 82);
     pdf.text("หมายเหตุ", 160, 82);
-    
+
     pdf.setTextColor(0, 0, 0);
     pdf.setFontSize(9);
     equipmentData.items.forEach((item, index) => {
@@ -605,37 +605,37 @@ function Dashboard({ currentUser, role }: DashboardProps) {
         pdf.addPage();
         return;
       }
-      
+
       pdf.text(`${index + 1}`, 25, y);
       pdf.text(item.name, 45, y);
       pdf.text(item.status, 100, y);
       pdf.text(item.condition, 130, y);
       pdf.text(item.notes || "-", 160, y);
     });
-    
+
     const signatureY = 220;
     pdf.setFontSize(12);
     pdf.setTextColor(0, 0, 0);
     pdf.text("ลายเซ็นผู้ประเมิน:", 20, signatureY);
     pdf.text("ลายเซ็นผู้เช่า:", 110, signatureY);
-    
+
     pdf.line(20, signatureY + 10, 80, signatureY + 10);
     pdf.line(110, signatureY + 10, 170, signatureY + 10);
-    
+
     pdf.setFontSize(10);
     pdf.text("(_________________)", 20, signatureY + 25);
     pdf.text("(_________________)", 110, signatureY + 25);
-    
+
     pdf.text("วันที่: _________________", 20, signatureY + 40);
     pdf.text("วันที่: _________________", 110, signatureY + 40);
-    
+
     pdf.setFontSize(8);
     pdf.setTextColor(100, 100, 100);
     pdf.text("หมายเหตุ: ใบประเมินนี้เป็นเอกสารสำหรับตรวจสอบอุปกรณ์ในห้องพัก กรุณาตรวจสอบและเซ็นยืนยัน", 20, 270);
-    
+
     const fileName = `equipment-assessment-room-${selectedRoomForEquipment}-${new Date().toISOString().split('T')[0]}.pdf`;
     pdf.save(fileName);
-    
+
     toast({ title: "ดาวน์โหลดใบประเมินอุปกรณ์สำเร็จ", status: "success" });
     setIsEquipmentModalOpen(false);
     setSelectedRoomForEquipment("");
@@ -668,11 +668,11 @@ function Dashboard({ currentUser, role }: DashboardProps) {
   const paymentsUnderReview = rooms.filter(r => r.proofUrl && r.proofUrl !== null).length;
   // Filter unpaid rooms based on billStatus from rooms collection
   const unpaidRooms = rooms.filter(room => room.billStatus === 'unpaid');
-  
+
   // Filter rooms based on filterType and search
   const getFilteredRooms = () => {
     let baseRooms: Room[] = [];
-    
+
     switch (filterType) {
       case 'unpaid':
         baseRooms = rooms.filter(room => room.billStatus === 'unpaid' && room.tenantId).sort((a, b) => b.overdueDays - a.overdueDays);
@@ -686,12 +686,12 @@ function Dashboard({ currentUser, role }: DashboardProps) {
       default:
         baseRooms = rooms;
     }
-    
+
     // Apply search filter
     const searchTerm = search.trim().toLowerCase();
     return baseRooms.filter(room => {
       return room.id.toLowerCase().includes(searchTerm) ||
-             room.tenantName.toLowerCase().includes(searchTerm);
+        room.tenantName.toLowerCase().includes(searchTerm);
     });
   };
 
@@ -701,7 +701,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
   const roomPaymentCards = filteredRooms.map(room => {
     const bill = roomBills[room.id];
     const total = bill?.total || room.latestTotal || 0;
-    
+
     // Determine status based on filterType and room data
     if (room.status === 'vacant') {
       return null; // Don't create a card for vacant rooms
@@ -725,7 +725,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
       electricity: bill?.electricityTotal || room.electricity || 0,
       water: bill?.waterTotal || room.water || 0,
       rent: bill?.rent || room.rent || 0,
-      
+
       onReview: status === "review" ? () => {
         if (room.proofUrl) {
           handleViewProof(room.proofUrl, room);
@@ -735,17 +735,17 @@ function Dashboard({ currentUser, role }: DashboardProps) {
         try {
           if (room.latestBillId) {
             // Remove proofUrl from the bill
-            await setDoc(doc(db, "bills", room.latestBillId), { 
-              proofUrl: null 
+            await setDoc(doc(db, "bills", room.latestBillId), {
+              proofUrl: null
             }, { merge: true });
-            
+
             // Update room's billStatus back to unpaid
-            await setDoc(doc(db, "rooms", room.id), { 
-              billStatus: "unpaid" 
+            await setDoc(doc(db, "rooms", room.id), {
+              billStatus: "unpaid"
             }, { merge: true });
-            
+
             toast({ title: `ย้อนกลับห้อง ${room.id} ไปค้างชำระสำเร็จ`, status: "success" });
-            
+
             // Refresh the page to update the data
             window.location.reload();
           }
@@ -758,21 +758,21 @@ function Dashboard({ currentUser, role }: DashboardProps) {
         try {
           if (room.latestBillId) {
             // Update bill status to paid and remove proofUrl
-            await setDoc(doc(db, "bills", room.latestBillId), { 
+            await setDoc(doc(db, "bills", room.latestBillId), {
               status: "paid",
               proofUrl: null,
               paidDate: new Date()
             }, { merge: true });
-            
+
             // Update room's billStatus to paid
-            await setDoc(doc(db, "rooms", room.id), { 
-              billStatus: "paid" 
+            await setDoc(doc(db, "rooms", room.id), {
+              billStatus: "paid"
             }, { merge: true });
-            
+
             toast({ title: `ยืนยันการชำระเงินห้อง ${room.id} สำเร็จ`, status: "success" });
-            
+
             // Update local state instead of reloading
-            setRooms(prevRooms => prevRooms.map(r => 
+            setRooms(prevRooms => prevRooms.map(r =>
               r.id === room.id ? { ...r, billStatus: 'paid', proofUrl: null } : r
             ));
             onProofModalClose(); // Close the proof modal if it's open
@@ -834,137 +834,146 @@ function Dashboard({ currentUser, role }: DashboardProps) {
       onProofModalClose={onProofModalClose}
       proofImageUrl={proofImageUrl}
     >
-      <Container maxW="container.2xl" py={{ base: 4, md: 6 }} px={{ base: 4, md: 6 }}>
-        <VStack spacing={6} align="stretch">
-          {/* Header */}
-          <Flex
-            direction={{ base: "column", md: "row" }}
-            justify="space-between"
-            align={{ base: "flex-start", md: "center" }}
-            gap={4}
-          >
-            <VStack align="flex-start" spacing={1}>
-              <Heading as="h1" size="lg" color="gray.800">
-                ภาพรวมระบบ
-              </Heading>
-              <Text color="gray.500">
-                ติดตามข้อมูลสำคัญทั้งหมดได้ในที่เดียว
-              </Text>
+      <Flex direction="column" h="full" maxH="calc(100vh - 80px)" gap={2} p={2}>
+        {/* Top Section: Header & Stats */}
+        <Box flexShrink={0}>
+          <Flex justify="space-between" align="center" mb={2}>
+            <VStack align="flex-start" spacing={0}>
+              <Heading as="h1" size="md" color="gray.800">ภาพรวมระบบ</Heading>
             </VStack>
           </Flex>
 
-          {/* Stats Grid */}
-          <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={5}>
+          {/* Stats Row (Horizontal Scroll) */}
+          <Flex
+            overflowX="auto"
+            pb={2}
+            gap={2}
+            sx={{
+              '&::-webkit-scrollbar': { display: 'none' },
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+          >
             <SummaryCard icon={FaHome} label="ห้องทั้งหมด" value={totalRooms} colorScheme="purple" />
             <SummaryCard icon={FaBed} label="ห้องมีผู้เช่า" value={availableRooms} colorScheme="blue" />
             <SummaryCard icon={FaBed} label="ห้องว่าง" value={vacantRooms} colorScheme="green" />
             <SummaryCard icon={FaFileInvoiceDollar} label="รอตรวจสอบ" value={paymentsUnderReview} colorScheme="yellow" />
-            <SummaryCard icon={FaInbox} label="กล่องข้อความ" value={inboxCount} colorScheme="pink" />
+            <SummaryCard icon={FaInbox} label="ข้อความ" value={inboxCount} colorScheme="pink" />
             <SummaryCard icon={FaBox} label="พัสดุ" value={parcelCount} colorScheme="orange" />
-            <SummaryCard icon={FaFileInvoiceDollar} label="รายรับที่คาดการณ์" value={`${monthlyIncome.toLocaleString()}`} suffix="บาท" colorScheme="cyan" />
-            <SummaryCard icon={FaCheckCircle} label="รายรับที่ได้รับ" value={`${monthlyPaid.toLocaleString()}`} suffix="บาท" colorScheme="teal" />
-          </SimpleGrid>
-          
-          {/* New layout for Charts, Announcements, and Complaints */}
-          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} alignItems="start">
-            {/* Left Column: Charts and Complaints */}
-            <VStack spacing={6} align="stretch">
-              <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-                <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
-                  <Heading size="sm" mb={4}>สถานะห้อง</Heading>
-                  <RoomStatusChart data={roomStatusData} />
-                </Box>
-                <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
-                  <Heading size="sm" mb={4}>สถานะการชำระเงิน</Heading>
-                  <PaymentStatusChart data={paymentStatusData} />
-                </Box>
-              </SimpleGrid>
-              <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
-                <ComplaintsList currentUser={currentUser} role={role as 'admin' | 'owner'} />
-              </Box>
-            </VStack>
+            <SummaryCard icon={FaFileInvoiceDollar} label="คาดการณ์" value={`${monthlyIncome.toLocaleString()}`} suffix="฿" colorScheme="cyan" />
+            <SummaryCard icon={FaCheckCircle} label="ได้รับแล้ว" value={`${monthlyPaid.toLocaleString()}`} suffix="฿" colorScheme="teal" />
+          </Flex>
+        </Box>
 
-            {/* Right Column: Announcements */}
-            <VStack spacing={6} align="stretch">
-              <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
-                <AddAnnouncementCard currentUser={currentUser} />
-              </Box>
-              <Box bg="white" borderRadius="xl" p={5} boxShadow="md">
-                <AnnouncementsList currentUser={currentUser} />
-              </Box>
-            </VStack>
-          </SimpleGrid>
-
-
-          {/* Main Content: Room List */}
-          <Box bg="white" borderRadius="xl" p={{ base: 4, md: 6 }} boxShadow="md">
-            <Flex direction={{ base: "column", md: "row" }} justify="space-between" align={{ base: "flex-start", md: "center" }} mb={5} gap={4}>
-              <VStack align="flex-start" spacing={1}>
-                <Heading as="h2" size="md" color="gray.700">
-                  {filterLabels[filterType]}
-                </Heading>
-                <Text color="gray.500" fontSize="sm">
-                  {
-                   filterType === 'review' ? `มี ${filteredRooms.length} รายการที่ต้องตรวจสอบ` :
-                   filterType === 'unpaid' ? `มี ${filteredRooms.length} ห้องที่ค้างชำระ` :
-                   filterType === 'vacant' ? `มี ${filteredRooms.length} ห้องว่าง` : `แสดงห้องทั้งหมด ${filteredRooms.length} ห้อง`
-                  }
-                </Text>
-              </VStack>
-              <Flex gap={3} w={{ base: "full", md: "auto" }} direction={{ base: "column", sm: "row" }}>
-                <InputGroup w={{ base: "full", md: "250px" }} size="sm">
-                   <Input
-                    placeholder="ค้นหาห้องหรือผู้เช่า..."
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    borderRadius="lg"
-                  />
-                </InputGroup>
-                <Menu>
-                  <MenuButton as={Button} rightIcon={<FaFilter />} colorScheme="gray" variant="outline" w={{ base: "full", sm: "auto" }} size="sm" borderRadius="lg">
-                    <Text as="span" isTruncated>ตัวกรอง: {filterLabels[filterType]}</Text>
-                  </MenuButton>
-                  <MenuList>
-                    <MenuItem onClick={() => setFilterType('unpaid')} fontWeight={filterType === 'unpaid' ? 'bold' : 'normal'}>ค้างชำระ</MenuItem>
-                    <MenuItem onClick={() => setFilterType('review')} fontWeight={filterType === 'review' ? 'bold' : 'normal'}>รอตรวจสอบ</MenuItem>
-                    <MenuItem onClick={() => setFilterType('vacant')} fontWeight={filterType === 'vacant' ? 'bold' : 'normal'}>ห้องว่าง</MenuItem>
-                    <MenuItem onClick={() => setFilterType('all')} fontWeight={filterType === 'all' ? 'bold' : 'normal'}>ทั้งหมด</MenuItem>
-                  </MenuList>
-                </Menu>
-                 {filterType === 'unpaid' && (
-                  <Button
-                    leftIcon={<FaBolt />}
-                    colorScheme="orange"
-                    size="sm"
-                    onClick={handleNotifyAllUnpaidRooms}
-                    borderRadius="lg"
-                  >
-                    แจ้งเตือนทั้งหมด
-                  </Button>
-                )}
+        {/* Bottom Section: Split View */}
+        <SimpleGrid columns={{ base: 1, xl: 3 }} spacing={4} flex="1" minH="0">
+          {/* Left Column: Room Management (2/3 width on large screens) */}
+          <Flex gridColumn={{ xl: "span 2" }} bg="white" borderRadius="xl" boxShadow="md" direction="column" overflow="hidden">
+            <Box p={3} borderBottom="1px" borderColor="gray.100" flexShrink={0}>
+              <Flex justify="space-between" align="center" gap={2} wrap="wrap">
+                <HStack>
+                  <Heading as="h2" size="sm" color="gray.700">{filterLabels[filterType]}</Heading>
+                  <Text color="gray.500" fontSize="xs">({filteredRooms.length})</Text>
+                </HStack>
+                <Flex gap={2}>
+                  <InputGroup size="sm" w="180px">
+                    <Input
+                      placeholder="ค้นหา..."
+                      value={search}
+                      onChange={e => setSearch(e.target.value)}
+                      borderRadius="md"
+                    />
+                    <InputRightElement><FaSearch color="gray" /></InputRightElement>
+                  </InputGroup>
+                  <Menu>
+                    <MenuButton as={Button} size="sm" rightIcon={<FaFilter />} variant="outline">ตัวกรอง</MenuButton>
+                    <MenuList>
+                      <MenuItem onClick={() => setFilterType('all')}>ทั้งหมด</MenuItem>
+                      <MenuItem onClick={() => setFilterType('unpaid')}>ค้างชำระ</MenuItem>
+                      <MenuItem onClick={() => setFilterType('review')}>รอตรวจสอบ</MenuItem>
+                      <MenuItem onClick={() => setFilterType('vacant')}>ห้องว่าง</MenuItem>
+                    </MenuList>
+                  </Menu>
+                  {filterType === 'unpaid' && (
+                    <Button leftIcon={<FaBolt />} colorScheme="orange" size="sm" onClick={handleNotifyAllUnpaidRooms}>
+                      แจ้งเตือน
+                    </Button>
+                  )}
+                </Flex>
               </Flex>
-            </Flex>
-            
-            {loading ? (
-              <Center h="200px">
-                <Spinner size="xl" color="purple.500" />
-              </Center>
-            ) : filteredRooms.length > 0 ? (
-              <RoomPaymentCardList rooms={roomPaymentCards} gridProps={{ columns: { base: 1, md: 2, lg: 3, xl: 4 }, spacing: 6 }} />
-            ) : (
-              <Center h="200px" bg="gray.50" borderRadius="lg">
-                <VStack spacing={4}>
-                  <Icon as={FaClipboardList} w={16} h={16} color="gray.300" />
-                  <Heading as="h3" size="md" color="gray.500">ไม่พบข้อมูล</Heading>
-                  <Text color="gray.400">ลองเปลี่ยนตัวกรองหรือคำค้นหาของคุณ</Text>
-                </VStack>
-              </Center>
-            )}
-          </Box>
-        </VStack>
-      </Container>
+            </Box>
 
-      <Modal isOpen={isProofModalOpen} onClose={onProofModalClose} isCentered size={{ base: "full", md: "xl" }}>
+            <Box
+              flex="1"
+              overflowY="auto"
+              p={3}
+              sx={{
+                '&::-webkit-scrollbar': { display: 'none' },
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+              }}
+            >
+              {loading ? (
+                <Center h="full"><Spinner /></Center>
+              ) : filteredRooms.length > 0 ? (
+                <RoomPaymentCardList
+                  rooms={roomPaymentCards}
+                  itemsPerPage={100} // Show all in scroll view
+                  gridProps={{ columns: { base: 1, lg: 2, xl: 3 }, spacing: 4 }}
+                />
+              ) : (
+                <Center h="full" flexDirection="column">
+                  <Icon as={FaClipboardList} boxSize={10} color="gray.300" />
+                  <Text color="gray.400" mt={2}>ไม่พบข้อมูล</Text>
+                </Center>
+              )}
+            </Box>
+          </Flex>
+
+          {/* Right Column: Info Panel */}
+          <Flex
+            direction="column"
+            gap={4}
+            overflowY="auto"
+            pr={1}
+            sx={{
+              '&::-webkit-scrollbar': { display: 'none' },
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+          >
+            {/* Charts */}
+            <Box bg="white" borderRadius="xl" p={3} boxShadow="md" flexShrink={0}>
+              <Heading size="xs" mb={3}>สถานะและยอดชำระ</Heading>
+              <VStack spacing={4} align="stretch">
+                <Box h="220px"><RoomStatusChart data={roomStatusData} /></Box>
+                <Divider />
+                <Box h="220px"><PaymentStatusChart data={paymentStatusData} /></Box>
+              </VStack>
+            </Box>
+
+            {/* News & Complaints */}
+            <Box bg="white" borderRadius="xl" p={3} boxShadow="md" flex="1" minH="300px">
+              <VStack align="stretch" spacing={4} h="full">
+                <Box flex="1">
+                  <Heading size="xs" mb={2}>ประกาศ/ข่าวสาร</Heading>
+                  <AddAnnouncementCard currentUser={currentUser} />
+                  <Box mt={2}>
+                    <AnnouncementsList currentUser={currentUser} />
+                  </Box>
+                </Box>
+                <Divider />
+                <Box flex="1">
+                  <Heading size="xs" mb={2}>ข้อร้องเรียน</Heading>
+                  <ComplaintsList currentUser={currentUser} role={role as 'admin' | 'owner'} />
+                </Box>
+              </VStack>
+            </Box>
+          </Flex>
+        </SimpleGrid>
+      </Flex>
+
+      <Modal isOpen={isProofModalOpen} onClose={onProofModalClose} isCentered size="xl">
         <ModalOverlay bg="blackAlpha.700" />
         <ModalContent>
           <ModalHeader>หลักฐานการชำระเงิน</ModalHeader>
@@ -974,7 +983,7 @@ function Dashboard({ currentUser, role }: DashboardProps) {
               <Image src={proofImageUrl} alt="Payment Proof" maxW="full" maxH="80vh" objectFit="contain" />
             )}
           </ModalBody>
-           <ModalFooter>
+          <ModalFooter>
             <Button colorScheme='red' mr={3} onClick={() => selectedRoomForProof?.latestBillId && handleRevertPayment(selectedRoomForProof.id, selectedRoomForProof.latestBillId)}>
               ปฏิเสธ
             </Button>
@@ -985,9 +994,9 @@ function Dashboard({ currentUser, role }: DashboardProps) {
         </ModalContent>
       </Modal>
 
-      <AddRoomModal isOpen={isOpen} onClose={onClose} onAdd={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} isCentered size={{ base: "full", md: "2xl" }} />
+      <AddRoomModal isOpen={isOpen} onClose={onClose} onAdd={handleAddRoom} lastWaterMeter={lastWaterMeter} lastElecMeter={lastElecMeter} isCentered size="2xl" />
       {editRoom && (
-        <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} users={users} isCentered size={{ base: "full", md: "2xl" }} />
+        <EditRoomModal isOpen={!!editRoom} onClose={() => setEditRoom(null)} initialRoom={editRoom} onSave={handleSaveEditRoom} users={users} isCentered size="2xl" />
       )}
 
       <AlertDialog
@@ -997,12 +1006,12 @@ function Dashboard({ currentUser, role }: DashboardProps) {
         isCentered
       >
         <AlertDialogOverlay>
-          <AlertDialogContent m={{ base: 4, md: "auto" }}>
+          <AlertDialogContent m="auto">
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
               ยืนยันการลบ
             </AlertDialogHeader>
             <AlertDialogBody>
-              คุณแน่ใจหรือไม่ว่าต้องการลบห้องนี้? การกระทำนี้ไม่สามารถย้อนกลับได้
+              คุณแน่ใจหรือไม่ว่าต้องการลบห้องนี้?
             </AlertDialogBody>
             <AlertDialogFooter>
               <Button ref={cancelRef} onClick={() => setIsDialogOpen(false)}>

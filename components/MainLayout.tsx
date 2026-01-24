@@ -76,10 +76,10 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
       convos.forEach(newConvo => {
         const oldConvo = prevConversationsRef.current.find(c => c.id === newConvo.id);
         if (newConvo.lastMessage && newConvo.lastMessage.text &&
-            (!oldConvo || JSON.stringify(newConvo.lastMessage) !== JSON.stringify(oldConvo.lastMessage)) &&
-            newConvo.lastMessage.senderId !== currentUser?.uid &&
-            newConvo.id !== selectedConversationId) {
-          
+          (!oldConvo || JSON.stringify(newConvo.lastMessage) !== JSON.stringify(oldConvo.lastMessage)) &&
+          newConvo.lastMessage.senderId !== currentUser?.uid &&
+          newConvo.id !== selectedConversationId) {
+
           const playPromise = notificationSoundRef.current?.play();
           if (playPromise !== undefined) {
             playPromise.catch(error => {
@@ -106,24 +106,26 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
   }, [currentUser, router.query.conversationId, toast]);
 
   return (
-    <Flex minH="100vh" bg="gray.100">
+    <Flex h="100vh" bg="gray.100" overflow="hidden">
       {/* Always show sidebar on non-mobile, regardless of showSidebar prop */}
       {showSidebar && !isMobile && <Sidebar role={role} currentUser={currentUser} onProfileOpen={onProfileOpen} />}
-      <Box flex={1} p={{ base: 4, md: 6 }}>
+      <Flex direction="column" flex={1} p={{ base: 4, md: 6 }} overflow="hidden">
         {currentUser && <AppHeader currentUser={currentUser} onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)} onProfileOpen={onProfileOpen} />}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={router.pathname}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
-            style={{ flex: 1 }}
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
-      </Box>
+        <Box flex={1} overflowY="auto" css={{ '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-track': { width: '6px' }, '&::-webkit-scrollbar-thumb': { background: '#CBD5E0', borderRadius: '24px' } }}>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={router.pathname}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+              style={{ height: '100%' }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </Box>
+      </Flex>
 
       {/* Mobile Sidebar Modal */}
       <Modal isOpen={isMobileSidebarOpen} onClose={onCloseMobileSidebar} size="full" motionPreset="slideInLeft">
@@ -136,7 +138,7 @@ export default function MainLayout({ children, role, currentUser, showSidebar = 
         </ModalContent>
       </Modal>
 
-      <Modal isOpen={isProofModalOpen || false} onClose={onProofModalClose || (() => {})} isCentered size="xl">
+      <Modal isOpen={isProofModalOpen || false} onClose={onProofModalClose || (() => { })} isCentered size="xl">
         <ModalOverlay />
         <ModalContent>
           <ModalCloseButton />

@@ -55,9 +55,9 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
   const router = useRouter();
   const cancelRef = useRef(null);
   const toast = useToast();
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -78,7 +78,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
   const [roomBills, setRoomBills] = useState<Record<string, any>>({});
   const [previousReadings, setPreviousReadings] = useState<Record<string, { electricity: number; water: number }>>({});
   const [usersMap, setUsersMap] = useState<Record<string, any>>({});
-  
+
   const [searchRoom, setSearchRoom] = useState("");
   const [filterType, setFilterType] = useState<'all' | 'unpaid' | 'vacant' | 'occupied'>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -120,7 +120,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
     onDetailsOpen();
   };
 
-  
+
 
   const fetchData = useCallback(async () => {
     if (!currentUser || !role) return;
@@ -214,7 +214,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
     }
   }, [currentUser, fetchData]);
 
-  
+
 
   const handleDelete = (id: string) => {
     setDeleteId(id);
@@ -239,17 +239,17 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
     try {
       const sanitizedRoomId = roomData.id.trim().replace(/[/\\.#$[\]]/g, '-');
       if (sanitizedRoomId !== roomData.id.trim()) {
-          toast({
-              title: "ชื่อห้องถูกปรับเปลี่ยน",
-              description: `อักขระที่ไม่ได้รับอนุญาตในชื่อห้องถูกเปลี่ยนเป็น '-'`,
-              status: "warning",
-              duration: 5000,
-              isClosable: true,
-          });
+        toast({
+          title: "ชื่อห้องถูกปรับเปลี่ยน",
+          description: `อักขระที่ไม่ได้รับอนุญาตในชื่อห้องถูกเปลี่ยนเป็น '-'`,
+          status: "warning",
+          duration: 5000,
+          isClosable: true,
+        });
       }
-      
+
       if (!sanitizedRoomId) {
-          throw new Error("Room ID cannot be empty.");
+        throw new Error("Room ID cannot be empty.");
       }
 
       let tenantId = null;
@@ -298,7 +298,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
         tenantEmail: roomData.tenantEmail || null,
         ownerId: currentUser.uid || undefined,
       };
-      
+
       await setDoc(doc(db, "rooms", sanitizedRoomId), room);
       setRooms(prev => [...prev, room]);
       toast({ title: "เพิ่มห้องใหม่สำเร็จ", status: "success" });
@@ -365,29 +365,29 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
 
         // At this point, res.ok is true. The API sends success: true for both new and existing users.
         if (data.user && data.user.uid) {
-            finalTenantId = data.user.uid;
-            if (data.isNewUser) {
-                toast({
-                    title: "สร้างบัญชีผู้เช่าใหม่สำเร็จ",
-                    description: `ส่งอีเมลสำหรับตั้งรหัสผ่านไปที่ ${editedRoom.tenantEmail} แล้ว`,
-                    status: "success",
-                    duration: 7000,
-                    isClosable: true,
-                });
-            } else {
-                toast({
-                    title: "ผู้เช่ามีบัญชีอยู่แล้ว",
-                    description: `ทำการเชื่อมโยงบัญชีกับห้องพักนี้เรียบร้อย`,
-                    status: "info",
-                    duration: 7000,
-                    isClosable: true,
-                });
-            }
+          finalTenantId = data.user.uid;
+          if (data.isNewUser) {
+            toast({
+              title: "สร้างบัญชีผู้เช่าใหม่สำเร็จ",
+              description: `ส่งอีเมลสำหรับตั้งรหัสผ่านไปที่ ${editedRoom.tenantEmail} แล้ว`,
+              status: "success",
+              duration: 7000,
+              isClosable: true,
+            });
+          } else {
+            toast({
+              title: "ผู้เช่ามีบัญชีอยู่แล้ว",
+              description: `ทำการเชื่อมโยงบัญชีกับห้องพักนี้เรียบร้อย`,
+              status: "info",
+              duration: 7000,
+              isClosable: true,
+            });
+          }
         } else {
-            // This would be an unexpected response from the API
-            throw new Error(data.error || 'Could not retrieve user information after creation.');
+          // This would be an unexpected response from the API
+          throw new Error(data.error || 'Could not retrieve user information after creation.');
         }
-        
+
         // For a newly created/linked tenant, set status to occupied and bill status to unpaid
         finalStatus = "occupied";
         finalBillStatus = "unpaid";
@@ -399,9 +399,9 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
       // 1. Handle previous tenant (if any) - clear their room link
       if (originalRoom.tenantId && originalRoom.tenantId !== finalTenantId) {
         const oldTenantUserRef = doc(db, "users", originalRoom.tenantId);
-        batch.update(oldTenantUserRef, { 
+        batch.update(oldTenantUserRef, {
           roomId: null,
-          roomNumber: null 
+          roomNumber: null
         });
       }
 
@@ -424,9 +424,9 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
 
         // Update the new tenant's user document with the new room ID
         const userRef = doc(db, "users", finalTenantId);
-        batch.update(userRef, { 
+        batch.update(userRef, {
           roomId: editedRoom.id,
-          roomNumber: editedRoom.id 
+          roomNumber: editedRoom.id
         });
       }
 
@@ -480,7 +480,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
     setPreviousReadings(readings);
     setIsMeterReadingModalOpen(true);
   };
-    const handleSaveMeterReadings = async (data: any) => {
+  const handleSaveMeterReadings = async (data: any) => {
     const { rates, recordDate, dueDate, readings } = data;
     const warnings: string[] = [];
     let successCount = 0;
@@ -549,11 +549,11 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
 
         const elecTotal = electricityUnit * rates.electricity;
         const waterTotal = waterUnit * rates.water;
-        
+
         const rent = roomData.rent || 0;
         const service = roomData.service || 0;
         const extraServicesTotal = (roomData.extraServices || []).reduce((sum: number, s: { value: number }) => sum + s.value, 0);
-        
+
         // The total for THIS billing period
         const currentPeriodTotal = elecTotal + waterTotal + rent + service + extraServicesTotal;
         // The final total including any outstanding balance
@@ -568,7 +568,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
           date: Timestamp.fromDate(new Date(recordDate)),
           dueDate: Timestamp.fromDate(new Date(dueDate)),
           status: "unpaid",
-          
+
           electricityMeterCurrent: newElec,
           electricityMeterPrev: prevElec,
           electricityRate: rates.electricity,
@@ -584,7 +584,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
           rent,
           service,
           extraServices: roomData.extraServices || [],
-          
+
           broughtForward: broughtForward, // Add brought forward amount
           previousUnpaidBills: previousUnpaidBills, // Add reference to old bills
           total: finalTotal, // Total is now the sum of current and previous balance
@@ -602,12 +602,12 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
           electricity: elecTotal, // Storing current period's value
           water: waterTotal,     // Storing current period's value
         });
-        
+
         successCount++;
       });
 
       await Promise.all(billPromises);
-      
+
       // Commit all the batched writes at once
       await batch.commit();
 
@@ -617,15 +617,15 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
         status: "success",
         duration: 5000,
       });
-      
+
       if (warnings.length > 0) {
-          toast({
-              title: "คำเตือน",
-              description: warnings.join(', '),
-              status: "warning",
-              duration: 10000,
-              isClosable: true
-          })
+        toast({
+          title: "คำเตือน",
+          description: warnings.join(', '),
+          status: "warning",
+          duration: 10000,
+          isClosable: true
+        })
       }
 
       setIsMeterReadingModalOpen(false);
@@ -685,10 +685,10 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
 
             const status = (row as any).status === "vacant" ? "vacant" : "occupied";
             const tenantName = (row as any).tenantName || "";
-            
+
             if (status === 'occupied' && !tenantName) {
-                errors.push(`ห้อง ${roomId}: ห้องมีคนอยู่แต่ไม่มีชื่อผู้เช่า จะข้ามการนำเข้า`);
-                continue;
+              errors.push(`ห้อง ${roomId}: ห้องมีคนอยู่แต่ไม่มีชื่อผู้เช่า จะข้ามการนำเข้า`);
+              continue;
             }
 
             const rent = Number((row as any).rent) || 0;
@@ -756,7 +756,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
                 }
               }
             }
-            
+
             batch.set(roomRef, newRoomData);
 
             if (status === 'occupied') {
@@ -789,7 +789,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
               const newBillRef = doc(collection(db, "bills"));
               batch.set(newBillRef, newBill);
             }
-            
+
             roomsToImport.push(newRoomData);
             successCount++;
           }
@@ -804,7 +804,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
               duration: 5000,
             });
           } else {
-             toast.update(toastId, {
+            toast.update(toastId, {
               title: "ไม่พบข้อมูลห้องที่สามารถนำเข้าได้",
               description: errors.join('\n') || "ตรวจสอบไฟล์ CSV ของคุณ",
               status: "warning",
@@ -873,14 +873,14 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
     });
 
     try {
-      
+
       // 1. Send slip to Discord via webhook
       const webhookUrl = process.env.NEXT_PUBLIC_DISCORD_WEBHOOK_URL;
       if (!webhookUrl) {
         console.error("Discord webhook URL is not configured.");
         throw new Error("Discord webhook URL is not configured.");
       }
-      
+
 
       const formData = new FormData();
       formData.append("file", file);
@@ -901,7 +901,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
         ],
       }));
 
-      
+
       const response = await fetch(webhookUrl, {
         method: "POST",
         body: formData,
@@ -912,20 +912,20 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
         console.error(`Discord API error: ${response.statusText}, Response: ${errorText}`);
         throw new Error(`Discord API error: ${response.statusText}`);
       }
-      
+
 
       const discordResponse = await response.json();
       const slipUrl = discordResponse.attachments?.[0]?.url;
-      
-      
+
+
 
       if (!slipUrl) {
         throw new Error("Could not get slip URL from Discord response.");
       }
-      
+
 
       // 2. Update Firestore bill status with the Discord URL
-      
+
       const latestBillQuery = query(
         collection(db, "bills"),
         where("roomId", "==", selectedRoomForSlip.id),
@@ -938,7 +938,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
         console.warn("No bill found for this room. Cannot update status.");
         throw new Error("No bill found for this room. Cannot update status.");
       }
-      
+
       const billDocRef = billSnap.docs[0].ref;
       await updateDoc(billDocRef, {
         paidAmount: amount,
@@ -949,7 +949,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
       await updateDoc(doc(db, "rooms", selectedRoomForSlip.id), {
         billStatus: "pending",
       });
-      
+
 
       toast.update(toastId, {
         title: "Upload Successful",
@@ -1011,8 +1011,8 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
       await batch.commit();
 
       // Update local state for immediate UI feedback
-      setRooms(prevRooms => 
-        prevRooms.map(room => 
+      setRooms(prevRooms =>
+        prevRooms.map(room =>
           room.id === roomId ? { ...room, billStatus: "paid" } : room
         )
       );
@@ -1068,8 +1068,8 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
         billStatus: "unpaid",
       });
 
-      setRooms(prevRooms => 
-        prevRooms.map(room => 
+      setRooms(prevRooms =>
+        prevRooms.map(room =>
           room.id === roomId ? { ...room, billStatus: "unpaid" } : room
         )
       );
@@ -1289,14 +1289,15 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
 
   return (
     <MainLayout role={role} currentUser={currentUser}>
-      <Container maxW="container.2xl" py={{ base: 4, md: 6 }} px={{ base: 4, md: 6 }}>
-        <VStack spacing={6} align="stretch">
-          {/* Header and Controls */}
+      <Flex direction="column" h="full" maxH="calc(100vh - 80px)" p={4} gap={4} overflow="hidden">
+        {/* Header and Controls */}
+        <Box flexShrink={0}>
           <Flex
             direction={{ base: "column", lg: "row" }}
             justify="space-between"
             align={{ base: "flex-start", lg: "center" }}
             gap={4}
+            mb={4}
           >
             <Box>
               <Heading as="h1" size="xl" fontWeight="bold" color="gray.800">
@@ -1331,39 +1332,43 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
           </Flex>
 
           {/* Filter and Search Bar */}
-          <Flex 
-            p={4} 
-            bg="white" 
-            borderRadius="xl" 
+          <Flex
+            p={4}
+            bg="white"
+            borderRadius="xl"
             boxShadow="sm"
             justify="space-between"
             align="center"
             direction={{ base: "column", md: "row" }}
             gap={4}
           >
-            <HStack spacing={4}>
-              <Button 
+            <HStack spacing={2} overflowX="auto" pb={1} w={{ base: "full", md: "auto" }}>
+              <Button
+                size="sm"
                 variant={filterType === 'all' ? 'solid' : 'ghost'}
                 colorScheme="purple"
                 onClick={() => setFilterType('all')}
               >
                 ทั้งหมด ({rooms.length})
               </Button>
-              <Button 
+              <Button
+                size="sm"
                 variant={filterType === 'occupied' ? 'solid' : 'ghost'}
                 colorScheme="purple"
                 onClick={() => setFilterType('occupied')}
               >
                 มีผู้เช่า ({rooms.filter(r => r.status === 'occupied').length})
               </Button>
-              <Button 
+              <Button
+                size="sm"
                 variant={filterType === 'vacant' ? 'solid' : 'ghost'}
                 colorScheme="purple"
                 onClick={() => setFilterType('vacant')}
               >
                 ห้องว่าง ({rooms.filter(r => r.status === 'vacant').length})
               </Button>
-              <Button 
+              <Button
+                size="sm"
                 variant={filterType === 'unpaid' ? 'solid' : 'ghost'}
                 colorScheme="red"
                 onClick={() => setFilterType('unpaid')}
@@ -1371,7 +1376,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
                 ค้างชำระ ({rooms.filter(r => r.billStatus === 'unpaid' && r.status === 'occupied').length})
               </Button>
             </HStack>
-            <InputGroup maxW={{ base: "full", md: "300px" }}>
+            <InputGroup maxW={{ base: "full", md: "300px" }} size="sm">
               <Input
                 placeholder="ค้นหาด้วยเลขห้อง หรือชื่อผู้เช่า..."
                 bg="gray.50"
@@ -1384,54 +1389,54 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
               </InputRightElement>
             </InputGroup>
           </Flex>
+        </Box>
 
-          {/* Rooms Grid */}
+        {/* Rooms Grid */}
+        <Box
+          flex="1"
+          overflowY="auto"
+          pr={2}
+          pb={4}
+          sx={{
+            '&::-webkit-scrollbar': { display: 'none' },
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
           {loading ? (
-            <Center h="40vh">
+            <Center h="full">
               <Spinner size="xl" color="purple.500" thickness="4px" />
             </Center>
           ) : paginatedRooms.length > 0 ? (
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-            >
-              <SimpleGrid minChildWidth="320px" spacingX={10} spacingY={12} py={4}>
-                {paginatedRooms.map(room => {
-                  const bill = roomBills[room.id];
-                  const electricity = bill?.electricityTotal || room.electricity || 0;
-                  const water = bill?.waterTotal || room.water || 0;
-                  const rent = room.rent || 0;
-                  const service = room.service || 0;
-                  const currentMonthTotal = electricity + water + rent + service;
-
-                  return (
-                    <motion.div variants={itemVariants} key={room.id}>
-                      <RoomCard
-                        id={room.id}
-                        tenantName={room.tenantName}
-                        latestTotal={room.latestTotal}
-                        billStatus={room.billStatus as any}
-                        isOccupied={room.status === 'occupied'}
-                        role={role}
-                        onViewDetails={() => handleViewDetails(room)}
-                        onDelete={() => handleDelete(room.id)}
-                        onViewBill={() => handleViewBill(room.id)}
-                        onAddData={() => handleAddData(room.id)}
-                        onSettings={() => handleSettings(room.id)}
-                        onUploadProof={() => handleOpenUploadSlipModal(room)}
-                        onViewProof={handleViewProof}
-                        slipUrl={bill?.slipUrl}
-                        onMarkAsPaid={() => handleMarkAsPaid(room.id)}
-                        onDeleteProof={() => handleDeleteProof(room.id)}
-                      />
-                    </motion.div>
-                  );
-                })}
-              </SimpleGrid>
-            </motion.div>
+            <SimpleGrid minChildWidth="300px" spacing={6}>
+              {paginatedRooms.map(room => {
+                const bill = roomBills[room.id];
+                return (
+                  <motion.div variants={itemVariants} key={room.id} layout>
+                    <RoomCard
+                      id={room.id}
+                      tenantName={room.tenantName}
+                      latestTotal={room.latestTotal}
+                      billStatus={room.billStatus as any}
+                      isOccupied={room.status === 'occupied'}
+                      role={role}
+                      onViewDetails={() => handleViewDetails(room)}
+                      onDelete={() => handleDelete(room.id)}
+                      onViewBill={() => handleViewBill(room.id)}
+                      onAddData={() => handleAddData(room.id)}
+                      onSettings={() => handleSettings(room.id)}
+                      onUploadProof={() => handleOpenUploadSlipModal(room)}
+                      onViewProof={handleViewProof}
+                      slipUrl={bill?.slipUrl}
+                      onMarkAsPaid={() => handleMarkAsPaid(room.id)}
+                      onDeleteProof={() => handleDeleteProof(room.id)}
+                    />
+                  </motion.div>
+                );
+              })}
+            </SimpleGrid>
           ) : (
-            <Center h="40vh" bg="gray.50" borderRadius="xl">
+            <Center h="full" bg="gray.50" borderRadius="xl">
               <VStack spacing={5}>
                 <Icon as={FaSearch} w={20} h={20} color="gray.300" />
                 <Heading as="h3" size="lg" color="gray.500">ไม่พบข้อมูลห้องพัก</Heading>
@@ -1439,21 +1444,21 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
               </VStack>
             </Center>
           )}
+        </Box>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <Flex justify="center" align="center" mt={6}>
-              <HStack spacing={2}>
-                <Button onClick={() => handlePageChange(1)} isDisabled={currentPage === 1} variant="outline" size="sm">หน้าแรก</Button>
-                <Button onClick={() => handlePageChange(currentPage - 1)} isDisabled={currentPage === 1} variant="outline" size="sm">ก่อนหน้า</Button>
-                <Text fontSize="sm" fontWeight="bold">หน้า {currentPage} จาก {totalPages}</Text>
-                <Button onClick={() => handlePageChange(currentPage + 1)} isDisabled={currentPage === totalPages} variant="outline" size="sm">ถัดไป</Button>
-                <Button onClick={() => handlePageChange(totalPages)} isDisabled={currentPage === totalPages} variant="outline" size="sm">หน้าสุดท้าย</Button>
-              </HStack>
-            </Flex>
-          )}
-        </VStack>
-      </Container>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <Flex justify="center" align="center" pt={2} flexShrink={0}>
+            <HStack spacing={2}>
+              <Button onClick={() => handlePageChange(1)} isDisabled={currentPage === 1} variant="outline" size="sm">หน้าแรก</Button>
+              <Button onClick={() => handlePageChange(currentPage - 1)} isDisabled={currentPage === 1} variant="outline" size="sm">ก่อนหน้า</Button>
+              <Text fontSize="sm" fontWeight="bold">หน้า {currentPage} จาก {totalPages}</Text>
+              <Button onClick={() => handlePageChange(currentPage + 1)} isDisabled={currentPage === totalPages} variant="outline" size="sm">ถัดไป</Button>
+              <Button onClick={() => handlePageChange(totalPages)} isDisabled={currentPage === totalPages} variant="outline" size="sm">หน้าสุดท้าย</Button>
+            </HStack>
+          </Flex>
+        )}
+      </Flex>
 
       {/* All Modals */}
       {selectedRoomForSlip && (
@@ -1509,10 +1514,10 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
       <Modal isOpen={isDetailsOpen} onClose={onDetailsClose} isCentered size="xl">
         <ModalOverlay backdropFilter='blur(3px)' />
         <ModalContent borderRadius="2xl" overflow="hidden">
-          <ModalHeader 
-            bg="purple.50" 
-            color="purple.800" 
-            px={6} 
+          <ModalHeader
+            bg="purple.50"
+            color="purple.800"
+            px={6}
             py={4}
             borderBottomWidth="1px"
             borderColor="purple.100"
@@ -1580,7 +1585,7 @@ function RoomsPage({ currentUser, role }: RoomsPageProps) {
           </ModalFooter>
         </ModalContent>
       </Modal>
-      <MeterReadingModal 
+      <MeterReadingModal
         isOpen={isMeterReadingModalOpen}
         onClose={() => setIsMeterReadingModalOpen(false)}
         onSave={handleSaveMeterReadings}

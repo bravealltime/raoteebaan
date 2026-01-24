@@ -50,8 +50,12 @@ export default function Sidebar({ role, currentUser, onCloseMobileSidebar, onPro
   const cancelRef = useRef(null);
 
   const handleLogout = async () => {
-    // Implement logout logic here
-    router.push("/login");
+    try {
+      await import("../lib/firebase").then(module => module.auth.signOut());
+      router.push("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
 
   const adminNavItems = [

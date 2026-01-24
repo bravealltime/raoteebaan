@@ -5,7 +5,8 @@ import { Box, Text } from '@chakra-ui/react';
 const COLORS = ['#4299E1', '#48BB78']; // Blue and Green from Chakra
 
 const RADIAN = Math.PI / 180;
-const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
+const renderCustomizedLabel = (props: any) => {
+  const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
@@ -23,8 +24,7 @@ const RoomStatusChart = ({ data }) => {
   }
 
   return (
-    <Box width="100%" height={300}>
-      <Text fontSize="2xl" mb={4} fontWeight="bold">สรุปสถานะห้องพัก</Text>
+    <Box width="100%" height="100%">
       <ResponsiveContainer>
         <PieChart>
           <Pie
@@ -33,7 +33,7 @@ const RoomStatusChart = ({ data }) => {
             cy="50%"
             labelLine={false}
             label={renderCustomizedLabel}
-            outerRadius={100}
+            outerRadius="80%"
             fill="#8884d8"
             dataKey="value"
             nameKey="name"
@@ -42,8 +42,8 @@ const RoomStatusChart = ({ data }) => {
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip wrapperStyle={{ fontSize: '16px' }} />
-          <Legend wrapperStyle={{ fontSize: '16px' }} />
+          <Tooltip wrapperStyle={{ fontSize: '12px' }} />
+          <Legend wrapperStyle={{ fontSize: '12px' }} />
         </PieChart>
       </ResponsiveContainer>
     </Box>

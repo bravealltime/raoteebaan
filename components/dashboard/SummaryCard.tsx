@@ -1,27 +1,28 @@
 import { Box, Flex, HStack, Icon, Text } from "@chakra-ui/react";
 
 const SummaryCard: React.FC<{ icon: React.ElementType; label: string; value: string | number; colorScheme?: string; suffix?: string; }> = ({ icon, label, value, colorScheme = "gray", suffix }) => (
-    <Box p={6} bg="white" borderRadius="xl" boxShadow="md" transition="all 0.2s" _hover={{ transform: "translateY(-4px)", boxShadow: "lg" }}>
+    <Box p={3} bg="white" borderRadius="lg" boxShadow="sm" transition="all 0.2s" _hover={{ transform: "translateY(-2px)", boxShadow: "md" }} minW="140px">
         <Flex align="center">
             <Flex
                 justify="center"
                 align="center"
-                w={16}
-                h={16}
-                borderRadius="lg"
+                w={10}
+                h={10}
+                borderRadius="md"
                 bg={`${colorScheme}.100`}
+                flexShrink={0}
             >
-                <Icon as={icon} w={8} h={8} color={`${colorScheme}.600`} />
+                <Icon as={icon} w={5} h={5} color={`${colorScheme}.600`} />
             </Flex>
-            <Box ml={5}>
-                <Text color="gray.600" fontSize="lg" fontWeight="medium" noOfLines={1}>
+            <Box ml={3} overflow="hidden">
+                <Text color="gray.600" fontSize="xs" fontWeight="medium" isTruncated>
                     {label}
                 </Text>
-                <HStack>
-                  <Text fontWeight="bold" fontSize="3xl" color="gray.800">
-                      {value}
-                  </Text>
-                  {suffix && <Text fontSize="lg" color="gray.600" alignSelf="flex-end">{suffix}</Text>}
+                <HStack spacing={1} align="baseline">
+                    <Text fontWeight="bold" fontSize="lg" color="gray.800" lineHeight="1">
+                        {value}
+                    </Text>
+                    {suffix && <Text fontSize="xs" color="gray.500">{suffix}</Text>}
                 </HStack>
             </Box>
         </Flex>

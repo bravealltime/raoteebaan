@@ -34,13 +34,13 @@ const statusMap = {
   paid: { label: "ชำระแล้ว", color: "green.500", bg: "green.50" },
 };
 
-export function RoomPaymentCard({ 
-  id, 
-  status, 
-  total, 
-  electricity, 
-  water, 
-  rent, 
+export function RoomPaymentCard({
+  id,
+  status,
+  total,
+  electricity,
+  water,
+  rent,
   onNotify,
   onReview,
   onRevert,
@@ -52,78 +52,78 @@ export function RoomPaymentCard({
 }: RoomPaymentCardProps) {
   const router = useRouter();
   const statusInfo = statusMap[status] || statusMap['unpaid'];
-  
+
   // Ensure all numeric values are numbers with defaults
   const safeTotal = typeof total === 'number' ? total : 0;
   const safeElectricity = typeof electricity === 'number' ? electricity : 0;
   const safeWater = typeof water === 'number' ? water : 0;
   const safeRent = typeof rent === 'number' ? rent : 0;
-  
+
   return (
     <Box
       bg="white"
-      borderRadius="2xl"
-      boxShadow="md"
+      borderRadius="xl"
+      boxShadow="sm"
       border="1px solid"
       borderColor="gray.100"
-      p={6}
+      p={3}
       w="100%"
       h="100%"
       display="flex"
       flexDirection="column"
-      gap={5}
+      gap={2}
       transition="all 0.2s"
       zIndex={1}
       _hover={{
-        boxShadow: "xl",
-        transform: "scale(1.02)",
+        boxShadow: "md",
+        transform: "scale(1.01)",
         zIndex: 10,
         borderColor: status === 'unpaid' ? 'red.200' : status === 'review' ? 'yellow.200' : 'orange.200',
         bg: status === 'unpaid' ? 'red.50' : status === 'review' ? 'yellow.50' : 'orange.50',
       }}
     >
       {/* Header Section */}
-      <Flex align="center" gap={4} mb={2}>
-        <Avatar icon={<FaDoorOpen />} bg="blue.100" color="blue.600" size="md" />
+      <Flex align="center" gap={3} mb={1}>
+        <Avatar icon={<FaDoorOpen />} bg="blue.100" color="blue.600" size="sm" />
         <Box>
-          <Text fontWeight="bold" fontSize="xl" color="gray.800">{roomType} {id}</Text>
-          <Text fontWeight="semibold" fontSize="md" color={statusInfo.color}>{statusInfo.label}</Text>
+          <Text fontWeight="bold" fontSize="md" color="gray.800" lineHeight="1.2">{roomType} {id}</Text>
+          <Badge colorScheme={statusInfo.color.split('.')[0]} fontSize="xs">{statusInfo.label}</Badge>
         </Box>
       </Flex>
-      <Box mb={2}>
-        <Text fontSize="md" color="gray.600" noOfLines={1} isTruncated>{tenantName}</Text>
-        <Flex gap={6} mt={2}>
+      <Box mb={1}>
+        <Text fontSize="sm" color="gray.600" noOfLines={1} isTruncated fontWeight="medium">{tenantName}</Text>
+        <Flex gap={4} mt={1}>
           <Box>
-            <Text fontSize="sm" color="gray.500">ครบกำหนด</Text>
-            <Text fontWeight="medium" color="gray.700" fontSize="md">{dueDate}</Text>
+            <Text fontSize="xs" color="gray.500">ครบกำหนด</Text>
+            <Text fontWeight="medium" color="gray.700" fontSize="xs">{dueDate}</Text>
           </Box>
           <Box>
-            <Text fontSize="sm" color="gray.500">มิเตอร์ล่าสุด</Text>
-            <Text fontWeight="medium" color="gray.700" fontSize="md">{lastReading}</Text>
+            <Text fontSize="xs" color="gray.500">มิเตอร์ล่าสุด</Text>
+            <Text fontWeight="medium" color="gray.700" fontSize="xs">{lastReading}</Text>
           </Box>
         </Flex>
       </Box>
-      <Flex align="center" gap={8} mt={2} mb={2}>
-        <Box>
-          <Text fontSize="md" color="gray.500">ไฟฟ้า</Text>
-          <Text fontWeight="bold" color="yellow.600" fontSize="lg">฿{safeElectricity.toLocaleString()}</Text>
+      <Flex align="center" justify="space-between" mt={1} mb={1} px={1}>
+        <Box textAlign="center">
+          <Text fontSize="xs" color="gray.500">ไฟฟ้า</Text>
+          <Text fontWeight="bold" color="yellow.600" fontSize="sm">฿{safeElectricity.toLocaleString()}</Text>
         </Box>
-        <Box>
-          <Text fontSize="md" color="gray.500">น้ำ</Text>
-          <Text fontWeight="bold" color="blue.600" fontSize="lg">฿{safeWater.toLocaleString()}</Text>
+        <Box textAlign="center">
+          <Text fontSize="xs" color="gray.500">น้ำ</Text>
+          <Text fontWeight="bold" color="blue.600" fontSize="sm">฿{safeWater.toLocaleString()}</Text>
         </Box>
-        <Box>
-          <Text fontSize="md" color="gray.500">ค่าเช่า</Text>
-          <Text fontWeight="bold" color="gray.700" fontSize="lg">฿{safeRent.toLocaleString()}</Text>
+        <Box textAlign="center">
+          <Text fontSize="xs" color="gray.500">ค่าเช่า</Text>
+          <Text fontWeight="bold" color="gray.700" fontSize="sm">฿{safeRent.toLocaleString()}</Text>
         </Box>
       </Flex>
-      <Box bg={statusInfo.bg} p={4} borderRadius="lg" mb={2}>
+      <Box bg={statusInfo.bg} p={2} borderRadius="md" mb={1}>
         <Flex align="center" justify="space-between">
-          <Flex align="center" gap={2}>
-            <FaExclamationTriangle color={statusInfo.color} size={18} />
-            <Text fontWeight="bold" color="gray.800" fontSize="lg">รวมทั้งหมด</Text>
+          <Flex align="center" gap={1}>
+            <FaExclamationTriangle color={statusInfo.color} size={14} />
+            <Text fontWeight="bold" color="gray.800" fontSize="sm">รวม</Text>
           </Flex>
-          <Text fontWeight="bold" color={statusInfo.color} fontSize="2xl">฿{safeTotal.toLocaleString()}</Text>
+          <Text fontWeight="bold" color={statusInfo.color} fontSize="lg">฿{safeTotal.toLocaleString()}</Text>
         </Flex>
       </Box>
       {status === 'review' ? (
@@ -137,8 +137,8 @@ export function RoomPaymentCard({
             size="lg"
             fontSize="lg"
             py={6}
-            onClick={e => { 
-              e.stopPropagation(); 
+            onClick={e => {
+              e.stopPropagation();
               if (onReview) {
                 onReview();
               }
@@ -158,8 +158,8 @@ export function RoomPaymentCard({
               size="md"
               fontSize="md"
               py={4}
-              onClick={e => { 
-                e.stopPropagation(); 
+              onClick={e => {
+                e.stopPropagation();
                 if (onConfirmPayment) {
                   onConfirmPayment();
                 }
@@ -178,8 +178,8 @@ export function RoomPaymentCard({
               size="md"
               fontSize="md"
               py={4}
-              onClick={e => { 
-                e.stopPropagation(); 
+              onClick={e => {
+                e.stopPropagation();
                 if (onRevert) {
                   onRevert();
                 }
@@ -215,8 +215,8 @@ export function RoomPaymentCard({
           size="lg"
           fontSize="lg"
           py={6}
-          onClick={e => { 
-            e.stopPropagation(); 
+          onClick={e => {
+            e.stopPropagation();
             onNotify();
           }}
           _hover={{ transform: "translateY(-1px)" }}
@@ -231,10 +231,10 @@ export function RoomPaymentCard({
 
 export default function RoomPaymentCardList({ rooms = [], itemsPerPage = 4, gridProps = {} }: RoomPaymentCardListProps) {
   const [currentPage, setCurrentPage] = useState(1);
-  
+
   const safeRooms = Array.isArray(rooms) ? rooms : [];
   const totalPages = Math.ceil(safeRooms.length / itemsPerPage);
-  
+
   const currentRooms = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
@@ -274,7 +274,7 @@ export default function RoomPaymentCardList({ rooms = [], itemsPerPage = 4, grid
               isDisabled={currentPage === 1}
               colorScheme="blue"
             />
-            
+
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
               <Button
                 key={page}
@@ -286,7 +286,7 @@ export default function RoomPaymentCardList({ rooms = [], itemsPerPage = 4, grid
                 {page}
               </Button>
             ))}
-            
+
             <IconButton
               aria-label="Next page"
               icon={<FaChevronRight />}

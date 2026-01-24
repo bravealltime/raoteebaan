@@ -1,15 +1,15 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/router";
 import { auth, db, storage } from "../lib/firebase";
-import { 
-  doc, 
-  getDoc, 
-  collection, 
-  getDocs, 
-  query, 
-  where, 
-  orderBy, 
-  updateDoc, 
+import {
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  updateDoc,
   addDoc,
   deleteDoc,
   Timestamp,
@@ -17,34 +17,34 @@ import {
   deleteField
 } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { 
-  Box, 
-  Flex, 
-  Heading, 
-  Text, 
-  Center, 
-  Spinner, 
-  Grid, 
-  Badge, 
-  Stat, 
-  StatLabel, 
-  StatNumber, 
-  StatHelpText, 
-  Button, 
-  Icon, 
-  Modal, 
-  ModalOverlay, 
-  ModalContent, 
-  ModalHeader, 
-  ModalCloseButton, 
-  ModalBody, 
-  Table, 
-  Thead, 
-  Tbody, 
-  Tr, 
-  Th, 
-  Td, 
-  useDisclosure, 
+import {
+  Box,
+  Flex,
+  Heading,
+  Text,
+  Center,
+  Spinner,
+  Grid,
+  Badge,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  Button,
+  Icon,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  useDisclosure,
   useToast,
   Select,
   Input,
@@ -58,12 +58,12 @@ import {
   Image,
   AspectRatio
 } from "@chakra-ui/react";
-import { 
-  FaBox, 
-  FaCheckCircle, 
-  FaClock, 
-  FaExclamationTriangle, 
-  FaPlus, 
+import {
+  FaBox,
+  FaCheckCircle,
+  FaClock,
+  FaExclamationTriangle,
+  FaPlus,
   FaEye,
   FaEdit,
   FaTrash,
@@ -155,7 +155,7 @@ export default function Parcel() {
       const snap = await getDoc(doc(db, "users", u.uid));
       const userData = snap.exists() ? snap.data() : null;
       const userRole = userData?.role || "user";
-      
+
       setCurrentUser({
         uid: u.uid,
         ...userData,
@@ -163,7 +163,7 @@ export default function Parcel() {
         photoURL: userData?.avatar || u.photoURL || undefined,
       });
       setRole(userRole);
-      
+
       if (!["admin", "owner"].includes(userRole)) {
         router.replace("/login");
       }
@@ -222,7 +222,7 @@ export default function Parcel() {
               where("roomId", "in", batchRoomIds)
               // Removed orderBy to avoid requiring composite index
             );
-            
+
             const unsubscribe = onSnapshot(parcelsQuery, (snapshot) => {
               const batchParcelsData: Parcel[] = snapshot.docs.map(doc => {
                 const data = doc.data() as any;
@@ -232,21 +232,21 @@ export default function Parcel() {
                   roomNumber: roomsData.find(room => room.id === data.roomId)?.id || data.roomId
                 } as Parcel;
               });
-              
+
               // Remove previous data from this batch and add new data
               allParcels = allParcels.filter(p => !batchRoomIds.includes(p.roomId));
               allParcels = [...allParcels, ...batchParcelsData];
-              
+
               // Sort by receivedDate descending after fetching (client-side sorting)
               allParcels.sort((a, b) => {
                 const aTime = a.receivedDate?.toMillis ? a.receivedDate.toMillis() : 0;
                 const bTime = b.receivedDate?.toMillis ? b.receivedDate.toMillis() : 0;
                 return bTime - aTime;
               });
-              
+
               setParcels(allParcels);
-              
-              
+
+
             }, (error) => {
               console.error("Error in parcel snapshot listener:", error);
               // Don't show error to user for missing collection, just continue with empty data
@@ -324,9 +324,9 @@ export default function Parcel() {
         pending: parcels.filter(p => p.status === "pending").length,
         received: parcels.filter(p => p.status === "received").length,
         delivered: parcels.filter(p => p.status === "delivered").length,
-        overdue: parcels.filter(p => 
-          p.status === "received" && 
-          p.receivedDate?.toDate && 
+        overdue: parcels.filter(p =>
+          p.status === "received" &&
+          p.receivedDate?.toDate &&
           p.receivedDate.toDate() < threeDaysAgo
         ).length
       };
@@ -404,7 +404,7 @@ export default function Parcel() {
     try {
       for (const newParcel of newParcels) {
         const selectedRoomData = rooms.find(room => room.id === newParcel.roomId);
-        
+
         const docRef = await addDoc(collection(db, "parcels"), {
           roomId: newParcel.roomId,
           roomNumber: newParcel.roomId,
@@ -468,7 +468,7 @@ export default function Parcel() {
       }
 
       await updateDoc(doc(db, "parcels", parcelId), updateData);
-      
+
       toast({
         title: "อัปเดตสถานะสำเร็จ",
         status: "success",
@@ -489,12 +489,12 @@ export default function Parcel() {
 
   const handleDeleteParcel = async (parcelId: string) => {
     const confirmed = confirm("คุณแน่ใจหรือไม่ที่จะลบพัสดุนี้? การกระทำนี้ไม่สามารถยกเลิกได้");
-    
+
     if (!confirmed) return;
 
     try {
       await deleteDoc(doc(db, "parcels", parcelId));
-      
+
       toast({
         title: "ลบพัสดุสำเร็จ",
         status: "success",
@@ -533,19 +533,19 @@ export default function Parcel() {
 
   const getRoomsWithParcels = () => {
     const roomsWithParcels = rooms.filter(room => {
-      const roomParcelsCount = parcels.filter(p => 
+      const roomParcelsCount = parcels.filter(p =>
         p.roomId === room.id && p.status !== "delivered"
       ).length;
       return roomParcelsCount > 0;
     });
 
     return roomsWithParcels.map(room => {
-      const roomParcelsData = parcels.filter(p => 
+      const roomParcelsData = parcels.filter(p =>
         p.roomId === room.id && p.status !== "delivered"
       );
       const pendingCount = roomParcelsData.filter(p => p.status === "pending").length;
       const receivedCount = roomParcelsData.filter(p => p.status === "received").length;
-      
+
       return {
         ...room,
         parcelCount: roomParcelsData.length,
@@ -557,41 +557,70 @@ export default function Parcel() {
 
   const getAllRoomsWithParcelData = () => {
     return rooms.map(room => {
-      const roomParcelsData = parcels.filter(p => 
+      const roomParcelsData = parcels.filter(p =>
         p.roomId === room.id && p.status !== "delivered"
       );
       const pendingCount = roomParcelsData.filter(p => p.status === "pending").length;
       const receivedCount = roomParcelsData.filter(p => p.status === "received").length;
-      
+
+      // Find the oldest parcel date
+      let oldestParcelDate = Infinity;
+      if (roomParcelsData.length > 0) {
+        roomParcelsData.forEach(p => {
+          const date = p.receivedDate?.toMillis ? p.receivedDate.toMillis() : 0;
+          if (date < oldestParcelDate && date > 0) {
+            oldestParcelDate = date;
+          }
+        });
+      }
+
       return {
         ...room,
         parcelCount: roomParcelsData.length,
         pendingCount,
-        receivedCount
+        receivedCount,
+        oldestParcelDate: oldestParcelDate === Infinity ? 0 : oldestParcelDate
       };
     });
   };
 
   const getFilteredRooms = () => {
     const allRoomsWithData = getAllRoomsWithParcelData();
-    
+
     let filteredRooms = allRoomsWithData;
-    
+
     // Filter by parcel status
     if (roomFilter === "with-parcels") {
       filteredRooms = filteredRooms.filter(room => room.parcelCount > 0);
     }
-    
+
     // Filter by search term
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase().trim();
-      filteredRooms = filteredRooms.filter(room => 
+      filteredRooms = filteredRooms.filter(room =>
         room.id.toLowerCase().includes(searchLower) ||
         room.tenantName.toLowerCase().includes(searchLower)
       );
     }
-    
-    return filteredRooms.sort((a, b) => a.id.localeCompare(b.id));
+
+    return filteredRooms.sort((a, b) => {
+      // 1. Comparison by "Has Parcels"
+      const aHasParcels = a.parcelCount > 0;
+      const bHasParcels = b.parcelCount > 0;
+
+      if (aHasParcels && !bHasParcels) return -1;
+      if (!aHasParcels && bHasParcels) return 1;
+
+      // 2. If both have parcels, sort by "Longest Wait" (Oldest date first)
+      if (aHasParcels && bHasParcels) {
+        if (a.oldestParcelDate !== b.oldestParcelDate) {
+          return a.oldestParcelDate - b.oldestParcelDate;
+        }
+      }
+
+      // 3. Fallback to Room ID
+      return a.id.localeCompare(b.id);
+    });
   };
 
   if (role === null || loading) return <Center minH="100vh"><Spinner color="blue.400" /></Center>;
@@ -602,14 +631,15 @@ export default function Parcel() {
 
   return (
     <MainLayout role={role} currentUser={currentUser}>
-      <Box p={{ base: 2, md: 4 }} maxW="1600px" mx="auto">
-        {/* Header */}
-        <Flex justify="space-between" align="center" mb={6} direction={{ base: "column", md: "row" }} gap={4}>
-          <Heading size={{ base: "md", md: "lg" }} color="gray.700" display="flex" alignItems="center" gap={2}>
-            <Icon as={FaBox} />
-            จัดการพัสดุ
-          </Heading>
-          {["admin", "owner"].includes(role) && (
+      <Flex direction="column" h="full" maxH="calc(100vh - 80px)" p={4} gap={4} overflow="hidden">
+        {/* Fixed Header Section */}
+        <Box flexShrink={0}>
+          <Flex justify="space-between" align="center" mb={4} direction={{ base: "column", md: "row" }} gap={4}>
+            <Heading size="lg" color="gray.700" display="flex" alignItems="center" gap={2}>
+              <Icon as={FaBox} />
+              จัดการพัสดุ
+            </Heading>
+            {["admin", "owner"].includes(role) && (
               <Button
                 leftIcon={<FaPlus />}
                 colorScheme="blue"
@@ -626,30 +656,49 @@ export default function Parcel() {
                   onAddOpen();
                 }}
                 w={{ base: "full", md: "auto" }}
+                size="sm"
               >
                 เพิ่มพัสดุใหม่
               </Button>
             )}
-        </Flex>
+          </Flex>
 
-        {/* Stats Summary */}
-        <Grid templateColumns={{ base: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(5, 1fr)" }} gap={{ base: 3, md: 6 }} mb={8}>
-          <StatBox icon={FaBox} label="ทั้งหมด" value={stats.total} color="blue.600" />
-          <StatBox icon={FaClock} label="รอรับ" value={stats.pending} color="orange.500" />
-          <StatBox icon={FaCheckCircle} label="รับแล้ว" value={stats.received} color="teal.500" />
-          <StatBox icon={FaCheckCircle} label="ส่งมอบแล้ว" value={stats.delivered} color="green.500" />
-          <StatBox icon={FaExclamationTriangle} label="เกินกำหนด" value={stats.overdue} color="red.500" />
-        </Grid>
+          {/* Stats Summary (Horizontal Scroll like Dashboard) */}
+          <Flex
+            overflowX="auto"
+            pb={2}
+            gap={4}
+            mb={2}
+            sx={{
+              '&::-webkit-scrollbar': { display: 'none' },
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+            }}
+          >
+            <Box minW="200px"><StatBox icon={FaBox} label="ทั้งหมด" value={stats.total} color="blue.600" /></Box>
+            <Box minW="200px"><StatBox icon={FaClock} label="รอรับ" value={stats.pending} color="orange.500" /></Box>
+            <Box minW="200px"><StatBox icon={FaCheckCircle} label="รับแล้ว" value={stats.received} color="teal.500" /></Box>
+            <Box minW="200px"><StatBox icon={FaCheckCircle} label="ส่งมอบแล้ว" value={stats.delivered} color="green.500" /></Box>
+            <Box minW="200px"><StatBox icon={FaExclamationTriangle} label="เกินกำหนด" value={stats.overdue} color="red.500" /></Box>
+          </Flex>
 
-        {/* Room Cards with Parcels */}
-        <Box bg="white" p={{ base: 4, md: 6 }} borderRadius="xl" boxShadow="sm">
-          <Flex justify="space-between" align={{ base: "flex-start", md: "center" }} mb={4} direction={{ base: "column", md: "row" }} gap={4}>
-            <Heading size="md" color="gray.700">
+          {/* Controls Bar */}
+          <Flex
+            bg="white"
+            p={3}
+            borderRadius="xl"
+            boxShadow="sm"
+            justify="space-between"
+            align="center"
+            gap={4}
+            direction={{ base: "column", md: "row" }}
+          >
+            <Heading size="sm" color="gray.700">
               {roomFilter === "all" ? `ห้องทั้งหมด (${filteredRooms.length})` : `ห้องที่มีพัสดุรอ (${filteredRooms.length})`}
             </Heading>
-            
+
             <HStack spacing={2} w={{ base: "full", md: "auto" }}>
-              <InputGroup w={{ base: "full", md: "250px" }}>
+              <InputGroup w={{ base: "full", md: "250px" }} size="sm">
                 <InputLeftElement pointerEvents="none">
                   <Icon as={FaSearch} color="gray.400" />
                 </InputLeftElement>
@@ -664,25 +713,38 @@ export default function Parcel() {
               <Select
                 value={roomFilter}
                 onChange={(e) => setRoomFilter(e.target.value as "all" | "with-parcels")}
-                w={{ base: "full", md: "200px" }}
+                w={{ base: "full", md: "180px" }}
                 bg="gray.50"
                 borderRadius="lg"
+                size="sm"
               >
                 <option value="all">แสดงห้องทั้งหมด</option>
                 <option value="with-parcels">เฉพาะห้องที่มีพัสดุ</option>
               </Select>
             </HStack>
           </Flex>
-          
+        </Box>
+
+        {/* Scrollable Room List */}
+        <Box
+          flex="1"
+          overflowY="auto"
+          p={1}
+          sx={{
+            '&::-webkit-scrollbar': { display: 'none' },
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
           {filteredRooms.length === 0 ? (
-            <Center p={10}>
+            <Center h="full">
               <VStack>
                 <Icon as={FaBox} fontSize="4xl" color="gray.300" mb={4} />
                 <Text color="gray.500" fontSize="lg">
-                  {searchTerm.trim() 
+                  {searchTerm.trim()
                     ? `ไม่พบห้องที่ตรงกับ "${searchTerm}"`
-                    : roomFilter === "all" 
-                      ? "ไม่มีห้องในระบบ" 
+                    : roomFilter === "all"
+                      ? "ไม่มีห้องในระบบ"
                       : "ไม่มีพัสดุที่รอส่งมอบ"
                   }
                 </Text>
@@ -694,62 +756,63 @@ export default function Parcel() {
               </VStack>
             </Center>
           ) : (
-            <Grid templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(4, 1fr)" }} gap={6}>
+            <Grid templateColumns={{ base: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)", lg: "repeat(4, 1fr)" }} gap={4}>
               {filteredRooms.map((room) => (
                 <Box
                   key={room.id}
-                  bg="gray.50"
+                  bg="white"
                   borderRadius="xl"
                   p={4}
+                  boxShadow="sm"
                   borderWidth="1px"
-                  borderColor="gray.200"
+                  borderColor="gray.100"
                   cursor="pointer"
                   transition="all 0.2s"
                   _hover={{ boxShadow: "md", transform: "translateY(-2px)", borderColor: "blue.300" }}
                   onClick={() => handleRoomClick(room)}
                 >
-                  <Flex justify="space-between" align="center" mb={3}>
-                    <Text fontWeight="bold" color="blue.700" fontSize="lg">
+                  <Flex justify="space-between" align="center" mb={2}>
+                    <Text fontWeight="bold" color="blue.700" fontSize="md">
                       ห้อง {room.id}
                     </Text>
                     {room.parcelCount > 0 ? (
-                      <Badge colorScheme="blue" borderRadius="full">
+                      <Badge colorScheme="blue" borderRadius="full" fontSize="xs">
                         {room.parcelCount} ชิ้น
                       </Badge>
                     ) : (
-                      <Badge colorScheme="gray" borderRadius="full">
-                        ไม่มีพัสดุ
+                      <Badge colorScheme="gray" borderRadius="full" fontSize="xs">
+                        ไม่มี
                       </Badge>
                     )}
                   </Flex>
-                  
-                  <Text color="gray.600" fontSize="sm" mb={3} noOfLines={1}>
+
+                  <Text color="gray.600" fontSize="xs" mb={3} noOfLines={1} isTruncated>
                     {room.tenantName}
                   </Text>
 
                   {room.parcelCount > 0 ? (
-                    <HStack spacing={2} mb={3}>
+                    <HStack spacing={1} mb={3}>
                       {room.pendingCount > 0 && (
-                        <Badge colorScheme="orange" size="sm">
-                          รอรับ {room.pendingCount}
+                        <Badge colorScheme="orange" fontSize="xs">
+                          รอ {room.pendingCount}
                         </Badge>
                       )}
                       {room.receivedCount > 0 && (
-                        <Badge colorScheme="blue" size="sm">
-                          รับแล้ว {room.receivedCount}
+                        <Badge colorScheme="blue" fontSize="xs">
+                          รับ {room.receivedCount}
                         </Badge>
                       )}
                     </HStack>
                   ) : (
-                    <Box mb={3} h="24px">
+                    <Box mb={3} h="20px">
                       <Text fontSize="xs" color="gray.400">
-                        ไม่มีพัสดุรอส่งมอบ
+                        ไม่มีพัสดุรอ
                       </Text>
                     </Box>
                   )}
 
                   <Button
-                    size="sm"
+                    size="xs"
                     leftIcon={<FaEye />}
                     colorScheme={room.parcelCount > 0 ? "blue" : "gray"}
                     variant="outline"
@@ -801,11 +864,11 @@ export default function Parcel() {
                       <Tr key={parcel.id}>
                         <Td>
                           {parcel.imageUrl ? (
-                            <Image 
-                              src={parcel.imageUrl} 
-                              alt="หลักฐานพัสดุ" 
-                              boxSize="50px" 
-                              objectFit="cover" 
+                            <Image
+                              src={parcel.imageUrl}
+                              alt="หลักฐานพัสดุ"
+                              boxSize="50px"
+                              objectFit="cover"
                               borderRadius="md"
                               cursor="pointer"
                               onClick={() => { setSelectedImage(parcel.imageUrl); onImageOpen(); }}
@@ -833,16 +896,16 @@ export default function Parcel() {
                         </Td>
                         <Td>
                           <Text fontSize="sm">
-                            {parcel.receivedDate?.toDate ? 
-                              parcel.receivedDate.toDate().toLocaleDateString('th-TH') : 
+                            {parcel.receivedDate?.toDate ?
+                              parcel.receivedDate.toDate().toLocaleDateString('th-TH') :
                               'ไม่ระบุ'
                             }
                           </Text>
                           <Text fontSize="xs" color="gray.500">
-                            {parcel.receivedDate?.toDate ? 
-                              parcel.receivedDate.toDate().toLocaleTimeString('th-TH', { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
+                            {parcel.receivedDate?.toDate ?
+                              parcel.receivedDate.toDate().toLocaleTimeString('th-TH', {
+                                hour: '2-digit',
+                                minute: '2-digit'
                               }) :
                               ''
                             }
@@ -920,7 +983,7 @@ export default function Parcel() {
                           />
                         )}
                       </HStack>
-                      
+
                       <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)" }} gap={4}>
                         <Box>
                           <Text mb={1} fontSize="sm" fontWeight="medium" color="gray.600">ห้อง*</Text>
@@ -957,7 +1020,7 @@ export default function Parcel() {
                           bg="gray.50"
                         />
                       </Box>
-                      
+
                       <Box>
                         <Text mb={1} fontSize="sm" fontWeight="medium" color="gray.600">รายละเอียดพัสดุ*</Text>
                         <Input
@@ -1061,7 +1124,7 @@ export default function Parcel() {
           </ModalContent>
         </Modal>
 
-      </Box>
+      </Flex>
     </MainLayout>
   );
 } 
