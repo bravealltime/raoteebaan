@@ -19,7 +19,8 @@ export default function useLogout() {
             await signOut(auth);
 
             // 3. Redirect to login
-            router.replace('/login');
+            // Using window.location.href ensures a full page reload, clearing any in-memory state
+            window.location.href = '/login';
         } catch (error) {
             console.error("Logout failed:", error);
             toast({
