@@ -1,5 +1,6 @@
 import { Box, Button, Text, VStack, Flex, Avatar, Heading, Spacer, Divider, useDisclosure, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay } from "@chakra-ui/react";
 import Link from "next/link";
+import useLogout from '../hooks/useLogout';
 import { useRouter } from "next/router";
 import { FaHome, FaInbox, FaBox, FaUserFriends, FaTachometerAlt, FaSignOutAlt, FaBell } from "react-icons/fa";
 import { motion } from "framer-motion";
@@ -49,13 +50,11 @@ export default function Sidebar({ role, currentUser, onCloseMobileSidebar, onPro
   const { isOpen, onOpen, onClose } = useDisclosure();
   const cancelRef = useRef(null);
 
+  const { logout, isLoading: isLogoutLoading } = useLogout();
+
   const handleLogout = async () => {
-    try {
-      await import("../lib/firebase").then(module => module.auth.signOut());
-      router.push("/login");
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
+    await logout();
+    onClose();
   };
 
   const adminNavItems = [
@@ -167,7 +166,7 @@ export default function Sidebar({ role, currentUser, onCloseMobileSidebar, onPro
               <Button ref={cancelRef} onClick={onClose}>
                 ยกเลิก
               </Button>
-              <Button colorScheme="red" onClick={handleLogout} ml={3}>
+              <Button colorScheme="red" onClick={handleLogout} ml={3} isLoading={isLogoutLoading}>
                 ออกจากระบบ
               </Button>
             </AlertDialogFooter>

@@ -23,7 +23,8 @@ import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { auth, db } from "../lib/firebase";
 import { collection, query, onSnapshot, where, doc } from "firebase/firestore";
-import ProfileModal from './ProfileModal'; // Import the new modal
+import ProfileModal from './ProfileModal';
+import useLogout from '../hooks/useLogout';
 
 interface User {
   uid: string;
@@ -118,23 +119,12 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
     return () => unsubscribe();
   }, [currentUser?.uid]);
 
+  const { logout, isLoading: isLogoutLoading } = useLogout();
+
   const handleLogout = async () => {
-    try {
-      // Call the new logout API route
-      await fetch('/api/auth/logout', { method: 'POST' });
-
-      // Sign out from Firebase on the client-side
-      await auth.signOut();
-
-      // Close modals
-      onLogoutClose();
-      onProfileClose();
-
-      // Redirect to login page
-      router.replace('/login');
-    } catch (error) {
-      console.error("Error signing out: ", error);
-    }
+    await logout();
+    onLogoutClose();
+    onProfileClose();
   };
 
   const handleHomeClick = () => {
@@ -223,10 +213,10 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
               </Badge>
             )}
           </Box>
-          <Avatar 
-            size="sm" 
-            name={profile.name} 
-            src={profile.avatar} 
+          <Avatar
+            size="sm"
+            name={profile.name}
+            src={profile.avatar}
             cursor="pointer"
             onClick={onProfileOpen} // Open modal on click
           />
@@ -251,14 +241,14 @@ export default function AppHeader({ currentUser, onOpenMobileSidebar }: AppHeade
               <Button ref={cancelRef} onClick={onLogoutClose}>
                 ยกเลิก
               </Button>
-              <Button colorScheme="red" onClick={handleLogout} ml={3}>
+              <Button colorScheme="red" onClick={handleLogout} ml={3} isLoading={isLogoutLoading}>
                 ออกจากระบบ
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
-      
+
       {/* Render the ProfileModal */}
       <ProfileModal isOpen={isProfileOpen} onClose={onProfileClose} onLogout={onLogoutOpen} />
     </>

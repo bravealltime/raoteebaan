@@ -1,21 +1,20 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-export async function POST(req: NextRequest) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method not allowed' });
+  }
+
   try {
-    // Create a response object
-    const res = NextResponse.json({ success: true, message: 'Logged out successfully' });
+    // Clear the token cookie by setting it to expire immediately
+    res.setHeader('Set-Cookie', 'token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Strict');
 
-    // Set the token cookie to be expired
-    res.cookies.set('token', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV !== 'development',
-      expires: new Date(0),
-      path: '/',
-    });
-
-    return res;
+    return res.status(200).json({ success: true, message: 'Logged out successfully' });
   } catch (error) {
-    return NextResponse.json({ success: false, message: 'An error occurred during logout.' }, { status: 500 });
+    console.error('Logout error:', error);
+    return res.status(500).json({ success: false, message: 'An error occurred during logout.' });
   }
 }
