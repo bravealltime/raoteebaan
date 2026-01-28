@@ -1,2 +1,19 @@
 node_modules
 .next/
+out/
+build/
+
+# IDE / OS
+.vscode/
+.DS_Store
+*.log
+
+# Environment Variables (CRITICAL)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Gemini / Local Data
+.gemini/
