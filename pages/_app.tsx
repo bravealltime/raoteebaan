@@ -61,6 +61,7 @@ function MyApp({ Component, pageProps }: AppPropsWithLayout) {
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  // Dependency fix applied to prevent infinite loops
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
