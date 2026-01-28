@@ -95,7 +95,12 @@ function MyApp({ Component, pageProps }: AppPropsWithLayout) {
         }
       } else {
         if (currentUser && currentUser.uid) {
-          await setOffline(currentUser.uid);
+          try {
+            // Attempt to set offline, but don't block if it fails (e.g. permission denied)
+            await setOffline(currentUser.uid);
+          } catch (e) {
+            console.error("Failed to set offline status:", e);
+          }
         }
         setCurrentUser(null);
         setRole(null);
@@ -107,7 +112,7 @@ function MyApp({ Component, pageProps }: AppPropsWithLayout) {
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, []); // Remove router dependency to prevent loops
 
   if (loading) {
     return (
