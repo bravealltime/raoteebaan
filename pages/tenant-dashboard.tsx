@@ -483,17 +483,19 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
               <Text fontSize={{ base: "xs", md: "md" }} color="gray.500">ยินดีต้อนรับสู่แดชบอร์ดของคุณ</Text>
             </Box>
           </Flex>
-          <SimpleGrid columns={{ base: 2, sm: 3 }} spacing={3} w={{ base: "full", md: "auto" }}>
-            <Button leftIcon={<FaCommentDots />} colorScheme="blue" variant="outline" size={{ base: "sm", md: "md" }} onClick={onComplaintModalOpen} isDisabled={!roomData}>
-              แจ้งเรื่องทั่วไป
-            </Button>
-            <Button leftIcon={<FaTools />} colorScheme="orange" variant="solid" size={{ base: "sm", md: "md" }} onClick={onReportModalOpen} isDisabled={!roomData}>
-              แจ้งซ่อม
-            </Button>
-            <Button leftIcon={<FaUser />} colorScheme="gray" variant="outline" size={{ base: "sm", md: "md" }} onClick={onProfileOpen}>
-              โปรไฟล์
-            </Button>
-          </SimpleGrid>
+          <Box w={{ base: "full", md: "auto" }}>
+            <VStack spacing={3} w="full" direction={{ base: "column", sm: "row" }} as={Flex} gap={2} align="stretch">
+              <Button leftIcon={<FaCommentDots />} colorScheme="blue" variant="outline" size={{ base: "sm", md: "md" }} onClick={onComplaintModalOpen} isDisabled={!roomData} w={{ base: "full", md: "auto" }}>
+                แจ้งเรื่องทั่วไป
+              </Button>
+              <Button leftIcon={<FaTools />} colorScheme="orange" variant="solid" size={{ base: "sm", md: "md" }} onClick={onReportModalOpen} isDisabled={!roomData} w={{ base: "full", md: "auto" }}>
+                แจ้งซ่อม
+              </Button>
+              <Button leftIcon={<FaUser />} colorScheme="gray" variant="outline" size={{ base: "sm", md: "md" }} onClick={onProfileOpen} w={{ base: "full", md: "auto" }}>
+                โปรไฟล์
+              </Button>
+            </VStack>
+          </Box>
         </Flex>
 
         {/* Announcements Section */}
