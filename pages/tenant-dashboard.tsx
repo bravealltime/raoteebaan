@@ -1,4 +1,4 @@
-import { Box, Heading, Text, Flex, Avatar, VStack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, Spacer, Tooltip, Skeleton, AspectRatio, Collapse } from "@chakra-ui/react";
+import { Box, Heading, Text, Flex, Avatar, VStack, Stack, Icon, Badge, Card, CardHeader, CardBody, SimpleGrid, useToast, Button, Spinner, Center, AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, AlertDialogCloseButton, useDisclosure, Table, Thead, Tbody, Tr, Th, Td, TableContainer, Image, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, IconButton, Spacer, Tooltip, Skeleton, AspectRatio, Collapse } from "@chakra-ui/react";
 import Script from 'next/script';
 import { useRouter } from "next/router";
 import { useEffect, useState, useRef } from "react";
@@ -484,7 +484,7 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
             </Box>
           </Flex>
           <Box w={{ base: "full", md: "auto" }}>
-            <VStack spacing={3} w="full" direction={{ base: "column", sm: "row" }} as={Flex} gap={2} align="stretch">
+            <Stack direction={{ base: "column", md: "row" }} spacing={3} w="full" align="stretch">
               <Button leftIcon={<FaCommentDots />} colorScheme="blue" variant="outline" size={{ base: "sm", md: "md" }} onClick={onComplaintModalOpen} isDisabled={!roomData} w={{ base: "full", md: "auto" }}>
                 แจ้งเรื่องทั่วไป
               </Button>
@@ -494,7 +494,7 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
               <Button leftIcon={<FaUser />} colorScheme="gray" variant="outline" size={{ base: "sm", md: "md" }} onClick={onProfileOpen} w={{ base: "full", md: "auto" }}>
                 โปรไฟล์
               </Button>
-            </VStack>
+            </Stack>
           </Box>
         </Flex>
 
