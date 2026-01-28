@@ -475,25 +475,25 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
       />
       <Box p={{ base: 4, md: 6 }} bg="gray.50" minH="100vh">
         {/* Section 1: Header */}
-        <Flex mb={6} justify="space-between" align="center">
+        <Flex direction={{ base: "column", md: "row" }} mb={6} justify="space-between" align={{ base: "start", md: "center" }} gap={4}>
           <Flex align="center">
-            <Avatar size="lg" src={currentUser?.photoURL} name={currentUser?.name} mr={4} />
+            <Avatar size={{ base: "md", md: "lg" }} src={currentUser?.photoURL} name={currentUser?.name} mr={4} />
             <Box>
-              <Heading size="md" color="gray.700">สวัสดี, {currentUser?.name || 'ผู้เช่า'}</Heading>
-              <Text color="gray.500">ยินดีต้อนรับสู่แดชบอร์ดของคุณ</Text>
+              <Heading size={{ base: "sm", md: "md" }} color="gray.700">สวัสดี, {currentUser?.name || 'ผู้เช่า'}</Heading>
+              <Text fontSize={{ base: "xs", md: "md" }} color="gray.500">ยินดีต้อนรับสู่แดชบอร์ดของคุณ</Text>
             </Box>
           </Flex>
-          <Flex gap={3}>
-            <Button leftIcon={<FaCommentDots />} colorScheme="blue" variant="outline" onClick={onComplaintModalOpen} isDisabled={!roomData}>
+          <SimpleGrid columns={{ base: 2, sm: 3 }} spacing={3} w={{ base: "full", md: "auto" }}>
+            <Button leftIcon={<FaCommentDots />} colorScheme="blue" variant="outline" size={{ base: "sm", md: "md" }} onClick={onComplaintModalOpen} isDisabled={!roomData}>
               แจ้งเรื่องทั่วไป
             </Button>
-            <Button leftIcon={<FaTools />} colorScheme="orange" variant="solid" onClick={onReportModalOpen} isDisabled={!roomData}>
+            <Button leftIcon={<FaTools />} colorScheme="orange" variant="solid" size={{ base: "sm", md: "md" }} onClick={onReportModalOpen} isDisabled={!roomData}>
               แจ้งซ่อม
             </Button>
-            <Button leftIcon={<FaUser />} colorScheme="gray" variant="outline" onClick={onProfileOpen}>
+            <Button leftIcon={<FaUser />} colorScheme="gray" variant="outline" size={{ base: "sm", md: "md" }} onClick={onProfileOpen}>
               โปรไฟล์
             </Button>
-          </Flex>
+          </SimpleGrid>
         </Flex>
 
         {/* Announcements Section */}
@@ -513,12 +513,12 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
             borderColor={roomData.billStatus === 'unpaid' ? "red.200" : "gray.200"}
           >
             <CardHeader>
-              <Flex justify="space-between" align="center">
-                <Heading size="lg" color={roomData.billStatus === 'unpaid' ? "red.700" : "brand.700"}>
+              <Flex justify="space-between" align="center" direction={{ base: "column", sm: "row" }} gap={2}>
+                <Heading size={{ base: "md", md: "lg" }} color={roomData.billStatus === 'unpaid' ? "red.700" : "brand.700"}>
                   <Icon as={FaFileInvoice} mr={3} />
                   สถานะบิลล่าสุด
                 </Heading>
-                <Badge fontSize="lg" px={4} py={1.5} borderRadius="full" colorScheme={getStatusColor(roomData.billStatus)}>
+                <Badge fontSize={{ base: "md", md: "lg" }} px={4} py={1.5} borderRadius="full" colorScheme={getStatusColor(roomData.billStatus)}>
                   {getStatusText(roomData.billStatus)}
                 </Badge>
               </Flex>
@@ -527,22 +527,25 @@ function TenantDashboard({ currentUser, role }: TenantDashboardProps) {
               {roomData.billStatus === 'unpaid' ? (
                 <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
                   <VStack align={{ base: 'center', lg: 'flex-start' }} spacing={4}>
-                    <Text fontSize="lg" color="gray.600">ยอดเงินที่ต้องชำระ:</Text>
-                    <Text fontSize="5xl" fontWeight="bold" color="red.600" lineHeight="1">
+                    <Text fontSize={{ base: "md", md: "lg" }} color="gray.600">ยอดเงินที่ต้องชำระ:</Text>
+                    <Text fontSize={{ base: "4xl", md: "5xl" }} fontWeight="bold" color="red.600" lineHeight="1">
                       {roomData.latestTotal.toLocaleString()}
                       <Text as="span" fontSize="2xl" fontWeight="medium" ml={2}>บาท</Text>
                     </Text>
                     {roomData.overdueDays > 0 && (
-                      <Text color="red.500" fontWeight="bold">
+                      <Badge colorScheme="red" fontSize="md" p={2} borderRadius="md">
                         เกินกำหนดชำระ {roomData.overdueDays} วัน
-                      </Text>
+                      </Badge>
                     )}
                     <Button
                       mt={4}
                       size="lg"
                       colorScheme="red"
                       rightIcon={<FaArrowRight />}
+                      w={{ base: "full", md: "auto" }}
                       onClick={() => router.push(`/bill/${roomData.id}`)}
+                      boxShadow="lg"
+                      _hover={{ transform: 'translateY(-2px)', boxShadow: 'xl' }}
                     >
                       ชำระเงินทันที
                     </Button>
