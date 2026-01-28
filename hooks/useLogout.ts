@@ -15,6 +15,12 @@ export default function useLogout() {
             // 1. Call API to clear cookie
             await fetch('/api/auth/logout', { method: 'POST' });
 
+            // Explicitly clear cookie on client side as backup
+            // import Cookies from 'js-cookie'; needs to be added at top. 
+            // Since we can't easily add import with replace_file_content at top, we will use a dynamic import or assuming global if available? 
+            // Better to use multi_replace to add import. But for now, let's rely on document.cookie
+            document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+
             // 2. Sign out from Firebase
             await signOut(auth);
 

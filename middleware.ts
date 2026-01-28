@@ -8,7 +8,7 @@ function getDashboardPath(role: string): string {
     switch (role) {
         case 'admin': return '/dashboard';
         case 'owner': return '/owner-dashboard';
-        case 'employee': return '/employee'; 
+        case 'employee': return '/employee';
         case 'technician': return '/technician-dashboard';
         case 'user': return '/tenant-dashboard';
         default: return '/login'; // Default to login if role is unknown
@@ -25,10 +25,29 @@ export async function middleware(request: NextRequest) {
     // If the route is public, let the request through
     if (publicRoutes.includes(pathname)) {
         if (token) {
-            // If a token exists on a public route, clear it and redirect to login
-            const res = NextResponse.redirect(new URL('/login', request.url));
-            res.cookies.set('token', '', { expires: new Date(0), path: '/' });
-            return res;
+            // Check if token is valid
+            try {
+                const verifyUrl = new URL('/api/auth/verify-token', request.url);
+                const response = await fetch(verifyUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+
+                if (response.ok) {
+                    const { role } = await response.json();
+                    if (role) {
+                        // User is already logged in, redirect to dashboard
+                        const userDashboard = getDashboardPath(role);
+                        return NextResponse.redirect(new URL(userDashboard, request.url));
+                    }
+                }
+            } catch (error) {
+                // Token invalid, let them stay on login page but clear the cookie
+                const res = NextResponse.next();
+                res.cookies.set('token', '', { expires: new Date(0), path: '/' });
+                return res;
+            }
         }
         return NextResponse.next();
     }
@@ -72,7 +91,7 @@ export async function middleware(request: NextRequest) {
         };
 
         const allowedPaths = accessControl[role];
-        
+
         // Check if the user's role has access to the requested path
         if (allowedPaths && allowedPaths.some(p => pathname.startsWith(p))) {
             // For dynamic routes like /history/[id], further checks should be done on the client/server-side component
@@ -92,14 +111,14 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - public assets (fonts, images, etc.)
-     */
-    '/((?!api|_next/static|_next/image|.*\.(?:svg|png|jpg|jpeg|gif|ico|ttf|mp3|js|css)$).*)',
-  ],
+    matcher: [
+        /*
+         * Match all request paths except for the ones starting with:
+         * - api (API routes)
+         * - _next/static (static files)
+         * - _next/image (image optimization files)
+         * - public assets (fonts, images, etc.)
+         */
+        '/((?!api|_next/static|_next/image|.*\.(?:svg|png|jpg|jpeg|gif|ico|ttf|mp3|js|css)$).*)',
+    ],
 };
