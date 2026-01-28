@@ -51,7 +51,7 @@ export default function Login() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       const idToken = await user.getIdToken();
-      
+
       // Set token in cookie
       Cookies.set('token', idToken, { expires: 1, path: '/' });
 
@@ -144,8 +144,8 @@ export default function Login() {
             </Text>
           </div>
           <HStack justify="center" align="end" gap={4}>
-            <Image src="/avatar.png" alt="Mascot" boxSize="80px" borderRadius="full" bg="whiteAlpha.800" />
-            <Image src="/avatar.png" alt="Mascot2" boxSize="80px" borderRadius="full" bg="whiteAlpha.800" />
+            <Image src="https://bit.ly/dan-abramov" alt="Admin" boxSize="80px" borderRadius="full" bg="whiteAlpha.800" />
+            <Image src="https://bit.ly/ryan-florence" alt="Owner" boxSize="80px" borderRadius="full" bg="whiteAlpha.800" />
           </HStack>
         </VStack>
         {/* Right: Login Form */}
